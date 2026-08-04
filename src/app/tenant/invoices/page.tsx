@@ -3,7 +3,7 @@ import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { tenantPayInvoice, toggleAutoPay } from "@/app/actions/business";
 
-export default async function TenantInvoicesPage() {
+export default async function TenantPaymentsPage() {
   const { supabase, user } = await requireRole(["tenant"]);
   const { data: tenant } = await supabase
     .from("tenants")
@@ -27,11 +27,23 @@ export default async function TenantInvoicesPage() {
       .maybeSingle(),
   ]);
 
+  const openInvoices = (invoices ?? []).filter((inv) =>
+    ["sent", "partial", "overdue", "disputed", "draft"].includes(inv.status)
+  );
+  const pastInvoices = (invoices ?? []).filter((inv) =>
+    ["paid", "void"].includes(inv.status)
+  );
+
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Invoices & payments
-      </h1>
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">
+          Payments
+        </h1>
+        <p className="text-slate-600">
+          Pay open balances and review your past invoices.
+        </p>
+      </div>
 
       <Card title="Auto-pay (simulated ACH)">
         <p className="mb-3 text-sm text-slate-600">
@@ -56,54 +68,120 @@ export default async function TenantInvoicesPage() {
         </form>
       </Card>
 
-      {(invoices ?? []).map((inv) => {
-        const due = Number(inv.total) - Number(inv.amount_paid);
-        const lines = (inv.invoice_lines as { line_type: string; description: string; amount: number }[]) ?? [];
-        return (
-          <Card
-            key={inv.id}
-            title={inv.invoice_number}
-            action={<Badge status={inv.status} />}
-          >
+      <section className="space-y-4">
+        <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
+          Open balance
+        </h2>
+        {openInvoices.length === 0 ? (
+          <Card title="No open invoices">
             <p className="text-sm text-slate-600">
-              Issued {inv.issue_date} · Due {inv.due_date} · Total{" "}
-              {formatMoney(inv.total)} · Paid {formatMoney(inv.amount_paid)}
+              You have nothing due right now.
             </p>
-            <ul className="mt-2 space-y-1 text-xs text-slate-600">
-              {lines.map((l, i) => (
-                <li key={i} className="flex justify-between">
-                  <span>
-                    [{l.line_type}] {l.description}
-                  </span>
-                  <span>{formatMoney(l.amount)}</span>
-                </li>
-              ))}
-            </ul>
-            {due > 0 && !["void", "disputed", "draft"].includes(inv.status) ? (
-              <form action={tenantPayInvoice} className="mt-4 flex flex-wrap gap-2">
-                <input type="hidden" name="invoice_id" value={inv.id} />
-                <input type="hidden" name="amount" value={due} />
-                <input
-                  type="hidden"
-                  name="auto_pay"
-                  value={autoPay?.enabled ? "true" : "false"}
-                />
-                <button
-                  type="submit"
-                  className="rounded bg-[#c4784a] px-4 py-2 text-sm text-white"
-                >
-                  Pay {formatMoney(due)} (simulate)
-                </button>
-              </form>
-            ) : null}
-            {inv.status === "disputed" ? (
-              <p className="mt-2 text-sm text-rose-700">
-                Dispute: {inv.dispute_reason}
-              </p>
-            ) : null}
           </Card>
-        );
-      })}
+        ) : (
+          openInvoices.map((inv) => {
+            const due = Number(inv.total) - Number(inv.amount_paid);
+            const lines =
+              (inv.invoice_lines as {
+                line_type: string;
+                description: string;
+                amount: number;
+              }[]) ?? [];
+            return (
+              <Card
+                key={inv.id}
+                title={inv.invoice_number}
+                action={<Badge status={inv.status} />}
+              >
+                <p className="text-sm text-slate-600">
+                  Issued {inv.issue_date} · Due {inv.due_date} · Total{" "}
+                  {formatMoney(inv.total)} · Paid {formatMoney(inv.amount_paid)}
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                  {lines.map((l, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span>
+                        [{l.line_type}] {l.description}
+                      </span>
+                      <span>{formatMoney(l.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {due > 0 &&
+                !["void", "disputed", "draft"].includes(inv.status) ? (
+                  <form
+                    action={tenantPayInvoice}
+                    className="mt-4 flex flex-wrap gap-2"
+                  >
+                    <input type="hidden" name="invoice_id" value={inv.id} />
+                    <input type="hidden" name="amount" value={due} />
+                    <input
+                      type="hidden"
+                      name="auto_pay"
+                      value={autoPay?.enabled ? "true" : "false"}
+                    />
+                    <button
+                      type="submit"
+                      className="rounded bg-[#c4784a] px-4 py-2 text-sm text-white"
+                    >
+                      Pay {formatMoney(due)} (simulate)
+                    </button>
+                  </form>
+                ) : null}
+                {inv.status === "disputed" ? (
+                  <p className="mt-2 text-sm text-rose-700">
+                    Dispute: {inv.dispute_reason}
+                  </p>
+                ) : null}
+              </Card>
+            );
+          })
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
+          Past Invoices
+        </h2>
+        {pastInvoices.length === 0 ? (
+          <Card title="No past invoices">
+            <p className="text-sm text-slate-600">
+              Paid and voided invoices will appear here.
+            </p>
+          </Card>
+        ) : (
+          pastInvoices.map((inv) => {
+            const lines =
+              (inv.invoice_lines as {
+                line_type: string;
+                description: string;
+                amount: number;
+              }[]) ?? [];
+            return (
+              <Card
+                key={inv.id}
+                title={inv.invoice_number}
+                action={<Badge status={inv.status} />}
+              >
+                <p className="text-sm text-slate-600">
+                  Issued {inv.issue_date} · Due {inv.due_date} · Total{" "}
+                  {formatMoney(inv.total)} · Paid {formatMoney(inv.amount_paid)}
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                  {lines.map((l, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span>
+                        [{l.line_type}] {l.description}
+                      </span>
+                      <span>{formatMoney(l.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            );
+          })
+        )}
+      </section>
     </div>
   );
 }

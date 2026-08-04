@@ -22,7 +22,7 @@ export default async function TenantLeasePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">My lease</h1>
+      <h1 className="font-[family-name:var(--font-display)] text-3xl">My leases</h1>
       {(leases ?? []).map((l) => {
         const prop = Array.isArray(l.properties) ? l.properties[0] : l.properties;
         const deps = (l.security_deposits as { amount: number; status: string; notes: string | null }[]) ?? [];

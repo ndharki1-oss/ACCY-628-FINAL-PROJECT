@@ -2,6 +2,13 @@ import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
 import { createTenantRequest } from "@/app/actions/business";
 
+const ACTIVE_STATUSES = new Set([
+  "open",
+  "in_review",
+  "in_progress",
+  "assigned",
+]);
+
 export default async function TenantRequestsPage() {
   const { supabase, user } = await requireRole(["tenant"]);
   const { data: tenant } = await supabase
@@ -19,11 +26,24 @@ export default async function TenantRequestsPage() {
     .eq("tenant_id", tenantId!)
     .order("created_at", { ascending: false });
 
+  const activeRequests = (requests ?? []).filter((r) =>
+    ACTIVE_STATUSES.has(r.status)
+  );
+  const pastRequests = (requests ?? []).filter(
+    (r) => !ACTIVE_STATUSES.has(r.status)
+  );
+
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Service requests
-      </h1>
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">
+          Maintenance Requests
+        </h1>
+        <p className="text-slate-600">
+          Submit new issues and track open or past requests.
+        </p>
+      </div>
+
       <Card title="New request">
         <form action={createTenantRequest} className="space-y-3 text-sm">
           <input
@@ -46,18 +66,49 @@ export default async function TenantRequestsPage() {
           </button>
         </form>
       </Card>
-      <Card title="Your requests">
-        <ul className="space-y-2 text-sm">
-          {(requests ?? []).map((r) => (
-            <li key={r.id} className="flex justify-between border-b border-slate-50 py-2">
-              <div>
-                <p className="font-medium">{r.title}</p>
-                <p className="text-xs text-slate-500">{r.description}</p>
-              </div>
-              <Badge status={r.status} />
-            </li>
-          ))}
-        </ul>
+
+      <Card title="Open requests">
+        {activeRequests.length === 0 ? (
+          <p className="text-sm text-slate-600">No open maintenance requests.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {activeRequests.map((r) => (
+              <li
+                key={r.id}
+                className="flex justify-between border-b border-slate-50 py-2"
+              >
+                <div>
+                  <p className="font-medium">{r.title}</p>
+                  <p className="text-xs text-slate-500">{r.description}</p>
+                </div>
+                <Badge status={r.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title="Past requests">
+        {pastRequests.length === 0 ? (
+          <p className="text-sm text-slate-600">
+            Completed and closed requests will appear here.
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {pastRequests.map((r) => (
+              <li
+                key={r.id}
+                className="flex justify-between border-b border-slate-50 py-2"
+              >
+                <div>
+                  <p className="font-medium">{r.title}</p>
+                  <p className="text-xs text-slate-500">{r.description}</p>
+                </div>
+                <Badge status={r.status} />
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );
