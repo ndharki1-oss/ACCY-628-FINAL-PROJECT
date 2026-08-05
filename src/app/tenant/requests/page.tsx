@@ -1,10 +1,9 @@
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
 import { createTenantRequest } from "@/app/tenant/actions";
+import { OpenRequestStatusMenu } from "@/app/tenant/open-request-status-menu";
+import { RequestSubmittedBanner } from "@/app/tenant/request-submitted-banner";
 import { statusClass } from "@/lib/utils";
-
-const MAINTENANCE_REQUEST_THANK_YOU =
-  "Thank you for submitting a maintenance request. We will review your request and get back to you as soon as possible.";
 
 const ACTIVE_STATUSES = new Set([
   "open",
@@ -38,6 +37,7 @@ function RequestStatus({ status }: { status: string }) {
 
 function RequestListItem({
   request,
+  cancellable = false,
 }: {
   request: {
     id: string;
@@ -47,7 +47,12 @@ function RequestListItem({
     service_type?: string | null;
     request_date?: string | null;
     recurring_issue?: boolean | null;
+    work_orders?:
+      | { wo_number: string; status: string }
+      | { wo_number: string; status: string }[]
+      | null;
   };
+  cancellable?: boolean;
 }) {
   const meta = [
     request.service_type,
@@ -57,6 +62,10 @@ function RequestListItem({
     .filter(Boolean)
     .join(" · ");
 
+  const workOrder = Array.isArray(request.work_orders)
+    ? request.work_orders[0]
+    : request.work_orders;
+
   return (
     <li className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0">
@@ -65,8 +74,18 @@ function RequestListItem({
         {request.description ? (
           <p className="mt-1 text-sm text-slate-600">{request.description}</p>
         ) : null}
+        {workOrder ? (
+          <p className="mt-1 text-xs font-medium text-[#c4784a]">
+            Work order {workOrder.wo_number} ·{" "}
+            {workOrder.status.replaceAll("_", " ")}
+          </p>
+        ) : null}
       </div>
-      <RequestStatus status={request.status} />
+      {cancellable ? (
+        <OpenRequestStatusMenu requestId={request.id} status={request.status} />
+      ) : (
+        <RequestStatus status={request.status} />
+      )}
     </li>
   );
 }
@@ -96,7 +115,7 @@ export default async function TenantRequestsPage({
 
   const { data: requests } = await supabase
     .from("tenant_requests")
-    .select("*")
+    .select("*, work_orders!tenant_request_id(wo_number, status)")
     .eq("tenant_id", tenantId!)
     .order("created_at", { ascending: false });
 
@@ -127,27 +146,12 @@ export default async function TenantRequestsPage({
       </div>
 
       {params.submitted === "1" ? (
-        <Card title="Request submitted">
-          <p className="text-sm text-[#0c1f2e]">
-            {MAINTENANCE_REQUEST_THANK_YOU}
-          </p>
-          {sentViaLabels.length > 0 ? (
-            <p className="mt-3 text-sm text-slate-600">
-              A copy of your maintenance request was sent by{" "}
-              {sentViaLabels.join(" and ")}
-              {tenantRow?.email && via.includes("email")
-                ? ` to ${tenantRow.email}`
-                : ""}
-              {tenantRow?.phone && via.includes("sms")
-                ? `${via.includes("email") ? " and" : " to"} ${tenantRow.phone}`
-                : ""}
-              .
-            </p>
-          ) : null}
-          <p className="mt-2 text-xs text-slate-500">
-            Delivery is simulated for this demo environment.
-          </p>
-        </Card>
+        <RequestSubmittedBanner
+          viaLabels={sentViaLabels}
+          email={tenantRow?.email}
+          phone={tenantRow?.phone}
+          via={via}
+        />
       ) : null}
 
       <Card title="New Request">
@@ -285,7 +289,7 @@ export default async function TenantRequestsPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {activeRequests.map((r) => (
-              <RequestListItem key={r.id} request={r} />
+              <RequestListItem key={r.id} request={r} cancellable />
             ))}
           </ul>
         )}
