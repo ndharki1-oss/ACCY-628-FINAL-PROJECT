@@ -1,14 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import {
+  hrefForTenantNotification,
   loadTenantNotifications,
   markAllTenantNotificationsRead,
+  syncDerivedTenantNotifications,
   TENANT_NOTIFICATIONS_EVENT,
+  type CheckoutLeaseHint,
   type TenantNotification,
+  type WaitingMessageHint,
 } from "@/lib/tenant-notifications-store";
 
-export function TenantNotifications() {
+export function TenantNotifications({
+  checkoutLeases = [],
+  waitingMessage = null,
+}: {
+  checkoutLeases?: CheckoutLeaseHint[];
+  waitingMessage?: WaitingMessageHint | null;
+}) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<TenantNotification[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -16,8 +27,14 @@ export function TenantNotifications() {
   const unread = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
+    syncDerivedTenantNotifications({ checkoutLeases, waitingMessage });
+    setNotifications(loadTenantNotifications());
+    // Serialize so stable server payloads don't thrash on new array identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [JSON.stringify(checkoutLeases), JSON.stringify(waitingMessage)]);
+
+  useEffect(() => {
     const sync = () => setNotifications(loadTenantNotifications());
-    sync();
     window.addEventListener(TENANT_NOTIFICATIONS_EVENT, sync);
     window.addEventListener("storage", sync);
     return () => {
@@ -74,7 +91,7 @@ export function TenantNotifications() {
           />
         </svg>
         {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c4784a] px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
@@ -84,46 +101,65 @@ export function TenantNotifications() {
         <div
           id={panelId}
           role="region"
-          aria-label="Message notifications"
+          aria-label="Notifications"
           className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-lg"
         >
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="font-[family-name:var(--font-display)] text-base text-[#0c1f2e]">
-              Messages
+              Notifications
             </p>
             <p className="text-xs text-slate-500">Updates Needing Attention</p>
           </div>
 
           {notifications.length === 0 ? (
             <div className="px-4 py-6 text-sm text-slate-600">
-              No New Messages
+              No New Notifications
             </div>
           ) : (
             <ul className="max-h-80 overflow-y-auto">
-              {notifications.map((n) => (
-                <li
-                  key={n.id}
-                  className={`border-b border-slate-50 px-4 py-3 last:border-0 ${
-                    n.read ? "bg-white" : "bg-[#f8f1ea]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-medium text-[#0c1f2e]">
-                      {n.subject}
+              {notifications.map((n) => {
+                const href = hrefForTenantNotification(n);
+                const body = (
+                  <>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-[#0c1f2e]">
+                        {n.subject}
+                      </p>
+                      {!n.read ? (
+                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600" />
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
+                      {n.fromRole} · {n.fromName}
                     </p>
-                    {!n.read ? (
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#c4784a]" />
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
-                    {n.fromRole} · {n.fromName}
-                  </p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-600">
-                    {n.preview}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">{n.sentAt}</p>
-                </li>
-              ))}
+                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                      {n.preview}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">{n.sentAt}</p>
+                  </>
+                );
+
+                return (
+                  <li
+                    key={n.id}
+                    className={`border-b border-slate-50 last:border-0 ${
+                      n.read ? "bg-white" : "bg-[#f8f1ea]"
+                    }`}
+                  >
+                    {href ? (
+                      <Link
+                        href={href}
+                        onClick={() => setOpen(false)}
+                        className="block px-4 py-3 transition hover:bg-slate-50"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className="px-4 py-3">{body}</div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
