@@ -9,6 +9,7 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/admin/owners", label: "Property Owners" },
     { href: "/admin/leases", label: "Leases" },
     { href: "/admin/billing", label: "Billing" },
+    { href: "/admin/statements", label: "Statements" },
     { href: "/admin/work-orders", label: "Work Orders" },
     { href: "/admin/profitability", label: "Mgmt P&L" },
     { href: "/admin/reports/property-pnl", label: "Property P&L" },
@@ -42,6 +43,7 @@ const nav: Record<string, { href: string; label: string }[]> = {
   ],
   accounting: [
     { href: "/accounting", label: "Accounting" },
+    { href: "/accounting/statements", label: "Statements" },
     { href: "/accounting/profitability", label: "Mgmt P&L" },
     { href: "/accounting/reports/property-pnl", label: "Property P&L" },
     { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
