@@ -1,38 +1,41 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
 
 export default async function TenantDashboard() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, company_name")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const { tenantId, tenant, error: tenantError } = await getLinkedTenantId(
+    supabase,
+    user
+  );
 
   const [{ data: lease }, { data: invoices }, { data: requests }] =
     await Promise.all([
-      supabase
-        .from("leases")
-        .select("*, properties(name, address_line1, city, state)")
-        .eq("tenant_id", tenantId!)
-        .order("start_date", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("invoices")
-        .select("*")
-        .eq("tenant_id", tenantId!)
-        .order("due_date", { ascending: false }),
-      supabase
-        .from("tenant_requests")
-        .select("*")
-        .eq("tenant_id", tenantId!)
-        .eq("status", "open"),
+      tenantId
+        ? supabase
+            .from("leases")
+            .select("*, properties(name, address_line1, city, state)")
+            .eq("tenant_id", tenantId)
+            .order("start_date", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      tenantId
+        ? supabase
+            .from("invoices")
+            .select("*")
+            .eq("tenant_id", tenantId)
+            .order("due_date", { ascending: false })
+        : Promise.resolve({ data: [] }),
+      tenantId
+        ? supabase
+            .from("tenant_requests")
+            .select("*")
+            .eq("tenant_id", tenantId)
+            .eq("status", "open")
+        : Promise.resolve({ data: [] }),
     ]);
 
   const balance = (invoices ?? [])
@@ -54,6 +57,10 @@ export default async function TenantDashboard() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
         Tenant portal
       </h1>
+      <p className="text-slate-600">
+        {tenant?.company_name ?? "Your lease, invoices, and service requests."}
+      </p>
+      {tenantError ? <p className="text-sm text-rose-700">{tenantError}</p> : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Balance due" value={formatMoney(balance)} />
         <Stat

@@ -1,30 +1,24 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { tenantPayInvoice, toggleAutoPay } from "@/app/actions/business";
 
 export default async function TenantInvoicesPage() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const { tenantId, error: tenantError } = await getLinkedTenantId(supabase, user);
 
   const [{ data: invoices }, { data: autoPay }] = await Promise.all([
-    supabase
-      .from("invoices")
-      .select("*, invoice_lines(line_type, description, amount)")
-      .eq("tenant_id", tenantId!)
-      .order("due_date", { ascending: false }),
-    supabase
-      .from("auto_pay_settings")
-      .select("*")
-      .eq("tenant_id", tenantId!)
-      .maybeSingle(),
+    tenantId
+      ? supabase
+          .from("invoices")
+          .select("*, invoice_lines(line_type, description, amount)")
+          .eq("tenant_id", tenantId)
+          .order("due_date", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    tenantId
+      ? supabase.from("auto_pay_settings").select("*").eq("tenant_id", tenantId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   return (
@@ -32,6 +26,7 @@ export default async function TenantInvoicesPage() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
         Invoices & payments
       </h1>
+      {tenantError ? <p className="text-sm text-rose-700">{tenantError}</p> : null}
 
       <Card title="Auto-pay (simulated ACH)">
         <p className="mb-3 text-sm text-slate-600">
@@ -56,6 +51,9 @@ export default async function TenantInvoicesPage() {
         </form>
       </Card>
 
+      {(invoices ?? []).length === 0 ? (
+        <p className="text-sm text-slate-600">No invoices yet.</p>
+      ) : null}
       {(invoices ?? []).map((inv) => {
         const due = Number(inv.total) - Number(inv.amount_paid);
         const lines = (inv.invoice_lines as { line_type: string; description: string; amount: number }[]) ?? [];

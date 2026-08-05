@@ -81,6 +81,13 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: workOrder, error: woLookupError } = await supabase
+    .from("work_orders")
+    .select("id, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (woLookupError) throw new Error(woLookupError.message);
+
   const { error } = await supabase
     .from("work_orders")
     .update({
@@ -110,28 +117,117 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     p_detail: { reason },
   });
 
+  revalidatePath("/owner");
   revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (workOrder?.property_id) {
+    revalidatePath(`/owner/properties/${workOrder.property_id}`);
+  }
   revalidatePath("/admin/work-orders");
 }
 
 export async function ownerApproveCost(formData: FormData) {
   const id = String(formData.get("id"));
+  const decision = String(formData.get("decision") ?? "approve");
+  const reason = String(formData.get("reason") ?? "").trim();
   const supabase = await createClient();
-  const { error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: cost, error: costLookupError } = await supabase
     .from("cost_entries")
-    .update({
-      owner_approved: true,
-      owner_approved_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  await supabase.rpc("write_audit", {
-    p_action: "owner_approve_cost",
-    p_entity_type: "cost_entry",
-    p_entity_id: id,
-    p_detail: {},
-  });
+    .select("id, amount, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (costLookupError) throw new Error(costLookupError.message);
+  if (!cost) throw new Error("Cost entry not found");
+
+  if (decision === "deny") {
+    const { error } = await supabase.from("approvals").insert({
+      entity_type: "cost_entry",
+      entity_id: id,
+      approver_role: "owner",
+      status: "rejected",
+      amount: cost.amount,
+      notes: reason || "Owner denied expenditure",
+      decided_by: user.id,
+      decided_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    await supabase.rpc("write_audit", {
+      p_action: "owner_deny_cost",
+      p_entity_type: "cost_entry",
+      p_entity_id: id,
+      p_detail: { reason },
+    });
+  } else {
+    const { error } = await supabase
+      .from("cost_entries")
+      .update({
+        owner_approved: true,
+        owner_approved_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    await supabase.rpc("write_audit", {
+      p_action: "owner_approve_cost",
+      p_entity_type: "cost_entry",
+      p_entity_id: id,
+      p_detail: {},
+    });
+  }
+
+  revalidatePath("/owner");
   revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (cost.property_id) {
+    revalidatePath(`/owner/properties/${cost.property_id}`);
+  }
+}
+
+export async function ownerReviewTenantRequest(formData: FormData) {
+  const id = String(formData.get("id"));
+  const decision = String(formData.get("decision"));
+  const notes = String(formData.get("notes") ?? "").trim();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: request, error: requestLookupError } = await supabase
+    .from("tenant_requests")
+    .select("id, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (requestLookupError) throw new Error(requestLookupError.message);
+
+  const status = decision === "approve" ? "approved" : "declined";
+  const { error } = await supabase
+    .from("tenant_requests")
+    .update({ status })
+    .eq("id", id)
+    .eq("status", "open");
+
+  if (error) throw new Error(error.message);
+
+  await supabase.rpc("write_audit", {
+    p_action:
+      decision === "approve" ? "owner_approve_request" : "owner_decline_request",
+    p_entity_type: "tenant_request",
+    p_entity_id: id,
+    p_detail: { notes },
+  });
+
+  revalidatePath("/owner");
+  revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (request?.property_id) {
+    revalidatePath(`/owner/properties/${request.property_id}`);
+  }
+  revalidatePath("/tenant/requests");
 }
 
 export async function tenantPayInvoice(formData: FormData) {
@@ -247,6 +343,7 @@ export async function createTenantRequest(formData: FormData) {
     description,
   });
   revalidatePath("/tenant/requests");
+  revalidatePath("/owner");
 }
 
 export async function closeAccountingPeriod(formData: FormData) {

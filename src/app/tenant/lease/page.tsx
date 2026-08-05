@@ -1,28 +1,28 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 
 export default async function TenantLeasePage() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const { tenantId, error: tenantError } = await getLinkedTenantId(supabase, user);
 
-  const { data: leases } = await supabase
-    .from("leases")
-    .select(
-      "*, properties(name), security_deposits(amount, status, notes), lease_amendments(amendment_type, description, effective_date)"
-    )
-    .eq("tenant_id", tenantId!);
+  const { data: leases, error } = tenantId
+    ? await supabase
+        .from("leases")
+        .select(
+          "*, properties(name), security_deposits(amount, status, notes), lease_amendments(amendment_type, description, effective_date)"
+        )
+        .eq("tenant_id", tenantId)
+    : { data: [], error: tenantError ? { message: tenantError } : null };
 
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-3xl">My lease</h1>
+      {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
+      {(leases ?? []).length === 0 && !error ? (
+        <p className="text-sm text-slate-600">No leases are linked to this tenant yet.</p>
+      ) : null}
       {(leases ?? []).map((l) => {
         const prop = Array.isArray(l.properties) ? l.properties[0] : l.properties;
         const deps = (l.security_deposits as { amount: number; status: string; notes: string | null }[]) ?? [];
