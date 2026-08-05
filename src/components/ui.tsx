@@ -6,6 +6,7 @@ const nav: Record<string, { href: string; label: string }[]> = {
   admin: [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/properties", label: "Properties" },
+    { href: "/admin/owners", label: "Property Owners" },
     { href: "/admin/leases", label: "Leases" },
     { href: "/admin/billing", label: "Billing" },
     { href: "/admin/work-orders", label: "Work Orders" },
@@ -59,7 +60,10 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-300">
-              {name} · <span className="capitalize text-[#d4a574]">{role}</span>
+              {name} ·{" "}
+              <span className="capitalize text-[#d4a574]">
+                {role === "admin" ? "Property Manager" : role}
+              </span>
             </span>
             <form action={logout}>
               <button

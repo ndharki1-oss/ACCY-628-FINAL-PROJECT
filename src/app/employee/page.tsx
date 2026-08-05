@@ -1,24 +1,23 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedVendorId } from "@/lib/portal";
 import { Badge, Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
 
 export default async function EmployeeDashboard() {
   const { supabase, user } = await requireRole(["vendor"]);
-  const { data: vendor } = await supabase
-    .from("vendors")
-    .select("id, company_name")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const vendorId =
-    vendor?.id ??
-    (await supabase.from("vendors").select("id").limit(1).single()).data?.id;
+  const { vendorId, vendor, error: vendorError } = await getLinkedVendorId(
+    supabase,
+    user
+  );
 
-  const { data: wos } = await supabase
-    .from("work_orders")
-    .select("*, properties(name)")
-    .eq("vendor_id", vendorId!)
-    .order("scheduled_date", { ascending: true });
+  const { data: wos } = vendorId
+    ? await supabase
+        .from("work_orders")
+        .select("*, properties(name)")
+        .eq("vendor_id", vendorId)
+        .order("scheduled_date", { ascending: true })
+    : { data: [] };
 
   const upcoming = (wos ?? []).filter((w) =>
     ["assigned", "in_progress", "open"].includes(w.status)
@@ -31,6 +30,14 @@ export default async function EmployeeDashboard() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
         Employee workspace
       </h1>
+      <p className="text-slate-600">
+        {vendor?.company_name ?? "Assigned work orders and completion status."}
+      </p>
+      {vendorError ? (
+        <p className="text-sm text-rose-700">
+          This login is not linked to an employee work record.
+        </p>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Upcoming / active" value={String(upcoming.length)} />
         <Stat label="Awaiting owner approval" value={String(pending.length)} />
@@ -44,19 +51,23 @@ export default async function EmployeeDashboard() {
           </Link>
         }
       >
-        <ul className="space-y-2 text-sm">
-          {upcoming.slice(0, 8).map((w) => {
-            const prop = Array.isArray(w.properties) ? w.properties[0] : w.properties;
-            return (
-              <li key={w.id} className="flex justify-between border-b border-slate-50 py-2">
-                <span>
-                  {w.scheduled_date}: {w.title} · {prop?.name}
-                </span>
-                <Badge status={w.status} />
-              </li>
-            );
-          })}
-        </ul>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-slate-600">No upcoming assignments.</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {upcoming.slice(0, 8).map((w) => {
+              const prop = Array.isArray(w.properties) ? w.properties[0] : w.properties;
+              return (
+                <li key={w.id} className="flex justify-between border-b border-slate-50 py-2">
+                  <span>
+                    {w.scheduled_date}: {w.title} · {prop?.name}
+                  </span>
+                  <Badge status={w.status} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Card>
       {rejected.length > 0 ? (
         <Card title="Needs rework">

@@ -1,32 +1,36 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import {
+  loadTenantNotifications,
+  markAllTenantNotificationsRead,
+  TENANT_NOTIFICATIONS_EVENT,
+  type TenantNotification,
+} from "@/lib/tenant-notifications-store";
 
-export type TenantNotification = {
-  id: string;
-  fromRole: "admin" | "owner";
-  fromName: string;
-  subject: string;
-  preview: string;
-  sentAt: string;
-  read: boolean;
-};
-
-/** Placeholder feed until admin/owner messaging is wired to the database. */
-const DEMO_NOTIFICATIONS: TenantNotification[] = [];
-
-export function TenantNotifications({
-  notifications = DEMO_NOTIFICATIONS,
-}: {
-  notifications?: TenantNotification[];
-}) {
+export function TenantNotifications() {
   const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<TenantNotification[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const unread = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
+    const sync = () => setNotifications(loadTenantNotifications());
+    sync();
+    window.addEventListener(TENANT_NOTIFICATIONS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(TENANT_NOTIFICATIONS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
+    markAllTenantNotificationsRead();
+    setNotifications(loadTenantNotifications());
+
     const onPointer = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -87,9 +91,7 @@ export function TenantNotifications({
             <p className="font-[family-name:var(--font-display)] text-base text-[#0c1f2e]">
               Messages
             </p>
-            <p className="text-xs text-slate-500">
-              Updates Needing Attention
-            </p>
+            <p className="text-xs text-slate-500">Updates Needing Attention</p>
           </div>
 
           {notifications.length === 0 ? (

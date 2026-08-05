@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
@@ -54,31 +55,42 @@ function getLeaseTimeRemaining(endDate: string) {
 
 export default async function TenantDashboard() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, company_name")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const { tenantId, tenant, error: tenantError } = await getLinkedTenantId(
+    supabase,
+    user
+  );
+
+  if (!tenantId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl">
+            Tenant Portal
+          </h1>
+          <p className="text-sm text-rose-700">
+            {tenantError ?? "This login is not linked to a tenant record."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const [{ data: leases }, { data: invoices }, { data: requests }] =
     await Promise.all([
       supabase
         .from("leases")
         .select("*, properties(name, address_line1, city, state)")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("start_date", { ascending: false }),
       supabase
         .from("invoices")
         .select("*")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("due_date", { ascending: false }),
       supabase
         .from("tenant_requests")
         .select("*")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: false }),
     ]);
 
@@ -105,7 +117,7 @@ export default async function TenantDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4">
         <Card title="Balance Due">
           <p className="text-4xl font-semibold tracking-tight text-[#0c1f2e] tabular-nums">
             {formatMoney(balance)}
