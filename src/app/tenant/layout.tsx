@@ -7,6 +7,7 @@ const tenantLinks = [
   { href: "/tenant/available", label: "Available Leases" },
   { href: "/tenant/invoices", label: "Payments" },
   { href: "/tenant/requests", label: "Maintenance Requests" },
+  { href: "/tenant/contact", label: "Contact Management" },
 ];
 
 export default async function Layout({
