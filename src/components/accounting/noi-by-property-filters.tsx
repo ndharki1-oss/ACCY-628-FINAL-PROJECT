@@ -55,7 +55,7 @@ export function NoiByPropertyFilters({
                 )
               );
             }}
-            aria-label="Filter NOI by property"
+            aria-label="Filter by property"
           >
             <option value="all">All properties</option>
             {properties.map((p) => (
@@ -81,7 +81,7 @@ export function NoiByPropertyFilters({
                 buildHref(basePath, value === "all" ? null : value, null)
               );
             }}
-            aria-label="Filter NOI by owner"
+            aria-label="Filter by owner"
           >
             <option value="all">All owners</option>
             {owners.map((o) => (
