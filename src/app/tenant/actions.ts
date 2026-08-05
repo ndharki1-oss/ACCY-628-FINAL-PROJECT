@@ -74,3 +74,37 @@ export async function createTenantRequest(formData: FormData) {
     `/tenant/requests?submitted=1&via=${encodeURIComponent(channels.join(","))}`
   );
 }
+
+export async function sendTenantManagerMessage(formData: FormData) {
+  const body = String(formData.get("body") ?? "").trim();
+  if (!body) throw new Error("Please enter a message.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be signed in.");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, contact_name")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!tenant) throw new Error("Tenant profile not found.");
+
+  const { error } = await supabase.from("tenant_manager_messages").insert({
+    tenant_id: tenant.id,
+    sender_role: "tenant",
+    sender_name: profile?.full_name ?? tenant.contact_name ?? "Tenant",
+    body,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/tenant/contact");
+}
