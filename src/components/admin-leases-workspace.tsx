@@ -485,22 +485,19 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
           <article key={lease.id} className="rounded border border-slate-200 p-3">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="font-medium text-[#0c1f2e]">{lease.leaseNumber}</p>
-                <p className="text-sm text-slate-600">{lease.tenantName}</p>
-                <p className="text-xs text-slate-500">
-                  {lease.propertyName} · {lease.unitCode}
-                </p>
+                <p className="font-medium text-[#0c1f2e]">{lease.tenantName}</p>
+                <p className="text-sm text-slate-600">{lease.propertyName}</p>
               </div>
               <Badge status={lease.health} />
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div>
-                <dt className="text-slate-500">Type</dt>
-                <dd className="capitalize">{lease.leaseType.replaceAll("_", " ")}</dd>
-              </div>
-              <div>
                 <dt className="text-slate-500">End</dt>
                 <dd>{formatLeaseDate(lease.endDate)}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Balance</dt>
+                <dd>{formatMoney(lease.balance)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500">Rent + CAM</dt>
@@ -509,8 +506,8 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
                 </dd>
               </div>
               <div>
-                <dt className="text-slate-500">Balance</dt>
-                <dd>{formatMoney(lease.balance)}</dd>
+                <dt className="text-slate-500">Start</dt>
+                <dd>{formatLeaseDate(lease.startDate)}</dd>
               </div>
             </dl>
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -550,14 +547,11 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[1280px] text-left text-sm">
+        <table className="w-full min-w-[980px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
             <tr>
-              <th className="py-2 pr-3">Lease #</th>
               <th className="py-2 pr-3">Tenant</th>
               <th className="py-2 pr-3">Property</th>
-              <th className="py-2 pr-3">Suite</th>
-              <th className="py-2 pr-3">Type</th>
               <th className="py-2 pr-3">Start</th>
               <th className="py-2 pr-3">End</th>
               <th className="py-2 pr-3">Base rent</th>
@@ -576,14 +570,9 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
               <Fragment key={lease.id}>
                 <tr className="border-b border-slate-100 align-top">
                   <td className="py-3 pr-3 font-medium text-[#0c1f2e]">
-                    {lease.leaseNumber}
+                    {lease.tenantName}
                   </td>
-                  <td className="py-3 pr-3">{lease.tenantName}</td>
                   <td className="py-3 pr-3">{lease.propertyName}</td>
-                  <td className="py-3 pr-3">{lease.unitCode}</td>
-                  <td className="py-3 pr-3 capitalize">
-                    {lease.leaseType.replaceAll("_", " ")}
-                  </td>
                   <td className="py-3 pr-3">{formatLeaseDate(lease.startDate)}</td>
                   <td className="py-3 pr-3">{formatLeaseDate(lease.endDate)}</td>
                   <td className="py-3 pr-3">{formatMoney(lease.baseRent)}</td>
@@ -610,7 +599,7 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
                 </tr>
                 {expandedId === lease.id ? (
                   <tr className="border-b border-slate-100 bg-[#fbfaf7]">
-                    <td colSpan={14} className="px-3 py-4">
+                    <td colSpan={11} className="px-3 py-4">
                       <LeaseDetail
                         lease={lease}
                         showTenant={tenantOpenId === lease.id}
@@ -630,7 +619,7 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={14} className="py-8 text-center text-slate-500">
+                <td colSpan={11} className="py-8 text-center text-slate-500">
                   No leases match the current search or filters.
                 </td>
               </tr>

@@ -136,6 +136,13 @@ export default async function AdminPropertyDetailPage({
 
       <Card title="Overview">
         <dl className="grid gap-3 sm:grid-cols-2">
+          <div className="flex justify-between gap-4 text-sm sm:col-span-2">
+            <dt className="text-slate-500">Address</dt>
+            <dd className="text-right text-[#0c1f2e]">
+              {property.address_line1}, {property.city}, {property.state}{" "}
+              {property.postal_code}
+            </dd>
+          </div>
           <div className="flex justify-between gap-4 text-sm">
             <dt className="text-slate-500">Type</dt>
             <dd className="capitalize text-[#0c1f2e]">{property.property_type}</dd>

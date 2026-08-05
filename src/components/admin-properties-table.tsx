@@ -151,11 +151,10 @@ export function AdminPropertiesTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
             <tr>
               <th className="py-2 pr-3">Property Name</th>
-              <th className="py-2 pr-3">Address</th>
               <th className="py-2 pr-3">Owner</th>
               <th className="py-2 pr-3">Type</th>
               <th className="py-2 pr-3">Unit Count</th>
@@ -172,7 +171,6 @@ export function AdminPropertiesTable({
                 <td className="py-3 pr-3 font-medium text-[#0c1f2e]">
                   {property.name}
                 </td>
-                <td className="py-3 pr-3 text-slate-600">{property.address}</td>
                 <td className="py-3 pr-3">{property.owner || "—"}</td>
                 <td className="py-3 pr-3 capitalize">{property.type}</td>
                 <td className="py-3 pr-3">{property.unitCount}</td>
@@ -205,7 +203,7 @@ export function AdminPropertiesTable({
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="py-8 text-center text-slate-500">
+                <td colSpan={9} className="py-8 text-center text-slate-500">
                   No properties match the current search or filters.
                 </td>
               </tr>
