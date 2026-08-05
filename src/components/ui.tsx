@@ -6,6 +6,7 @@ const nav: Record<string, { href: string; label: string }[]> = {
   admin: [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/properties", label: "Properties" },
+    { href: "/admin/owners", label: "Property Owners" },
     { href: "/admin/leases", label: "Leases" },
     { href: "/admin/billing", label: "Billing" },
     { href: "/admin/work-orders", label: "Work Orders" },

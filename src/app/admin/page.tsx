@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card, Stat } from "@/components/ui";
 import { WorkOrderDetailsButton } from "@/components/admin-work-order-details";
+import { PropertyLocationsMap } from "@/components/property-locations-map";
 import { formatMoney } from "@/lib/utils";
 import {
   evaluateWorkOrderRouting,
@@ -27,8 +28,50 @@ function PriorityBadge({ priority }: { priority: Priority }) {
   );
 }
 
+function ActionCenterRow({
+  label,
+  count,
+  tone,
+  href,
+}: {
+  label: string;
+  count: number;
+  tone: "rose" | "amber" | "sky" | "slate";
+  href: string;
+}) {
+  const dots: Record<typeof tone, string> = {
+    rose: "bg-rose-600",
+    amber: "bg-amber-500",
+    sky: "bg-sky-500",
+    slate: "bg-slate-500",
+  };
+
+  return (
+    <li className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${dots[tone]}`} />
+        <span className="truncate text-sm text-[#0c1f2e]">{label}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <span className="font-[family-name:var(--font-display)] text-sm text-[#0c1f2e]">
+          {count}
+        </span>
+        <Link href={href} className="text-sm text-[#c4784a] hover:underline">
+          View
+        </Link>
+      </div>
+    </li>
+  );
+}
+
 export default async function AdminDashboard() {
   const { supabase } = await requireRole(["admin"]);
+
+  const today = new Date();
+  const in30 = new Date(today);
+  in30.setDate(today.getDate() + 30);
+  const todayStr = today.toISOString().slice(0, 10);
+  const in30Str = in30.toISOString().slice(0, 10);
 
   const [
     { count: owners },
@@ -38,6 +81,12 @@ export default async function AdminDashboard() {
     { data: pendingWo },
     { data: fees },
     { data: periods },
+    { count: expiringLeases },
+    { count: upcomingInspections },
+    { data: mapProperties },
+    { data: mapUnits },
+    { data: mapLeases },
+    { data: mapWorkOrders },
   ] = await Promise.all([
     supabase.from("owners").select("*", { count: "exact", head: true }),
     supabase.from("properties").select("*", { count: "exact", head: true }),
@@ -64,6 +113,32 @@ export default async function AdminDashboard() {
       .order("year", { ascending: false })
       .order("month", { ascending: false })
       .limit(3),
+    supabase
+      .from("leases")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["active", "renewal_pending"])
+      .gte("end_date", todayStr)
+      .lte("end_date", in30Str),
+    supabase
+      .from("work_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("wo_type", "inspection")
+      .in("status", ["open", "assigned", "in_progress"]),
+    supabase
+      .from("properties")
+      .select(
+        "id, name, address_line1, city, state, postal_code, latitude, longitude, owners(contact_name, company_name)"
+      )
+      .order("name"),
+    supabase.from("units").select("id, property_id"),
+    supabase.from("leases").select("property_id, unit_id, status").in("status", [
+      "active",
+      "renewal_pending",
+    ]),
+    supabase
+      .from("work_orders")
+      .select("property_id, status")
+      .in("status", ["open", "assigned", "in_progress", "pending_owner_approval"]),
   ]);
 
   const arOpen = (invoices ?? []).reduce(
@@ -127,6 +202,53 @@ export default async function AdminDashboard() {
     (w) => w.priority === "Emergency"
   ).length;
 
+  const unitsByProperty = new Map<string, number>();
+  for (const unit of mapUnits ?? []) {
+    unitsByProperty.set(unit.property_id, (unitsByProperty.get(unit.property_id) ?? 0) + 1);
+  }
+
+  const leasedUnitsByProperty = new Map<string, Set<string>>();
+  for (const lease of mapLeases ?? []) {
+    if (!lease.unit_id) continue;
+    const set = leasedUnitsByProperty.get(lease.property_id) ?? new Set<string>();
+    set.add(lease.unit_id);
+    leasedUnitsByProperty.set(lease.property_id, set);
+  }
+
+  const openWoByProperty = new Map<string, number>();
+  for (const wo of mapWorkOrders ?? []) {
+    openWoByProperty.set(
+      wo.property_id,
+      (openWoByProperty.get(wo.property_id) ?? 0) + 1
+    );
+  }
+
+  const propertyMarkers = (mapProperties ?? []).flatMap((property) => {
+    const latitude = Number(property.latitude);
+    const longitude = Number(property.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return [];
+
+    const owner = firstRelation(property.owners);
+    const unitCount = unitsByProperty.get(property.id) ?? 0;
+    const leasedCount = leasedUnitsByProperty.get(property.id)?.size ?? 0;
+
+    return [
+      {
+        id: property.id,
+        name: property.name,
+        address: `${property.address_line1}, ${property.city}, ${property.state} ${property.postal_code}`,
+        ownerName:
+          owner?.contact_name || owner?.company_name
+            ? [owner.contact_name, owner.company_name].filter(Boolean).join(" · ")
+            : "—",
+        latitude,
+        longitude,
+        occupancyRate: unitCount > 0 ? leasedCount / unitCount : null,
+        openWorkOrders: openWoByProperty.get(property.id) ?? 0,
+      },
+    ];
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -185,6 +307,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
         <Card
           title="Fee revenue recognized (GAAP: on collection)"
           action={
@@ -201,6 +324,42 @@ export default async function AdminDashboard() {
             (agency model — rent itself is Due to Owner, not Harborline revenue).
           </p>
         </Card>
+
+        <Card title="Manager Action Center">
+          <ul>
+            <ActionCenterRow
+              label="Emergency work orders requiring review"
+              count={pendingDetails.filter((w) => w.priority === "Emergency").length}
+              tone="rose"
+              href="#unapproved-work-risk"
+            />
+            <ActionCenterRow
+              label="Vendor approvals awaiting action"
+              count={pendingDetails.length}
+              tone="amber"
+              href="/admin/work-orders"
+            />
+            <ActionCenterRow
+              label="Leases expiring within 30 days"
+              count={expiringLeases ?? 0}
+              tone="sky"
+              href="/admin/leases"
+            />
+            <ActionCenterRow
+              label="Overdue tenant balances needing follow-up"
+              count={overdue.length}
+              tone="rose"
+              href="/admin/billing"
+            />
+            <ActionCenterRow
+              label="Upcoming property inspections"
+              count={upcomingInspections ?? 0}
+              tone="slate"
+              href="/admin/work-orders"
+            />
+          </ul>
+        </Card>
+        </div>
 
         <div id="unapproved-work-risk" className="scroll-mt-6">
         <Card title="Unapproved work / spend risk">
@@ -235,6 +394,14 @@ export default async function AdminDashboard() {
         </Card>
         </div>
       </div>
+
+      <Card title="Property Locations">
+        <p className="mb-3 text-sm text-slate-600">
+          Interactive map of managed properties. Click a marker for owner, occupancy,
+          and open work-order details.
+        </p>
+        <PropertyLocationsMap markers={propertyMarkers} />
+      </Card>
 
       <Card title="Period close checklist">
         <ul className="space-y-2 text-sm">
