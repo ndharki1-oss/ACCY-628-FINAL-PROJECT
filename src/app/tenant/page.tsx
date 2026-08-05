@@ -105,7 +105,7 @@ export default async function TenantDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4">
         <Card title="Balance Due">
           <p className="text-4xl font-semibold tracking-tight text-[#0c1f2e] tabular-nums">
             {formatMoney(balance)}
