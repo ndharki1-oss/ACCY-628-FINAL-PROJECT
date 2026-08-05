@@ -45,6 +45,10 @@ export function statusClass(status: string) {
     expired: "bg-slate-200 text-slate-700",
     draft: "bg-slate-100 text-slate-700",
     held: "bg-indigo-100 text-indigo-800",
+    occupied: "bg-emerald-100 text-emerald-800",
+    vacant: "bg-slate-100 text-slate-700",
+    reserved: "bg-indigo-100 text-indigo-800",
+    under_maintenance: "bg-amber-100 text-amber-900",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
 }
