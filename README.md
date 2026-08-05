@@ -44,11 +44,23 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Roles (meaningfully different)
 
-- **Admin** — portfolio CRUD views, billing/AR, work orders, profitability by property/owner/lease, company P&L. Accounting GL/journals live on the Accounting login (admin has no Accounting tab).
-- **Owner** — own properties only; approve/reject vendor completions and spend; statements/remittances; NOI.
-- **Tenant** — own lease, invoices, simulated pay + auto-pay, service requests, deposits.
-- **Employee** — assigned work orders only; submit completion + costs for owner approval (same portal formerly labeled Vendor).
-- **Accounting** — management-company accounting department; Accounting (GL/journals/periods) and Profitability only.
+- **Admin** — portfolio CRUD, billing/AR, work orders, management P&L, and all five operational reports (full detail).
+- **Owner** — own properties; approvals; statements; NOI; report **summaries** for Property P&L, Maintenance, and Expenses; Owner Profitability for their properties only.
+- **Tenant** — own lease, invoices, payments, requests. **No reports.**
+- **Employee** — work-order assignments; Maintenance/Labor reports show **own hours only**.
+- **Accounting** — GL/journals/periods, management P&L, and all five operational reports (full detail).
+
+## Operational reports
+
+| Report | Admin | Accounting | Owner | Employee | Tenant |
+|--------|-------|------------|-------|----------|--------|
+| Property P&L | Full | Full | Summary (own) | — | — |
+| Owner (Customer) Profitability | Full | Full | Own owners’ properties | — | — |
+| Maintenance Cost | Full (+ all hours) | Full | Summary (own) | Own hours | — |
+| Employee Labor | Full | Full | — | Own hours | — |
+| Expense Breakdown | Full | Full | Summary (own) | — | — |
+
+Labor hours come from `labor_time_entries` (not just dollar cost categories).
 
 ## GAAP design (agency)
 
@@ -86,10 +98,11 @@ SQL lives under `supabase/migrations/`.
 ## App routes
 
 - `/login`
-- `/admin/*` — dashboard, properties, leases, billing, work orders, accounting, profitability
-- `/owner/*` — dashboard, properties, approvals, statements, NOI
-- `/tenant/*` — dashboard, lease, invoices, requests
-- `/vendor/*` — dashboard, assignments
+- `/admin/*` — portfolio ops, management P&L, `/admin/reports/*`
+- `/accounting/*` — GL/journals, management P&L, `/accounting/reports/*`
+- `/owner/*` — dashboard, approvals, statements, NOI, `/owner/reports/*` (summaries)
+- `/tenant/*` — dashboard, lease, invoices, requests (no reports)
+- `/employee/*` — assignments, own-hours reports under `/employee/reports/*`
 
 ## Profitability
 
