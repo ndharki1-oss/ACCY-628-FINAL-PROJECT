@@ -5,7 +5,84 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 
-type NavLink = { href: string; label: string };
+export type AccountingNavChild = { href: string; label: string };
+
+export type AccountingNavItem =
+  | { href: string; label: string; children?: undefined }
+  | { label: string; href?: undefined; children: AccountingNavChild[] };
+
+function linkActive(pathname: string, href: string) {
+  return (
+    pathname === href ||
+    (href !== "/accounting" && pathname.startsWith(href))
+  );
+}
+
+function ExpensesNavGroup({
+  label,
+  items,
+  pathname,
+}: {
+  label: string;
+  items: AccountingNavChild[];
+  pathname: string;
+}) {
+  const childActive = items.some((c) => linkActive(pathname, c.href));
+  const [expanded, setExpanded] = useState(childActive);
+
+  useEffect(() => {
+    if (childActive) setExpanded(true);
+  }, [childActive, pathname]);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => {
+        if (!childActive) setExpanded(false);
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className={`flex w-full items-center justify-between rounded px-3 py-2.5 text-left text-sm transition ${
+          childActive
+            ? "bg-white/15 font-medium text-white"
+            : "text-slate-200 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <span>{label}</span>
+        <span
+          className={`text-xs text-slate-400 transition ${expanded ? "rotate-90" : ""}`}
+          aria-hidden
+        >
+          ›
+        </span>
+      </button>
+      {expanded ? (
+        <div className="mt-0.5 ml-3 space-y-0.5 border-l border-white/15 pl-2">
+          {items.map((c) => {
+            const active = linkActive(pathname, c.href);
+            return (
+              <Link
+                key={c.href}
+                href={c.href}
+                className={`block rounded px-3 py-2 text-sm transition ${
+                  active
+                    ? "bg-white/15 font-medium text-white"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {c.label}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function AccountingAppShell({
   name,
@@ -13,7 +90,7 @@ export function AccountingAppShell({
   children,
 }: {
   name: string;
-  links: NavLink[];
+  links: AccountingNavItem[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -113,21 +190,30 @@ export function AccountingAppShell({
           className="flex flex-1 flex-col gap-1 overflow-y-auto p-3"
           aria-label="Accounting"
         >
-          {links.map((l) => {
-            const active =
-              pathname === l.href ||
-              (l.href !== "/accounting" && pathname.startsWith(l.href));
+          {links.map((item) => {
+            if (item.children) {
+              return (
+                <ExpensesNavGroup
+                  key={item.label}
+                  label={item.label}
+                  items={item.children}
+                  pathname={pathname}
+                />
+              );
+            }
+
+            const active = linkActive(pathname, item.href);
             return (
               <Link
-                key={l.href}
-                href={l.href}
+                key={item.href}
+                href={item.href}
                 className={`rounded px-3 py-2.5 text-sm transition ${
                   active
                     ? "bg-white/15 font-medium text-white"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {l.label}
+                {item.label}
               </Link>
             );
           })}

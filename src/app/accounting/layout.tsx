@@ -1,15 +1,32 @@
-import { AccountingAppShell } from "@/components/accounting-app-shell";
+import {
+  AccountingAppShell,
+  type AccountingNavItem,
+} from "@/components/accounting-app-shell";
 import { requireExactRole } from "@/lib/auth";
 
-const accountingLinks = [
+const accountingLinks: AccountingNavItem[] = [
   { href: "/accounting", label: "Accounting" },
   { href: "/accounting/statements", label: "Statements" },
   { href: "/accounting/profitability", label: "Mgmt P&L" },
   { href: "/accounting/reports/property-pnl", label: "Property P&L" },
   { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
-  { href: "/accounting/reports/maintenance", label: "Maintenance" },
-  { href: "/accounting/reports/employee-labor", label: "Labor" },
-  { href: "/accounting/reports/expense-breakdown", label: "Expenses" },
+  {
+    label: "Expenses",
+    children: [
+      {
+        href: "/accounting/reports/maintenance",
+        label: "Maintenance Breakdown",
+      },
+      {
+        href: "/accounting/reports/employee-labor",
+        label: "Labor Breakdown",
+      },
+      {
+        href: "/accounting/reports/expense-breakdown",
+        label: "Expenses Breakdown",
+      },
+    ],
+  },
 ];
 
 export default async function Layout({
