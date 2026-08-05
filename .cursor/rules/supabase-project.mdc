@@ -1,0 +1,20 @@
+---
+description: Use only the Group-15 Supabase project for all Supabase work in this repo
+alwaysApply: true
+---
+
+# Supabase project binding
+
+For all Supabase work in this workspace (MCP tools, CLI, env config, migrations, Auth, Storage, Edge Functions, SQL):
+
+- **Project name:** Group-15
+- **Project ID / ref:** `xubpljmqxuoqbldivtxk`
+- **Region:** `ca-central-1`
+- **DB host:** `db.xubpljmqxuoqbldivtxk.supabase.co`
+
+## Rules
+
+- Always target project ID `xubpljmqxuoqbldivtxk` when calling Supabase MCP tools that require a `project_id`.
+- Do **not** use the ConcertCosts project (`lsqdtddvqehhjnekanox`) or any other Supabase project.
+- If project choice is ambiguous, default to Group-15 without asking.
+- When writing `.env` / client config, use Group-15 URL and keys only.
