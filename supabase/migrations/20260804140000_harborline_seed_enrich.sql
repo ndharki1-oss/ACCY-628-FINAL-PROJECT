@@ -1,0 +1,22 @@
+-- Harborline enrichment companion seed
+-- Applied to xubpljmqxuoqbldivtxk on 2026-08-04 through the Supabase SQL API.
+-- The original 20260804130000 seed creates the base portfolio. This companion
+-- records the deterministic identifier ranges used by the enrichment:
+-- e000... invoices, e100... payments, e200... work orders,
+-- e300... owner statements, and e400... journal entries.
+--
+-- This file is intentionally a migration ledger rather than a second
+-- executable migration: the remote enrichment was applied using execute_sql
+-- after the first seed migration was already recorded. Re-applying those
+-- inserts without the original seed's generated IDs would duplicate business
+-- facts. All enrichment records use the deterministic ranges above and can be
+-- inspected or exported directly from the target project.
+--
+-- Enriched entities:
+--   28 invoices + rent/CAM/late-fee lines; 8 payments/applications
+--   15 work orders covering each type and approval state
+--   15 linked cost entries, including an unapproved $6,800 cost
+--   six deposits across held/disputed/applied statuses
+--   five owner statements with collection/expense/fee/remittance lines
+--   six balanced journal entries for fee and deposit liability recognition
+--   company expenses, tenant requests, auto-pay, audit events, and 2025-12 close
