@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Card } from "@/components/ui";
 import { createTenantRequest } from "@/app/tenant/actions";
 import { statusClass } from "@/lib/utils";
@@ -78,26 +79,30 @@ export default async function TenantRequestsPage({
 }) {
   const params = await searchParams;
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, email, phone")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantRow =
-    tenant ??
-    (
-      await supabase
-        .from("tenants")
-        .select("id, email, phone")
-        .limit(1)
-        .single()
-    ).data;
-  const tenantId = tenantRow?.id;
+  const { tenantId, tenant: tenantRow, error: tenantError } = await getLinkedTenantId(
+    supabase,
+    user
+  );
+
+  if (!tenantId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl">
+            Maintenance Requests
+          </h1>
+          <p className="text-sm text-rose-700">
+            {tenantError ?? "This login is not linked to a tenant record."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const { data: requests } = await supabase
     .from("tenant_requests")
     .select("*")
-    .eq("tenant_id", tenantId!)
+    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   const activeRequests = (requests ?? []).filter((r) =>

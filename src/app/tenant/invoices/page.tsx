@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { AutomatedPaymentsToggle } from "./automated-payments-toggle";
@@ -6,33 +7,42 @@ import { PayInvoiceForm } from "./pay-invoice-form";
 
 export default async function TenantPaymentsPage() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenantRow } = await supabase
-    .from("tenants")
-    .select("id, company_name")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenant =
-    tenantRow ??
-    (await supabase.from("tenants").select("id, company_name").limit(1).single())
-      .data;
-  const tenantId = tenant?.id;
+  const { tenantId, tenant, error: tenantError } = await getLinkedTenantId(
+    supabase,
+    user
+  );
+
+  if (!tenantId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl">
+            Payments
+          </h1>
+          <p className="text-sm text-rose-700">
+            {tenantError ?? "This login is not linked to a tenant record."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const [{ data: invoices }, { data: autoPay }, { data: lease }] =
     await Promise.all([
       supabase
         .from("invoices")
         .select("*, invoice_lines(line_type, description, amount)")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .order("due_date", { ascending: false }),
       supabase
         .from("auto_pay_settings")
         .select("*")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .maybeSingle(),
       supabase
         .from("leases")
         .select("properties(address_line1, city, state, postal_code)")
-        .eq("tenant_id", tenantId!)
+        .eq("tenant_id", tenantId)
         .in("status", ["active", "renewal_pending"])
         .limit(1)
         .maybeSingle(),
