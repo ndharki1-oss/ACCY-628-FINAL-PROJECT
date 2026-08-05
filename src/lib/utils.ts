@@ -18,6 +18,38 @@ export function pathMatchesRole(pathname: string, role: string): boolean {
   return pathname === home || pathname.startsWith(`${home}/`);
 }
 
+export type CreditRating = "AAA" | "AA" | "A" | "BBB" | "BB" | "B" | "CCC";
+
+/** Harborline management fee % of collected rent from tenant credit (4–12%). */
+export function feePercentFromCredit(
+  rating: CreditRating | string | null | undefined
+): number {
+  const map: Record<CreditRating, number> = {
+    AAA: 4.0,
+    AA: 5.0,
+    A: 6.0,
+    BBB: 7.5,
+    BB: 9.0,
+    B: 10.5,
+    CCC: 12.0,
+  };
+  if (rating && rating in map) return map[rating as CreditRating];
+  return 7.5;
+}
+
+export function formatFeePercent(n: number | string | null | undefined) {
+  const v = typeof n === "string" ? parseFloat(n) : n ?? 0;
+  return `${Number.isFinite(v) ? v : 0}%`;
+}
+
+export function managementFeeFromCollection(
+  collectedAmount: number,
+  creditRating: CreditRating | string | null | undefined
+) {
+  const pct = feePercentFromCredit(creditRating);
+  return Math.round(collectedAmount * (pct / 100) * 100) / 100;
+}
+
 export function formatMoney(n: number | string | null | undefined) {
   const v = typeof n === "string" ? parseFloat(n) : n ?? 0;
   return new Intl.NumberFormat("en-US", {
