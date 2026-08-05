@@ -56,7 +56,10 @@ export function AppShell({
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-300">
-              {name} · <span className="capitalize text-[#d4a574]">{role}</span>
+              {name} ·{" "}
+              <span className="capitalize text-[#d4a574]">
+                {role === "admin" ? "Property Manager" : role}
+              </span>
             </span>
             <form action={logout}>
               <button
