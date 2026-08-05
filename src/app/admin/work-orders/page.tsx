@@ -14,7 +14,7 @@ export default async function AdminWorkOrdersPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Work orders
+        Work Orders
       </h1>
       <p className="text-slate-600">
         Vendors complete work; property owners approve. Completion alone does not
