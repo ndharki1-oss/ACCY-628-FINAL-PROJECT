@@ -1,16 +1,26 @@
 import { AppShell } from "@/components/ui";
-import { requireRole } from "@/lib/auth";
+import { requireExactRole, requireRole } from "@/lib/auth";
+import { roleShellKey } from "@/lib/utils";
 
 export async function RoleLayout({
   role,
+  shellRole,
+  exact = false,
   children,
 }: {
   role: string;
+  shellRole?: string;
+  exact?: boolean;
   children: React.ReactNode;
 }) {
-  const { profile } = await requireRole([role]);
+  const { profile } = exact
+    ? await requireExactRole([role])
+    : await requireRole([role]);
   return (
-    <AppShell role={role} name={profile.full_name}>
+    <AppShell
+      role={shellRole ?? roleShellKey(role)}
+      name={profile.full_name}
+    >
       {children}
     </AppShell>
   );

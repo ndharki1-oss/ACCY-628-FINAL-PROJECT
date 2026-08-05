@@ -1,8 +1,8 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
-import { tenantPayInvoice } from "@/app/actions/business";
-import { TenantAutoPayForm } from "./auto-pay-form";
+import { AutomatedPaymentsToggle } from "./automated-payments-toggle";
+import { PayInvoiceForm } from "./pay-invoice-form";
 
 export default async function TenantPaymentsPage() {
   const { supabase, user } = await requireRole(["tenant"]);
@@ -45,6 +45,8 @@ export default async function TenantPaymentsPage() {
     ? `${tenant?.company_name ? `${tenant.company_name} · ` : ""}${prop.address_line1}, ${prop.city}, ${prop.state} ${prop.postal_code}`
     : (tenant?.company_name ?? "Business address on file");
 
+  const autoPayEnabled = Boolean(autoPay?.enabled);
+
   const openInvoices = (invoices ?? []).filter((inv) =>
     ["sent", "partial", "overdue", "disputed", "draft"].includes(inv.status)
   );
@@ -63,19 +65,11 @@ export default async function TenantPaymentsPage() {
         </p>
       </div>
 
-      <Card title="Auto-pay (simulated ACH)">
-        <p className="mb-3 text-sm text-slate-600">
-          No real payment processor — toggles demo auto-draft preference.
-        </p>
-        <TenantAutoPayForm
-          enabled={Boolean(autoPay?.enabled)}
-          businessAddress={businessAddress}
-        />
-      </Card>
+      <AutomatedPaymentsToggle enabled={autoPayEnabled} />
 
       <section className="space-y-4">
         <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-          Open balance
+          Open Invoices
         </h2>
         {openInvoices.length === 0 ? (
           <Card title="No open invoices">
@@ -114,24 +108,13 @@ export default async function TenantPaymentsPage() {
                 </ul>
                 {due > 0 &&
                 !["void", "disputed", "draft"].includes(inv.status) ? (
-                  <form
-                    action={tenantPayInvoice}
-                    className="mt-4 flex flex-wrap gap-2"
-                  >
-                    <input type="hidden" name="invoice_id" value={inv.id} />
-                    <input type="hidden" name="amount" value={due} />
-                    <input
-                      type="hidden"
-                      name="auto_pay"
-                      value={autoPay?.enabled ? "true" : "false"}
-                    />
-                    <button
-                      type="submit"
-                      className="rounded bg-[#c4784a] px-4 py-2 text-sm text-white"
-                    >
-                      Pay {formatMoney(due)} (simulate)
-                    </button>
-                  </form>
+                  <PayInvoiceForm
+                    invoiceId={inv.id}
+                    amount={due}
+                    amountLabel={formatMoney(due)}
+                    autoPayEnabled={autoPayEnabled}
+                    businessAddress={businessAddress}
+                  />
                 ) : null}
                 {inv.status === "disputed" ? (
                   <p className="mt-2 text-sm text-rose-700">

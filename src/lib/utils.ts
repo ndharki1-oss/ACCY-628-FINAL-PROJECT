@@ -1,4 +1,22 @@
-export type UserRole = "admin" | "owner" | "tenant" | "vendor";
+export type UserRole = "admin" | "owner" | "tenant" | "vendor" | "accounting";
+
+/** DB role → portal URL path (vendor portal is labeled Employee). */
+export function roleHomePath(role: string): string {
+  if (role === "vendor") return "/employee";
+  return `/${role}`;
+}
+
+/** DB role → nav/shell key used in the UI. */
+export function roleShellKey(role: string): string {
+  if (role === "vendor") return "employee";
+  return role;
+}
+
+/** Whether a pathname belongs to this DB role's portal. */
+export function pathMatchesRole(pathname: string, role: string): boolean {
+  const home = roleHomePath(role);
+  return pathname === home || pathname.startsWith(`${home}/`);
+}
 
 export function formatMoney(n: number | string | null | undefined) {
   const v = typeof n === "string" ? parseFloat(n) : n ?? 0;

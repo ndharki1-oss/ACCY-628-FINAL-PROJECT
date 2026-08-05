@@ -5,5 +5,9 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  return <RoleLayout role="vendor">{children}</RoleLayout>;
+  return (
+    <RoleLayout role="vendor" shellRole="employee">
+      {children}
+    </RoleLayout>
+  );
 }
