@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { pathMatchesRole, roleHomePath } from "@/lib/utils";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
@@ -50,11 +51,19 @@ export async function updateSession(request: NextRequest) {
 
     const role = profile?.role ?? "admin";
     const url = request.nextUrl.clone();
-    url.pathname = `/${role}`;
+    url.pathname = roleHomePath(role);
     return NextResponse.redirect(url);
   }
 
-  if (user && (path.startsWith("/admin") || path.startsWith("/owner") || path.startsWith("/tenant") || path.startsWith("/vendor"))) {
+  if (
+    user &&
+    (path.startsWith("/admin") ||
+      path.startsWith("/owner") ||
+      path.startsWith("/tenant") ||
+      path.startsWith("/employee") ||
+      path.startsWith("/vendor") ||
+      path.startsWith("/accounting"))
+  ) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -62,9 +71,14 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     const role = profile?.role as string | undefined;
-    if (role && !path.startsWith(`/${role}`) && role !== "admin") {
+    if (path.startsWith("/accounting") && role && role !== "accounting") {
       const url = request.nextUrl.clone();
-      url.pathname = `/${role}`;
+      url.pathname = roleHomePath(role);
+      return NextResponse.redirect(url);
+    }
+    if (role && !pathMatchesRole(path, role) && role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomePath(role);
       return NextResponse.redirect(url);
     }
   }

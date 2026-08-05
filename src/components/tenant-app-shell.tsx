@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
+import { TenantNotifications } from "@/components/tenant-notifications";
 
 type NavLink = { href: string; label: string };
 
@@ -77,7 +78,8 @@ export function TenantAppShell({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-3 text-sm sm:gap-4">
+            <TenantNotifications />
             <span className="hidden text-slate-300 sm:inline">
               {name} · <span className="capitalize text-[#d4a574]">tenant</span>
             </span>

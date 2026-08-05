@@ -3,6 +3,55 @@ import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
 
+function getLeaseTimeRemaining(endDate: string) {
+  const end = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(end.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round(
+    (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  let label: string;
+  if (diffDays < 0) {
+    const overdue = Math.abs(diffDays);
+    label = overdue === 1 ? "Ended 1 day ago" : `Ended ${overdue} days ago`;
+  } else if (diffDays === 0) {
+    label = "Ends today";
+  } else if (diffDays === 1) {
+    label = "1 day left";
+  } else if (diffDays < 60) {
+    label = `${diffDays} days left`;
+  } else {
+    const months = Math.floor(diffDays / 30);
+    const remDays = diffDays % 30;
+    if (months < 12) {
+      label =
+        remDays === 0
+          ? months === 1
+            ? "1 month left"
+            : `${months} months left`
+          : `${months} mo, ${remDays} day${remDays === 1 ? "" : "s"} left`;
+    } else {
+      const years = Math.floor(months / 12);
+      const remMonths = months % 12;
+      label =
+        remMonths === 0
+          ? years === 1
+            ? "1 year left"
+            : `${years} years left`
+          : `${years} yr, ${remMonths} mo left`;
+    }
+  }
+
+  // Flag leases within 6 months (~183 days), including already expired.
+  const urgent = diffDays <= 183;
+
+  return { label, urgent };
+}
+
 export default async function TenantDashboard() {
   const { supabase, user } = await requireRole(["tenant"]);
   const { data: tenant } = await supabase
@@ -56,7 +105,7 @@ export default async function TenantDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4">
         <Card title="Balance Due">
           <p className="text-4xl font-semibold tracking-tight text-[#0c1f2e] tabular-nums">
             {formatMoney(balance)}
@@ -125,6 +174,9 @@ export default async function TenantDashboard() {
                 const prop = Array.isArray(lease.properties)
                   ? lease.properties[0]
                   : lease.properties;
+                const remaining = lease.end_date
+                  ? getLeaseTimeRemaining(lease.end_date)
+                  : null;
                 return (
                   <li
                     key={lease.id}
@@ -145,7 +197,20 @@ export default async function TenantDashboard() {
                           {formatMoney(lease.cam_monthly)} CAM
                         </p>
                       </div>
-                      <Badge status={lease.status} />
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <Badge status={lease.status} />
+                        {remaining ? (
+                          <p
+                            className={`text-right text-xs ${
+                              remaining.urgent
+                                ? "font-medium text-red-600"
+                                : "text-slate-500"
+                            }`}
+                          >
+                            {remaining.label}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   </li>
                 );
