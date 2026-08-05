@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import {
+  dismissTenantNotification,
   hrefForTenantNotification,
   loadTenantNotifications,
   markAllTenantNotificationsRead,
@@ -149,7 +150,12 @@ export function TenantNotifications({
                     {href ? (
                       <Link
                         href={href}
-                        onClick={() => setOpen(false)}
+                        onClick={() => {
+                          if (n.id.startsWith("msg-waiting-")) {
+                            dismissTenantNotification(n.id);
+                          }
+                          setOpen(false);
+                        }}
                         className="block px-4 py-3 transition hover:bg-slate-50"
                       >
                         {body}

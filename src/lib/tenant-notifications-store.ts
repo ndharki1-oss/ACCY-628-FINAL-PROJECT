@@ -28,8 +28,38 @@ export type WaitingMessageHint = {
 
 export const TENANT_NOTIFICATIONS_KEY = "harborline.tenant.notifications";
 export const TENANT_NOTIFICATIONS_EVENT = "harborline:tenant-notifications";
+const DISMISSED_MSG_KEY = "harborline.tenant.dismissed-msg-notifications";
 
 const DERIVED_PREFIXES = ["checkout-", "msg-waiting-"] as const;
+
+function loadDismissedMessageIds(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.sessionStorage.getItem(DISMISSED_MSG_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDismissedMessageIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(DISMISSED_MSG_KEY, JSON.stringify(ids.slice(0, 50)));
+}
+
+export function dismissTenantNotification(id: string) {
+  if (typeof window === "undefined") return;
+  const remaining = loadTenantNotifications().filter((n) => n.id !== id);
+  saveTenantNotifications(remaining);
+
+  if (id.startsWith("msg-waiting-")) {
+    const dismissed = new Set(loadDismissedMessageIds());
+    dismissed.add(id);
+    saveDismissedMessageIds([...dismissed]);
+  }
+}
 
 export function loadTenantNotifications(): TenantNotification[] {
   if (typeof window === "undefined") return [];
@@ -115,17 +145,20 @@ export function syncDerivedTenantNotifications(input: {
   if (input.waitingMessage) {
     const msg = input.waitingMessage;
     const id = `msg-waiting-${msg.messageId}`;
-    const prev = existing.find((n) => n.id === id);
-    derived.push({
-      id,
-      fromRole: msg.senderRole,
-      fromName: msg.senderName,
-      subject: "Message waiting for you",
-      preview: `You have a new message on the Contact Management board: ${msg.preview}`,
-      sentAt: prev?.sentAt ?? msg.sentAt,
-      read: prev?.read ?? false,
-      href: "/tenant/contact",
-    });
+    const dismissed = loadDismissedMessageIds();
+    if (!dismissed.includes(id)) {
+      const prev = existing.find((n) => n.id === id);
+      derived.push({
+        id,
+        fromRole: msg.senderRole,
+        fromName: msg.senderName,
+        subject: "Message waiting for you",
+        preview: `You have a new message on the Contact Management board: ${msg.preview}`,
+        sentAt: prev?.sentAt ?? msg.sentAt,
+        read: prev?.read ?? false,
+        href: "/tenant/contact",
+      });
+    }
   }
 
   saveTenantNotifications([...derived, ...keep].slice(0, 20));
