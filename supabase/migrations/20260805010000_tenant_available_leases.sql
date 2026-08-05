@@ -38,7 +38,7 @@ INSERT INTO public.units (id, property_id, unit_code, floor, square_feet)
 SELECT
   format('30000000-ffff-0000-0000-%s', lpad(n::text, 12, '0'))::uuid,
   p.id,
-  format('Open Suite %s', 400 + n),
+  format('Suite %s', 400 + n),
   '2',
   2100 + n * 125
 FROM (
