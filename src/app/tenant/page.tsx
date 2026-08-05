@@ -1,0 +1,203 @@
+import { requireRole } from "@/lib/auth";
+import { Badge, Card } from "@/components/ui";
+import { formatMoney } from "@/lib/utils";
+import Link from "next/link";
+
+export default async function TenantDashboard() {
+  const { supabase, user } = await requireRole(["tenant"]);
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, company_name")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  const tenantId =
+    tenant?.id ??
+    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+
+  const [{ data: leases }, { data: invoices }, { data: requests }] =
+    await Promise.all([
+      supabase
+        .from("leases")
+        .select("*, properties(name, address_line1, city, state)")
+        .eq("tenant_id", tenantId!)
+        .order("start_date", { ascending: false }),
+      supabase
+        .from("invoices")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .order("due_date", { ascending: false }),
+      supabase
+        .from("tenant_requests")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .order("created_at", { ascending: false }),
+    ]);
+
+  const balance = (invoices ?? [])
+    .filter((i) => !["paid", "void"].includes(i.status))
+    .reduce((s, i) => s + Number(i.total) - Number(i.amount_paid), 0);
+
+  const upcoming = (invoices ?? []).find((i) =>
+    ["sent", "partial", "overdue"].includes(i.status)
+  );
+
+  const openRequests = (requests ?? []).filter((r) =>
+    ["open", "in_progress", "assigned"].includes(r.status)
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">
+          Tenant Portal
+        </h1>
+        <p className="text-slate-600">
+          Review your balance, leases, and maintenance activity in one place.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card title="Balance Due">
+          <p className="text-4xl font-semibold tracking-tight text-[#0c1f2e] tabular-nums">
+            {formatMoney(balance)}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Across open invoices{" "}
+            {tenant?.company_name ? `for ${tenant.company_name}` : ""}
+          </p>
+
+          <Link
+            href="/tenant/invoices"
+            className="mt-4 inline-flex rounded bg-[#c4784a] px-4 py-2 text-sm font-medium text-white hover:bg-[#b0683e]"
+          >
+            Make a Payment
+          </Link>
+
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+                Next Action
+              </h3>
+              <Link
+                href="/tenant/invoices"
+                className="text-sm text-[#c4784a] hover:underline"
+              >
+                View payments →
+              </Link>
+            </div>
+            {upcoming ? (
+              <div className="text-sm">
+                <p className="font-medium text-[#0c1f2e]">
+                  {upcoming.invoice_number}
+                </p>
+                <p className="mt-1 text-slate-600">
+                  Due {upcoming.due_date}:{" "}
+                  {formatMoney(
+                    Number(upcoming.total) - Number(upcoming.amount_paid)
+                  )}{" "}
+                  remaining
+                </p>
+                <div className="mt-2">
+                  <Badge status={upcoming.status} />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600">
+                No open invoices. You&apos;re all caught up.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        <Card
+          title="My Leases"
+          action={
+            <Link href="/tenant/lease" className="text-sm text-[#c4784a]">
+              View all →
+            </Link>
+          }
+        >
+          {(leases ?? []).length === 0 ? (
+            <p className="text-sm text-slate-600">No leases on file.</p>
+          ) : (
+            <ul className="space-y-3 text-sm">
+              {(leases ?? []).slice(0, 3).map((lease) => {
+                const prop = Array.isArray(lease.properties)
+                  ? lease.properties[0]
+                  : lease.properties;
+                return (
+                  <li
+                    key={lease.id}
+                    className="border-b border-slate-50 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-[#0c1f2e]">
+                          {prop?.name ?? lease.lease_number}
+                        </p>
+                        <p className="text-slate-600">
+                          {prop?.address_line1
+                            ? `${prop.address_line1}, ${prop.city}, ${prop.state}`
+                            : lease.lease_number}
+                        </p>
+                        <p className="mt-1 text-slate-600">
+                          {formatMoney(lease.base_rent_monthly)}/mo +{" "}
+                          {formatMoney(lease.cam_monthly)} CAM
+                        </p>
+                      </div>
+                      <Badge status={lease.status} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {(leases ?? []).length > 3 ? (
+            <p className="mt-3 text-xs text-slate-500">
+              +{(leases ?? []).length - 3} more on My Leases
+            </p>
+          ) : null}
+        </Card>
+
+        <Card
+          title="Maintenance Requests"
+          action={
+            <Link href="/tenant/requests" className="text-sm text-[#c4784a]">
+              Manage →
+            </Link>
+          }
+        >
+          <p className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
+            {openRequests.length}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">Open requests</p>
+
+          {openRequests.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-600">
+              No open maintenance requests.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2 text-sm">
+              {openRequests.slice(0, 3).map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-start justify-between gap-2 border-b border-slate-50 pb-2 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="font-medium text-[#0c1f2e]">{r.title}</p>
+                    {r.description ? (
+                      <p className="line-clamp-2 text-xs text-slate-500">
+                        {r.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge status={r.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
