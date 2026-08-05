@@ -7,9 +7,17 @@ import { requireExactRole } from "@/lib/auth";
 const accountingLinks: AccountingNavItem[] = [
   { href: "/accounting", label: "Accounting" },
   { href: "/accounting/statements", label: "Statements" },
-  { href: "/accounting/profitability", label: "Mgmt P&L" },
-  { href: "/accounting/reports/property-pnl", label: "Property P&L" },
-  { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
+  {
+    label: "Profitability",
+    children: [
+      { href: "/accounting/profitability", label: "Mgmt P&L" },
+      { href: "/accounting/reports/property-pnl", label: "Property P&L" },
+      {
+        href: "/accounting/reports/owner-profitability",
+        label: "Owner Profit",
+      },
+    ],
+  },
   {
     label: "Owner Expenses",
     children: [
