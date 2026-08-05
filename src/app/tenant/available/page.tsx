@@ -1,0 +1,69 @@
+import { requireRole } from "@/lib/auth";
+import { Badge, Card } from "@/components/ui";
+
+type AvailableListing = {
+  unit_id: string;
+  unit_code: string;
+  floor: string | null;
+  square_feet: number | null;
+  property_name: string;
+  address_line1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  property_type: string;
+};
+
+export default async function TenantAvailableLeasesPage() {
+  const { supabase } = await requireRole(["tenant"]);
+
+  const { data: listings } = await supabase
+    .from("available_rental_listings")
+    .select(
+      "unit_id, unit_code, floor, square_feet, property_name, address_line1, city, state, postal_code, property_type"
+    )
+    .order("property_name")
+    .order("unit_code");
+
+  const available = (listings ?? []) as AvailableListing[];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">
+          Available leases
+        </h1>
+        <p className="mt-2 text-slate-600">
+          Vacant units in the Harborline network that are not currently leased.
+        </p>
+      </div>
+      {available.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          No vacant units right now. Check back later.
+        </p>
+      ) : (
+        available.map((u) => (
+          <Card
+            key={u.unit_id}
+            title={`${u.property_name} · ${u.unit_code}`}
+            action={<Badge status="available" />}
+          >
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <p>
+                Address: {u.address_line1}, {u.city}, {u.state} {u.postal_code}
+              </p>
+              <p className="capitalize">Type: {u.property_type}</p>
+              <p>Floor: {u.floor ?? "—"}</p>
+              <p>
+                Size:{" "}
+                {u.square_feet != null
+                  ? `${u.square_feet.toLocaleString()} sq ft`
+                  : "—"}
+              </p>
+            </div>
+          </Card>
+        ))
+      )}
+    </div>
+  );
+}

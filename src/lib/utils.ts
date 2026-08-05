@@ -18,6 +18,38 @@ export function pathMatchesRole(pathname: string, role: string): boolean {
   return pathname === home || pathname.startsWith(`${home}/`);
 }
 
+export type CreditRating = "AAA" | "AA" | "A" | "BBB" | "BB" | "B" | "CCC";
+
+/** Harborline management fee % of collected rent from tenant credit (4–12%). */
+export function feePercentFromCredit(
+  rating: CreditRating | string | null | undefined
+): number {
+  const map: Record<CreditRating, number> = {
+    AAA: 4.0,
+    AA: 5.0,
+    A: 6.0,
+    BBB: 7.5,
+    BB: 9.0,
+    B: 10.5,
+    CCC: 12.0,
+  };
+  if (rating && rating in map) return map[rating as CreditRating];
+  return 7.5;
+}
+
+export function formatFeePercent(n: number | string | null | undefined) {
+  const v = typeof n === "string" ? parseFloat(n) : n ?? 0;
+  return `${Number.isFinite(v) ? v : 0}%`;
+}
+
+export function managementFeeFromCollection(
+  collectedAmount: number,
+  creditRating: CreditRating | string | null | undefined
+) {
+  const pct = feePercentFromCredit(creditRating);
+  return Math.round(collectedAmount * (pct / 100) * 100) / 100;
+}
+
 export function formatMoney(n: number | string | null | undefined) {
   const v = typeof n === "string" ? parseFloat(n) : n ?? 0;
   return new Intl.NumberFormat("en-US", {
@@ -45,6 +77,11 @@ export function statusClass(status: string) {
     expired: "bg-slate-200 text-slate-700",
     draft: "bg-slate-100 text-slate-700",
     held: "bg-indigo-100 text-indigo-800",
+    declined: "bg-rose-100 text-rose-800",
+    renewal_pending: "bg-amber-100 text-amber-900",
+    leased: "bg-emerald-100 text-emerald-800",
+    vacant: "bg-rose-100 text-rose-800",
+    current: "bg-emerald-100 text-emerald-800",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
 }
