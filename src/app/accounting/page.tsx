@@ -1,26 +1,18 @@
 import { requireExactRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
-import { formatMoney } from "@/lib/utils";
 import { closeAccountingPeriod } from "@/app/actions/business";
 
 export default async function AccountingPage() {
   const { supabase } = await requireExactRole(["accounting"]);
-  const [{ data: journals }, { data: periods }, { data: accounts }] =
-    await Promise.all([
-      supabase
-        .from("journal_entries")
-        .select(
-          "id, entry_number, entry_date, memo, journal_lines(debit, credit, gl_accounts(code, name))"
-        )
-        .order("entry_date", { ascending: false }),
-      supabase
-        .from("accounting_periods")
-        .select("id, year, month, status")
-        .order("year", { ascending: false })
-        .order("month", { ascending: false })
-        .limit(18),
-      supabase.from("gl_accounts").select("code, name, account_type").order("code"),
-    ]);
+  const [{ data: periods }, { data: accounts }] = await Promise.all([
+    supabase
+      .from("accounting_periods")
+      .select("id, year, month, status")
+      .order("year", { ascending: false })
+      .order("month", { ascending: false })
+      .limit(18),
+    supabase.from("gl_accounts").select("code, name, account_type").order("code"),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -75,45 +67,6 @@ export default async function AccountingPage() {
           </ul>
         </Card>
       </div>
-
-      <Card title="Journal entries">
-        <div className="space-y-4">
-          {(journals ?? []).map((je) => (
-            <div key={je.id} className="rounded border border-slate-200 p-3 text-sm">
-              <div className="flex flex-wrap justify-between gap-2">
-                <p className="font-medium">
-                  {je.entry_number} · {je.entry_date}
-                </p>
-                <p className="text-slate-600">{je.memo}</p>
-              </div>
-              <table className="mt-2 w-full text-xs">
-                <tbody>
-                  {((je.journal_lines as { debit: number; credit: number; gl_accounts: { code: string; name: string } | { code: string; name: string }[] }[]) ?? []).map(
-                    (line, idx) => {
-                      const gl = Array.isArray(line.gl_accounts)
-                        ? line.gl_accounts[0]
-                        : line.gl_accounts;
-                      return (
-                        <tr key={idx} className="border-t border-slate-50">
-                          <td className="py-1">
-                            {gl?.code} {gl?.name}
-                          </td>
-                          <td className="py-1 text-right">
-                            {Number(line.debit) > 0 ? formatMoney(line.debit) : ""}
-                          </td>
-                          <td className="py-1 text-right">
-                            {Number(line.credit) > 0 ? formatMoney(line.credit) : ""}
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

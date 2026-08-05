@@ -316,6 +316,11 @@ export default async function AdminDashboard() {
           <p className="font-[family-name:var(--font-display)] text-3xl">
             {formatMoney(feeRevenue)}
           </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Credit-based base management fees (4–12% of collections by tenant
+            credit) credit GL 4000 when rent is collected. Matches Mgmt P&amp;L
+            company fee revenue (agency model — rent itself is Due to Owner).
+          </p>
         </Card>
 
         <Card title="Manager Action Center">
