@@ -8,7 +8,7 @@ const PropertyLocationsMapInner = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[360px] items-center justify-center bg-[#f4f1ea] text-sm text-slate-500 sm:h-[440px]">
+      <div className="flex h-full min-h-[240px] items-center justify-center bg-[#f4f1ea] text-sm text-slate-500">
         Loading map…
       </div>
     ),
@@ -21,7 +21,7 @@ export function PropertyLocationsMap({ markers }: { markers: PropertyMapMarker[]
   }
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200">
+    <div className="h-full min-h-[240px] overflow-hidden rounded-md border border-slate-200">
       <PropertyLocationsMapInner markers={markers} />
     </div>
   );
