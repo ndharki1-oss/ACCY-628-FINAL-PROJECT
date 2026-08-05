@@ -1,31 +1,49 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
-import { tenantPayInvoice, toggleAutoPay } from "@/app/actions/business";
+import { tenantPayInvoice } from "@/app/actions/business";
+import { TenantAutoPayForm } from "./auto-pay-form";
 
 export default async function TenantPaymentsPage() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
+  const { data: tenantRow } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, company_name")
     .eq("profile_id", user.id)
     .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const tenant =
+    tenantRow ??
+    (await supabase.from("tenants").select("id, company_name").limit(1).single())
+      .data;
+  const tenantId = tenant?.id;
 
-  const [{ data: invoices }, { data: autoPay }] = await Promise.all([
-    supabase
-      .from("invoices")
-      .select("*, invoice_lines(line_type, description, amount)")
-      .eq("tenant_id", tenantId!)
-      .order("due_date", { ascending: false }),
-    supabase
-      .from("auto_pay_settings")
-      .select("*")
-      .eq("tenant_id", tenantId!)
-      .maybeSingle(),
-  ]);
+  const [{ data: invoices }, { data: autoPay }, { data: lease }] =
+    await Promise.all([
+      supabase
+        .from("invoices")
+        .select("*, invoice_lines(line_type, description, amount)")
+        .eq("tenant_id", tenantId!)
+        .order("due_date", { ascending: false }),
+      supabase
+        .from("auto_pay_settings")
+        .select("*")
+        .eq("tenant_id", tenantId!)
+        .maybeSingle(),
+      supabase
+        .from("leases")
+        .select("properties(address_line1, city, state, postal_code)")
+        .eq("tenant_id", tenantId!)
+        .in("status", ["active", "renewal_pending"])
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+  const prop = Array.isArray(lease?.properties)
+    ? lease?.properties[0]
+    : lease?.properties;
+  const businessAddress = prop
+    ? `${tenant?.company_name ? `${tenant.company_name} · ` : ""}${prop.address_line1}, ${prop.city}, ${prop.state} ${prop.postal_code}`
+    : (tenant?.company_name ?? "Business address on file");
 
   const openInvoices = (invoices ?? []).filter((inv) =>
     ["sent", "partial", "overdue", "disputed", "draft"].includes(inv.status)
@@ -49,23 +67,10 @@ export default async function TenantPaymentsPage() {
         <p className="mb-3 text-sm text-slate-600">
           No real payment processor — toggles demo auto-draft preference.
         </p>
-        <form action={toggleAutoPay} className="flex items-center gap-3 text-sm">
-          <input
-            type="hidden"
-            name="enabled"
-            value={autoPay?.enabled ? "false" : "true"}
-          />
-          <span>
-            Currently:{" "}
-            <strong>{autoPay?.enabled ? "Enabled" : "Disabled"}</strong>
-          </span>
-          <button
-            type="submit"
-            className="rounded bg-[#0c1f2e] px-3 py-1.5 text-white"
-          >
-            {autoPay?.enabled ? "Disable" : "Enable"} auto-pay
-          </button>
-        </form>
+        <TenantAutoPayForm
+          enabled={Boolean(autoPay?.enabled)}
+          businessAddress={businessAddress}
+        />
       </Card>
 
       <section className="space-y-4">
