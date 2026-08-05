@@ -234,10 +234,143 @@ export async function ownerReviewTenantRequest(formData: FormData) {
   revalidatePath("/tenant/requests");
 }
 
+export async function createTenantPaymentIntent(input: {
+  invoiceId: string;
+  amount: number;
+  method: "ach" | "credit_card" | "debit_card";
+}): Promise<
+  | { mode: "simulated" }
+  | { mode: "stripe"; clientSecret: string; paymentIntentId: string }
+  | { mode: "stripe"; clientSecret: null; error: string }
+> {
+  const { getStripe, isStripeConfigured } = await import(
+    "@/lib/payments/stripe"
+  );
+  if (!isStripeConfigured()) {
+    return { mode: "simulated" };
+  }
+
+  const stripe = getStripe();
+  if (!stripe) {
+    return {
+      mode: "stripe",
+      clientSecret: null,
+      error: "Stripe secret key is not configured.",
+    };
+  }
+
+  const amountCents = Math.round(Number(input.amount) * 100);
+  if (!Number.isFinite(amountCents) || amountCents < 50) {
+    return {
+      mode: "stripe",
+      clientSecret: null,
+      error: "Amount must be at least $0.50.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { mode: "stripe", clientSecret: null, error: "Not authenticated." };
+  }
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("profile_id", user.id)
+    .single();
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, tenant_id, total, amount_paid")
+    .eq("id", input.invoiceId)
+    .single();
+
+  if (!invoice || invoice.tenant_id !== tenant?.id) {
+    return {
+      mode: "stripe",
+      clientSecret: null,
+      error: "Invoice not found for this tenant.",
+    };
+  }
+
+  const due = Number(invoice.total) - Number(invoice.amount_paid);
+  if (amountCents > Math.round(due * 100) + 1) {
+    return {
+      mode: "stripe",
+      clientSecret: null,
+      error: "Amount exceeds balance due.",
+    };
+  }
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: "usd",
+      automatic_payment_methods: { enabled: true },
+      metadata: {
+        invoice_id: input.invoiceId,
+        tenant_id: tenant!.id,
+        preferred_method: input.method,
+        app: "harborline",
+      },
+    });
+
+    if (!paymentIntent.client_secret) {
+      return {
+        mode: "stripe",
+        clientSecret: null,
+        error: "Stripe did not return a client secret.",
+      };
+    }
+
+    return {
+      mode: "stripe",
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+    };
+  } catch (err) {
+    return {
+      mode: "stripe",
+      clientSecret: null,
+      error:
+        err instanceof Error ? err.message : "Could not create PaymentIntent.",
+    };
+  }
+}
+
 export async function tenantPayInvoice(formData: FormData) {
   const invoiceId = String(formData.get("invoice_id"));
   const amount = Number(formData.get("amount"));
   const isAuto = String(formData.get("auto_pay") ?? "") === "true";
+  const methodRaw = String(formData.get("payment_method") ?? "ach");
+  const method =
+    methodRaw === "credit_card" || methodRaw === "debit_card"
+      ? methodRaw
+      : "ach";
+  const processor = String(formData.get("processor") ?? "stripe_test_sim");
+  const processorPaymentId = String(
+    formData.get("processor_payment_id") ?? ""
+  ).trim();
+  const processorPaymentMethodId = String(
+    formData.get("processor_payment_method_id") ?? ""
+  ).trim();
+  const cardBrand = String(formData.get("card_brand") ?? "").trim() || null;
+  const cardLast4Raw = String(formData.get("card_last4") ?? "").replace(
+    /\D/g,
+    ""
+  );
+  // Only accept processor last4 — never a full PAN.
+  const last4Safe = cardLast4Raw.length === 4 ? cardLast4Raw : null;
+
+  if (!processorPaymentId || !processorPaymentMethodId) {
+    throw new Error(
+      "Payment processor token missing. Complete the secure payment step first."
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -264,9 +397,15 @@ export async function tenantPayInvoice(formData: FormData) {
       tenant_id: tenant!.id,
       payment_date: new Date().toISOString().slice(0, 10),
       amount,
-      method: "ach",
+      method,
       is_auto_pay: isAuto,
       created_by: user!.id,
+      processor,
+      processor_payment_id: processorPaymentId,
+      processor_payment_method_id: processorPaymentMethodId,
+      card_brand: cardBrand,
+      card_last4: last4Safe,
+      reference: `${processor}:${processorPaymentId}`,
     })
     .select("id")
     .single();
@@ -344,6 +483,12 @@ export async function tenantPayInvoice(formData: FormData) {
     p_detail: {
       invoiceId,
       amount,
+      method,
+      processor,
+      processor_payment_id: processorPaymentId,
+      processor_payment_method_id: processorPaymentMethodId,
+      card_brand: cardBrand,
+      card_last4: last4Safe,
       agency: true,
       fee_on_collection: true,
       credit_rating: credit,
