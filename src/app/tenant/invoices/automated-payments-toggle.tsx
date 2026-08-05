@@ -11,8 +11,8 @@ export function AutomatedPaymentsToggle({ enabled }: { enabled: boolean }) {
             Automated payments
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Turn this on if you want Harborline to draft payments automatically.
-            Your choice is saved until you change it.
+            Turn this on if you want payments drafted automatically. Your choice
+            is saved until changed.
           </p>
         </div>
         <form action={toggleAutoPay} className="flex items-center gap-3">

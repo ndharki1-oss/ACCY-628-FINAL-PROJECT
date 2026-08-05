@@ -1,96 +1,122 @@
 import { requireRole } from "@/lib/auth";
-import { Badge, Card } from "@/components/ui";
-import { feePercentFromCredit, formatFeePercent, formatMoney } from "@/lib/utils";
+import { Card, Stat } from "@/components/ui";
+import {
+  AdminPropertiesTable,
+  type AdminPropertyRow,
+} from "@/components/admin-properties-table";
+import { firstRelation } from "@/lib/work-order-routing";
+import {
+  formatOccupancyPercent,
+  isOccupiedLeaseStatus,
+  occupancyRate,
+} from "@/lib/property-portfolio";
+import { feePercentFromCredit, formatFeePercent } from "@/lib/utils";
 
 export default async function AdminPropertiesPage() {
   const { supabase } = await requireRole(["admin"]);
-  const [{ data: properties }, { data: leases }] = await Promise.all([
-    supabase
-      .from("properties")
-      .select(
-        "id, name, city, state, property_type, square_feet, status, owners(company_name), management_agreements(fee_percent, approval_threshold, status)"
-      )
-      .order("name"),
-    supabase
-      .from("leases")
-      .select("property_id, status, tenants(credit_rating)")
-      .in("status", ["active", "renewal_pending"]),
-  ]);
+  const [{ data: properties }, { data: units }, { data: leases }] =
+    await Promise.all([
+      supabase
+        .from("properties")
+        .select(
+          "id, name, address_line1, city, state, postal_code, property_type, status, owners(company_name), management_agreements(fee_percent, approval_threshold, status)"
+        )
+        .order("name"),
+      supabase.from("units").select("id, property_id"),
+      supabase
+        .from("leases")
+        .select("property_id, unit_id, status, tenants(credit_rating)"),
+    ]);
 
-  const feeByProperty = new Map<string, number[]>();
-  for (const l of leases ?? []) {
-    const tenant = Array.isArray(l.tenants) ? l.tenants[0] : l.tenants;
-    const pct = feePercentFromCredit(tenant?.credit_rating as string | undefined);
-    const list = feeByProperty.get(l.property_id) ?? [];
-    list.push(pct);
-    feeByProperty.set(l.property_id, list);
+  const unitsByProperty = new Map<string, number>();
+  for (const unit of units ?? []) {
+    unitsByProperty.set(
+      unit.property_id,
+      (unitsByProperty.get(unit.property_id) ?? 0) + 1
+    );
   }
+
+  const occupiedUnitsByProperty = new Map<string, Set<string>>();
+  const feeByProperty = new Map<string, number[]>();
+  for (const lease of leases ?? []) {
+    if (lease.unit_id && isOccupiedLeaseStatus(lease.status)) {
+      const set =
+        occupiedUnitsByProperty.get(lease.property_id) ?? new Set<string>();
+      set.add(lease.unit_id);
+      occupiedUnitsByProperty.set(lease.property_id, set);
+
+      const tenant = firstRelation(lease.tenants);
+      const pct = feePercentFromCredit(tenant?.credit_rating);
+      const list = feeByProperty.get(lease.property_id) ?? [];
+      list.push(pct);
+      feeByProperty.set(lease.property_id, list);
+    }
+  }
+
+  const rows: AdminPropertyRow[] = (properties ?? []).map((property) => {
+    const owner = firstRelation(property.owners);
+    const agreement = firstRelation(property.management_agreements);
+    const unitCount = unitsByProperty.get(property.id) ?? 0;
+    const occupiedCount = occupiedUnitsByProperty.get(property.id)?.size ?? 0;
+    const fees = feeByProperty.get(property.id) ?? [];
+    const minFee = fees.length ? Math.min(...fees) : null;
+    const maxFee = fees.length ? Math.max(...fees) : null;
+    const feeLabel =
+      minFee != null && maxFee != null
+        ? minFee === maxFee
+          ? formatFeePercent(minFee)
+          : `${formatFeePercent(minFee)}–${formatFeePercent(maxFee)}`
+        : agreement?.fee_percent != null
+          ? formatFeePercent(agreement.fee_percent)
+          : "—";
+
+    return {
+      id: property.id,
+      name: property.name,
+      address: `${property.address_line1}, ${property.city}, ${property.state} ${property.postal_code}`,
+      owner: owner?.company_name ?? "—",
+      type: property.property_type,
+      unitCount,
+      occupancyRate: occupancyRate(unitCount, occupiedCount),
+      feePercent: agreement?.fee_percent ?? null,
+      feeLabel,
+      approvalThreshold: agreement?.approval_threshold ?? null,
+      status: property.status,
+    };
+  });
+
+  const propertyCount = rows.length;
+  const totalUnits = rows.reduce((sum, row) => sum + row.unitCount, 0);
+  const occupiedUnits = [...occupiedUnitsByProperty.values()].reduce(
+    (sum, set) => sum + set.size,
+    0
+  );
+  const vacantUnits = Math.max(totalUnits - occupiedUnits, 0);
+  const portfolioOccupancy = occupancyRate(totalUnits, occupiedUnits);
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Properties & management agreements
-      </h1>
-      <p className="text-slate-600">
-        One management agreement per property. Harborline fee = credit-based % of
-        collected rent (4–12%), set by each tenant&apos;s credit rating.
-      </p>
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
+          Properties
+        </h1>
+        <p className="mt-1 text-slate-600">
+          Buildings, addresses, units, and occupancy across the portfolio. Fee %
+          is credit-based on collected rent (4–12%).
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Stat label="Properties" value={String(propertyCount)} />
+        <Stat
+          label="Portfolio occupancy"
+          value={formatOccupancyPercent(portfolioOccupancy)}
+        />
+        <Stat label="Vacant units" value={String(vacantUnits)} />
+      </div>
+
       <Card title="Portfolio">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px] text-left text-sm">
-            <thead className="border-b text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-2 pr-3">Property</th>
-                <th className="py-2 pr-3">Owner</th>
-                <th className="py-2 pr-3">Type</th>
-                <th className="py-2 pr-3">Fee % (credit-based)</th>
-                <th className="py-2 pr-3">Approval $</th>
-                <th className="py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(properties ?? []).map((p) => {
-                const ma = Array.isArray(p.management_agreements)
-                  ? p.management_agreements[0]
-                  : p.management_agreements;
-                const owner = Array.isArray(p.owners) ? p.owners[0] : p.owners;
-                const fees = feeByProperty.get(p.id) ?? [];
-                const minFee = fees.length ? Math.min(...fees) : null;
-                const maxFee = fees.length ? Math.max(...fees) : null;
-                const feeLabel =
-                  minFee != null && maxFee != null
-                    ? minFee === maxFee
-                      ? formatFeePercent(minFee)
-                      : `${formatFeePercent(minFee)}–${formatFeePercent(maxFee)}`
-                    : `${ma?.fee_percent ?? "—"}%`;
-                return (
-                  <tr key={p.id} className="border-b border-slate-100">
-                    <td className="py-3 pr-3">
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-slate-500">
-                        {p.city}, {p.state}
-                      </div>
-                    </td>
-                    <td className="py-3 pr-3">{owner?.company_name ?? "—"}</td>
-                    <td className="py-3 pr-3 capitalize">{p.property_type}</td>
-                    <td className="py-3 pr-3">
-                      <div>{feeLabel} of collected rent</div>
-                      <div className="text-xs text-slate-500">
-                        Agreement avg {ma?.fee_percent ?? "—"}%
-                      </div>
-                    </td>
-                    <td className="py-3 pr-3">
-                      {formatMoney(ma?.approval_threshold)}
-                    </td>
-                    <td className="py-3">
-                      <Badge status={p.status} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AdminPropertiesTable properties={rows} />
       </Card>
     </div>
   );

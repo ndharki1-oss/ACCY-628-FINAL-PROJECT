@@ -82,12 +82,20 @@ export default async function AdminProfitabilityPage() {
         Profitability
       </h1>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Company fee revenue" value={formatMoney(feeRevenue)} />
-        <Stat label="Company operating costs" value={formatMoney(companyCosts)} />
+        <Stat
+          label="Company fee revenue"
+          value={formatMoney(feeRevenue)}
+          hint="GL 4000 = credit-based base management fees on collections"
+        />
+        <Stat
+          label="Company operating costs"
+          value={formatMoney(companyCosts)}
+          hint="Harborline company_expenses (not owner property OpEx)"
+        />
         <Stat
           label="Company contribution"
           value={formatMoney(feeRevenue - companyCosts)}
-          hint="Fees − company OpEx (not property NOI)"
+          hint="Fees − Harborline OpEx (not property NOI)"
         />
       </div>
 

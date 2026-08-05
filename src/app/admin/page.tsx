@@ -252,12 +252,9 @@ export default async function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          Admin workspace
+        <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#0c1f2e]">
+          Admin Workspace
         </h1>
-        <p className="mt-1 text-slate-600">
-          Contract-to-cash controls, AR, fee revenue, and period close.
-        </p>
       </div>
 
       {alertCount > 0 ? (
@@ -306,10 +303,10 @@ export default async function AdminDashboard() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4">
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        <div className="flex h-full min-h-0 flex-col gap-4">
         <Card
-          title="Fee revenue recognized (GAAP: on collection)"
+          title="Fee Revenue Recognized (GAAP: on collection)"
           action={
             <Link href="/admin/accounting" className="text-sm text-[#c4784a]">
               Journals →
@@ -320,8 +317,9 @@ export default async function AdminDashboard() {
             {formatMoney(feeRevenue)}
           </p>
           <p className="mt-2 text-sm text-slate-600">
-            Management fees credit account 4000 only when rent is collected
-            (agency model — rent itself is Due to Owner, not Harborline revenue).
+            Credit-based base management fees (4–12% of collections by tenant
+            credit) credit GL 4000 when rent is collected. Matches Mgmt P&amp;L
+            company fee revenue (agency model — rent itself is Due to Owner).
           </p>
         </Card>
 
@@ -359,27 +357,33 @@ export default async function AdminDashboard() {
             />
           </ul>
         </Card>
+
+        <Card title="Property Locations" className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-[240px] flex-1">
+            <PropertyLocationsMap markers={propertyMarkers} />
+          </div>
+        </Card>
         </div>
 
-        <div id="unapproved-work-risk" className="scroll-mt-6">
-        <Card title="Unapproved work / spend risk">
+        <div id="unapproved-work-risk" className="flex h-full min-h-0 scroll-mt-6 flex-col">
+        <Card title="Unapproved Work/ Spend Risk" className="flex min-h-0 flex-1 flex-col">
           {pendingDetails.length === 0 ? (
             <p className="text-sm text-slate-600">No WOs awaiting owner approval.</p>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto text-[15px]">
               {pendingDetails.map((w) => (
                 <li
                   key={w.id}
-                  className="flex flex-col gap-2 border-b border-slate-100 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex flex-1 flex-col justify-center gap-2 border-b border-slate-100 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-[#0c1f2e]">
+                    <p className="text-base font-medium text-[#0c1f2e]">
                       {w.woNumber}: {w.title}
                     </p>
                     {w.description ? (
-                      <p className="mt-0.5 text-slate-600">{w.description}</p>
+                      <p className="mt-1 text-sm text-slate-600">{w.description}</p>
                     ) : null}
-                    <p className="mt-1 text-xs text-slate-500">{w.propertyName}</p>
+                    <p className="mt-1 text-sm text-slate-500">{w.propertyName}</p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <PriorityBadge priority={w.priority} />
@@ -395,14 +399,6 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <Card title="Property Locations">
-        <p className="mb-3 text-sm text-slate-600">
-          Interactive map of managed properties. Click a marker for owner, occupancy,
-          and open work-order details.
-        </p>
-        <PropertyLocationsMap markers={propertyMarkers} />
-      </Card>
-
       <Card title="Period close checklist">
         <ul className="space-y-2 text-sm">
           {(periods ?? []).map((p) => (
@@ -414,9 +410,6 @@ export default async function AdminDashboard() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-slate-500">
-          Closed periods block backdated postings without admin override + audit.
-        </p>
       </Card>
     </div>
   );
