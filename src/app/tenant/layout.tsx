@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 const tenantLinks = [
   { href: "/tenant", label: "Dashboard" },
   { href: "/tenant/lease", label: "My Leases" },
+  { href: "/tenant/available", label: "Available Leases" },
   { href: "/tenant/invoices", label: "Payments" },
   { href: "/tenant/requests", label: "Maintenance Requests" },
 ];

@@ -222,6 +222,7 @@ export async function toggleAutoPay(formData: FormData) {
 export async function createTenantRequest(formData: FormData) {
   const title = String(formData.get("title"));
   const description = String(formData.get("description") ?? "");
+  const preferredVendor = String(formData.get("preferred_vendor") ?? "").trim();
   const supabase = await createClient();
   const {
     data: { user },
@@ -245,6 +246,7 @@ export async function createTenantRequest(formData: FormData) {
     property_id: lease?.property_id,
     title,
     description,
+    preferred_vendor: preferredVendor || null,
   });
   revalidatePath("/tenant/requests");
 }

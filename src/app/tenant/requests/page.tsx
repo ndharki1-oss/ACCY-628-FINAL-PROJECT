@@ -58,6 +58,11 @@ export default async function TenantRequestsPage() {
             placeholder="Describe the issue"
             className="w-full rounded border border-slate-300 px-3 py-2"
           />
+          <input
+            name="preferred_vendor"
+            placeholder="Preferred Vendor"
+            className="w-full rounded border border-slate-300 px-3 py-2"
+          />
           <button
             type="submit"
             className="rounded bg-[#0c1f2e] px-4 py-2 text-white"
@@ -80,6 +85,11 @@ export default async function TenantRequestsPage() {
                 <div>
                   <p className="font-medium">{r.title}</p>
                   <p className="text-xs text-slate-500">{r.description}</p>
+                  {r.preferred_vendor ? (
+                    <p className="text-xs text-slate-500">
+                      Preferred vendor: {r.preferred_vendor}
+                    </p>
+                  ) : null}
                 </div>
                 <Badge status={r.status} />
               </li>
@@ -103,6 +113,11 @@ export default async function TenantRequestsPage() {
                 <div>
                   <p className="font-medium">{r.title}</p>
                   <p className="text-xs text-slate-500">{r.description}</p>
+                  {r.preferred_vendor ? (
+                    <p className="text-xs text-slate-500">
+                      Preferred vendor: {r.preferred_vendor}
+                    </p>
+                  ) : null}
                 </div>
                 <Badge status={r.status} />
               </li>
