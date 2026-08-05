@@ -34,12 +34,12 @@ export default async function TenantAvailableLeasesPage() {
           Available leases
         </h1>
         <p className="mt-2 text-slate-600">
-          Open units in the Harborline network that are not currently leased.
+          Vacant units in the Harborline network that are not currently leased.
         </p>
       </div>
       {available.length === 0 ? (
         <p className="text-sm text-slate-600">
-          No available leases right now. Check back later.
+          No vacant units right now. Check back later.
         </p>
       ) : (
         available.map((u) => (
