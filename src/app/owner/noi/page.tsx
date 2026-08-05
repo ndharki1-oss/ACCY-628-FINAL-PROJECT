@@ -1,22 +1,16 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedOwnerId } from "@/lib/portal";
 import { Card } from "@/components/ui";
+import { PropertyLink } from "@/components/property-link";
 import { formatMoney } from "@/lib/utils";
 
 export default async function OwnerNoiPage() {
   const { supabase, user } = await requireRole(["owner"]);
-  const { data: owner } = await supabase
-    .from("owners")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const ownerId =
-    owner?.id ??
-    (await supabase.from("owners").select("id").limit(1).single()).data?.id;
+  const { ownerId, error: ownerError } = await getLinkedOwnerId(supabase, user);
 
-  const { data: properties } = await supabase
-    .from("properties")
-    .select("id, name")
-    .eq("owner_id", ownerId!);
+  const { data: properties, error: propertyError } = ownerId
+    ? await supabase.from("properties").select("id, name").eq("owner_id", ownerId)
+    : { data: [], error: ownerError ? { message: ownerError } : null };
   const propIds = (properties ?? []).map((p) => p.id);
 
   const [{ data: invoices }, { data: costs }] = await Promise.all([
@@ -24,7 +18,9 @@ export default async function OwnerNoiPage() {
       .from("invoices")
       .select("property_id, total, status, party_type")
       .in("property_id", propIds.length ? propIds : ["00000000-0000-0000-0000-000000000000"]),
-    supabase.from("cost_entries").select("property_id, amount").eq("owner_id", ownerId!),
+    ownerId
+      ? supabase.from("cost_entries").select("property_id, amount").eq("owner_id", ownerId)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const rows = (properties ?? []).map((p) => {
@@ -51,29 +47,38 @@ export default async function OwnerNoiPage() {
         NOI ≈ tenant charges − property operating costs (owner economics). Harborline
         fee is separate and settled on remittance.
       </p>
+      {propertyError ? (
+        <p className="text-sm text-rose-700">{propertyError.message}</p>
+      ) : null}
       <Card title="By property">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b text-xs uppercase text-slate-500">
-            <tr>
-              <th className="py-2">Property</th>
-              <th className="py-2">Charges</th>
-              <th className="py-2">OpEx</th>
-              <th className="py-2">NOI</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100">
-                <td className="py-2">{r.name}</td>
-                <td className="py-2">{formatMoney(r.rev)}</td>
-                <td className="py-2">{formatMoney(r.exp)}</td>
-                <td className={`py-2 font-medium ${r.noi < 0 ? "text-rose-700" : ""}`}>
-                  {formatMoney(r.noi)}
-                </td>
+        {rows.length === 0 ? (
+          <p className="text-sm text-slate-600">No property NOI to display yet.</p>
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead className="border-b text-xs uppercase text-slate-500">
+              <tr>
+                <th className="py-2">Property</th>
+                <th className="py-2">Charges</th>
+                <th className="py-2">OpEx</th>
+                <th className="py-2">NOI</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-b border-slate-100">
+                  <td className="py-2">
+                    <PropertyLink id={r.id}>{r.name}</PropertyLink>
+                  </td>
+                  <td className="py-2">{formatMoney(r.rev)}</td>
+                  <td className="py-2">{formatMoney(r.exp)}</td>
+                  <td className={`py-2 font-medium ${r.noi < 0 ? "text-rose-700" : ""}`}>
+                    {formatMoney(r.noi)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
     </div>
   );

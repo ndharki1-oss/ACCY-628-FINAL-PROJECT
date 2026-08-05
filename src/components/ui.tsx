@@ -9,7 +9,6 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/admin/leases", label: "Leases" },
     { href: "/admin/billing", label: "Billing" },
     { href: "/admin/work-orders", label: "Work Orders" },
-    { href: "/admin/accounting", label: "Accounting" },
     { href: "/admin/profitability", label: "Profitability" },
   ],
   owner: [
@@ -25,9 +24,13 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/tenant/invoices", label: "Invoices" },
     { href: "/tenant/requests", label: "Requests" },
   ],
-  vendor: [
-    { href: "/vendor", label: "Dashboard" },
-    { href: "/vendor/work-orders", label: "Assignments" },
+  employee: [
+    { href: "/employee", label: "Dashboard" },
+    { href: "/employee/work-orders", label: "Assignments" },
+  ],
+  accounting: [
+    { href: "/accounting", label: "Accounting" },
+    { href: "/accounting/profitability", label: "Profitability" },
   ],
 };
 

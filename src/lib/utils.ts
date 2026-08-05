@@ -1,4 +1,22 @@
-export type UserRole = "admin" | "owner" | "tenant" | "vendor";
+export type UserRole = "admin" | "owner" | "tenant" | "vendor" | "accounting";
+
+/** DB role → portal URL path (vendor portal is labeled Employee). */
+export function roleHomePath(role: string): string {
+  if (role === "vendor") return "/employee";
+  return `/${role}`;
+}
+
+/** DB role → nav/shell key used in the UI. */
+export function roleShellKey(role: string): string {
+  if (role === "vendor") return "employee";
+  return role;
+}
+
+/** Whether a pathname belongs to this DB role's portal. */
+export function pathMatchesRole(pathname: string, role: string): boolean {
+  const home = roleHomePath(role);
+  return pathname === home || pathname.startsWith(`${home}/`);
+}
 
 export function formatMoney(n: number | string | null | undefined) {
   const v = typeof n === "string" ? parseFloat(n) : n ?? 0;
@@ -27,6 +45,11 @@ export function statusClass(status: string) {
     expired: "bg-slate-200 text-slate-700",
     draft: "bg-slate-100 text-slate-700",
     held: "bg-indigo-100 text-indigo-800",
+    declined: "bg-rose-100 text-rose-800",
+    renewal_pending: "bg-amber-100 text-amber-900",
+    leased: "bg-emerald-100 text-emerald-800",
+    vacant: "bg-rose-100 text-rose-800",
+    current: "bg-emerald-100 text-emerald-800",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
 }

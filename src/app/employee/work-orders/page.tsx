@@ -1,24 +1,20 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedVendorId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { vendorCompleteWorkOrder } from "@/app/actions/business";
 
-export default async function VendorWorkOrdersPage() {
+export default async function EmployeeWorkOrdersPage() {
   const { supabase, user } = await requireRole(["vendor"]);
-  const { data: vendor } = await supabase
-    .from("vendors")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const vendorId =
-    vendor?.id ??
-    (await supabase.from("vendors").select("id").limit(1).single()).data?.id;
+  const { vendorId, error: vendorError } = await getLinkedVendorId(supabase, user);
 
-  const { data: wos } = await supabase
-    .from("work_orders")
-    .select("*, properties(name, address_line1, city)")
-    .eq("vendor_id", vendorId!)
-    .order("scheduled_date", { ascending: false });
+  const { data: wos } = vendorId
+    ? await supabase
+        .from("work_orders")
+        .select("*, properties(name, address_line1, city)")
+        .eq("vendor_id", vendorId)
+        .order("scheduled_date", { ascending: false })
+    : { data: [] };
 
   return (
     <div className="space-y-6">
@@ -29,6 +25,14 @@ export default async function VendorWorkOrdersPage() {
         Mark complete and enter costs. Owner approval is required before work is
         considered accepted.
       </p>
+      {vendorError ? (
+        <p className="text-sm text-rose-700">
+          This login is not linked to an employee work record.
+        </p>
+      ) : null}
+      {(wos ?? []).length === 0 ? (
+        <p className="text-sm text-slate-600">No assignments linked to this account yet.</p>
+      ) : null}
       {(wos ?? []).map((w) => {
         const prop = Array.isArray(w.properties) ? w.properties[0] : w.properties;
         const canComplete = ["assigned", "in_progress", "open", "rejected"].includes(
