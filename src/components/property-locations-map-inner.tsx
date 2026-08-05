@@ -28,7 +28,20 @@ function FitAllMarkers({ points }: { points: [number, number][] }) {
   const map = useMap();
 
   useEffect(() => {
+    const resize = () => map.invalidateSize();
+    resize();
+    map.getContainer().ownerDocument.defaultView?.addEventListener("resize", resize);
+    const observer = new ResizeObserver(resize);
+    observer.observe(map.getContainer());
+    return () => {
+      map.getContainer().ownerDocument.defaultView?.removeEventListener("resize", resize);
+      observer.disconnect();
+    };
+  }, [map]);
+
+  useEffect(() => {
     if (points.length === 0) return;
+    map.invalidateSize();
     const bounds = L.latLngBounds(points);
     map.fitBounds(bounds, { padding: [36, 36], maxZoom: 12 });
   }, [map, points]);
@@ -49,7 +62,7 @@ export default function PropertyLocationsMapInner({
       center={fallbackCenter}
       zoom={11}
       scrollWheelZoom
-      className="h-[360px] w-full sm:h-[440px]"
+      className="h-full min-h-[240px] w-full"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
