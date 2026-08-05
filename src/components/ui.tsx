@@ -41,16 +41,6 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/employee/reports/maintenance", label: "My Hours" },
     { href: "/employee/reports/employee-labor", label: "My Labor" },
   ],
-  accounting: [
-    { href: "/accounting", label: "Accounting" },
-    { href: "/accounting/statements", label: "Statements" },
-    { href: "/accounting/profitability", label: "Mgmt P&L" },
-    { href: "/accounting/reports/property-pnl", label: "Property P&L" },
-    { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
-    { href: "/accounting/reports/maintenance", label: "Maintenance" },
-    { href: "/accounting/reports/employee-labor", label: "Labor" },
-    { href: "/accounting/reports/expense-breakdown", label: "Expenses" },
-  ],
 };
 
 export function AppShell({

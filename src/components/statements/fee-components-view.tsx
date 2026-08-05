@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge, Card, Stat } from "@/components/ui";
+import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
 import { formatMoney } from "@/lib/utils";
 import {
   FEE_LINE_LABELS,
@@ -64,29 +65,11 @@ export function FeeComponentsView({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-slate-500">
-            Statement period
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {periods.map((p) => {
-              const active = p === selectedPeriod;
-              return (
-                <Link
-                  key={p}
-                  href={`${basePath}?period=${p}`}
-                  className={`rounded border px-3 py-1.5 text-sm ${
-                    active
-                      ? "border-[#0c1f2e] bg-[#0c1f2e] text-[#f3efe6]"
-                      : "border-slate-300 bg-white/70 text-slate-700 hover:bg-white"
-                  }`}
-                >
-                  {formatPeriodLabel(p)}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
+        <StatementPeriodSelect
+          periods={periods}
+          selectedPeriod={selectedPeriod}
+          basePath={basePath}
+        />
         <p className="text-sm text-slate-600">
           Header <span className="font-medium">mgmt fee</span> = sum of agency
           fee components below. Remittance = collections − expenses − fee.
