@@ -9,8 +9,14 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/admin/owners", label: "Property Owners" },
     { href: "/admin/leases", label: "Leases" },
     { href: "/admin/billing", label: "Billing" },
+    { href: "/admin/statements", label: "Statements" },
     { href: "/admin/work-orders", label: "Work Orders" },
-    { href: "/admin/profitability", label: "Profitability" },
+    { href: "/admin/profitability", label: "Mgmt P&L" },
+    { href: "/admin/reports/property-pnl", label: "Property P&L" },
+    { href: "/admin/reports/owner-profitability", label: "Owner Profit" },
+    { href: "/admin/reports/maintenance", label: "Maintenance" },
+    { href: "/admin/reports/employee-labor", label: "Labor" },
+    { href: "/admin/reports/expense-breakdown", label: "Expenses" },
   ],
   owner: [
     { href: "/owner", label: "Dashboard" },
@@ -18,6 +24,10 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/owner/approvals", label: "Approvals" },
     { href: "/owner/statements", label: "Statements" },
     { href: "/owner/noi", label: "NOI" },
+    { href: "/owner/reports/property-pnl", label: "Property P&L" },
+    { href: "/owner/reports/owner-profitability", label: "My Profitability" },
+    { href: "/owner/reports/maintenance", label: "Maintenance" },
+    { href: "/owner/reports/expense-breakdown", label: "Expenses" },
   ],
   tenant: [
     { href: "/tenant", label: "Dashboard" },
@@ -28,10 +38,18 @@ const nav: Record<string, { href: string; label: string }[]> = {
   employee: [
     { href: "/employee", label: "Dashboard" },
     { href: "/employee/work-orders", label: "Assignments" },
+    { href: "/employee/reports/maintenance", label: "My Hours" },
+    { href: "/employee/reports/employee-labor", label: "My Labor" },
   ],
   accounting: [
     { href: "/accounting", label: "Accounting" },
-    { href: "/accounting/profitability", label: "Profitability" },
+    { href: "/accounting/statements", label: "Statements" },
+    { href: "/accounting/profitability", label: "Mgmt P&L" },
+    { href: "/accounting/reports/property-pnl", label: "Property P&L" },
+    { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
+    { href: "/accounting/reports/maintenance", label: "Maintenance" },
+    { href: "/accounting/reports/employee-labor", label: "Labor" },
+    { href: "/accounting/reports/expense-breakdown", label: "Expenses" },
   ],
 };
 

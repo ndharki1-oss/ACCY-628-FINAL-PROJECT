@@ -23,6 +23,9 @@ out/
 .env*.local
 .env*
 
+# local database dumps — never commit
+backups/
+
 # vercel
 .vercel
 

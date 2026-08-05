@@ -15,6 +15,7 @@ export type AdminPropertyRow = {
   unitCount: number;
   occupancyRate: number | null;
   feePercent: number | string | null;
+  feeLabel: string;
   approvalThreshold: number | string | null;
   status: string;
 };
@@ -179,7 +180,12 @@ export function AdminPropertiesTable({
                   {formatOccupancyPercent(property.occupancyRate)}
                 </td>
                 <td className="py-3 pr-3">
-                  {property.feePercent != null ? `${property.feePercent}%` : "—"}
+                  <div>{property.feeLabel}</div>
+                  {property.feePercent != null ? (
+                    <div className="text-xs text-slate-500">
+                      Agreement avg {property.feePercent}%
+                    </div>
+                  ) : null}
                 </td>
                 <td className="py-3 pr-3">
                   {formatMoney(property.approvalThreshold)}

@@ -1,10 +1,10 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Card } from "@/components/ui";
 import { createTenantRequest } from "@/app/tenant/actions";
+import { OpenRequestStatusMenu } from "@/app/tenant/open-request-status-menu";
+import { RequestSubmittedBanner } from "@/app/tenant/request-submitted-banner";
 import { statusClass } from "@/lib/utils";
-
-const MAINTENANCE_REQUEST_THANK_YOU =
-  "Thank you for submitting a maintenance request. We will review your request and get back to you as soon as possible.";
 
 const ACTIVE_STATUSES = new Set([
   "open",
@@ -38,6 +38,7 @@ function RequestStatus({ status }: { status: string }) {
 
 function RequestListItem({
   request,
+  cancellable = false,
 }: {
   request: {
     id: string;
@@ -47,7 +48,12 @@ function RequestListItem({
     service_type?: string | null;
     request_date?: string | null;
     recurring_issue?: boolean | null;
+    work_orders?:
+      | { wo_number: string; status: string }
+      | { wo_number: string; status: string }[]
+      | null;
   };
+  cancellable?: boolean;
 }) {
   const meta = [
     request.service_type,
@@ -57,6 +63,10 @@ function RequestListItem({
     .filter(Boolean)
     .join(" · ");
 
+  const workOrder = Array.isArray(request.work_orders)
+    ? request.work_orders[0]
+    : request.work_orders;
+
   return (
     <li className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0">
@@ -65,8 +75,18 @@ function RequestListItem({
         {request.description ? (
           <p className="mt-1 text-sm text-slate-600">{request.description}</p>
         ) : null}
+        {workOrder ? (
+          <p className="mt-1 text-xs font-medium text-[#c4784a]">
+            Work order {workOrder.wo_number} ·{" "}
+            {workOrder.status.replaceAll("_", " ")}
+          </p>
+        ) : null}
       </div>
-      <RequestStatus status={request.status} />
+      {cancellable ? (
+        <OpenRequestStatusMenu requestId={request.id} status={request.status} />
+      ) : (
+        <RequestStatus status={request.status} />
+      )}
     </li>
   );
 }
@@ -78,26 +98,30 @@ export default async function TenantRequestsPage({
 }) {
   const params = await searchParams;
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, email, phone")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantRow =
-    tenant ??
-    (
-      await supabase
-        .from("tenants")
-        .select("id, email, phone")
-        .limit(1)
-        .single()
-    ).data;
-  const tenantId = tenantRow?.id;
+  const { tenantId, tenant: tenantRow, error: tenantError } = await getLinkedTenantId(
+    supabase,
+    user
+  );
+
+  if (!tenantId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl">
+            Maintenance Requests
+          </h1>
+          <p className="text-sm text-rose-700">
+            {tenantError ?? "This login is not linked to a tenant record."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const { data: requests } = await supabase
     .from("tenant_requests")
-    .select("*")
-    .eq("tenant_id", tenantId!)
+    .select("*, work_orders!tenant_request_id(wo_number, status)")
+    .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false });
 
   const activeRequests = (requests ?? []).filter((r) =>
@@ -127,27 +151,12 @@ export default async function TenantRequestsPage({
       </div>
 
       {params.submitted === "1" ? (
-        <Card title="Request submitted">
-          <p className="text-sm text-[#0c1f2e]">
-            {MAINTENANCE_REQUEST_THANK_YOU}
-          </p>
-          {sentViaLabels.length > 0 ? (
-            <p className="mt-3 text-sm text-slate-600">
-              A copy of your maintenance request was sent by{" "}
-              {sentViaLabels.join(" and ")}
-              {tenantRow?.email && via.includes("email")
-                ? ` to ${tenantRow.email}`
-                : ""}
-              {tenantRow?.phone && via.includes("sms")
-                ? `${via.includes("email") ? " and" : " to"} ${tenantRow.phone}`
-                : ""}
-              .
-            </p>
-          ) : null}
-          <p className="mt-2 text-xs text-slate-500">
-            Delivery is simulated for this demo environment.
-          </p>
-        </Card>
+        <RequestSubmittedBanner
+          viaLabels={sentViaLabels}
+          email={tenantRow?.email}
+          phone={tenantRow?.phone}
+          via={via}
+        />
       ) : null}
 
       <Card title="New Request">
@@ -285,7 +294,7 @@ export default async function TenantRequestsPage({
         ) : (
           <ul className="divide-y divide-slate-100">
             {activeRequests.map((r) => (
-              <RequestListItem key={r.id} request={r} />
+              <RequestListItem key={r.id} request={r} cancellable />
             ))}
           </ul>
         )}

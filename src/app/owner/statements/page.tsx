@@ -1,25 +1,22 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
+import { PropertyLink } from "@/components/property-link";
 import { formatMoney } from "@/lib/utils";
 
 export default async function OwnerStatementsPage() {
   const { supabase, user } = await requireRole(["owner"]);
-  const { data: owner } = await supabase
-    .from("owners")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const ownerId =
-    owner?.id ??
-    (await supabase.from("owners").select("id").limit(1).single()).data?.id;
+  const { ownerId, error: ownerError } = await getLinkedOwnerId(supabase, user);
 
-  const { data: statements } = await supabase
-    .from("owner_statements")
-    .select(
-      "*, properties(name), owner_statement_lines(line_type, description, amount)"
-    )
-    .eq("owner_id", ownerId!)
-    .order("period_end", { ascending: false });
+  const { data: statements, error } = ownerId
+    ? await supabase
+        .from("owner_statements")
+        .select(
+          "*, properties(name), owner_statement_lines(line_type, description, amount)"
+        )
+        .eq("owner_id", ownerId)
+        .order("period_end", { ascending: false })
+    : { data: [], error: ownerError ? { message: ownerError } : null };
 
   return (
     <div className="space-y-6">
@@ -27,18 +24,29 @@ export default async function OwnerStatementsPage() {
         Owner statements & remittances
       </h1>
       <p className="text-slate-600">
-        Collections − owner expenses − management fee (% of collected) = remittance
-        due to you.
+        Collections − owner expenses − management fee (credit-based % of
+        collected rent) = remittance due to you.
       </p>
+      {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
+      {(statements ?? []).length === 0 && !error ? (
+        <p className="text-sm text-slate-600">No statements have been issued yet.</p>
+      ) : null}
       {(statements ?? []).map((s) => {
         const prop = Array.isArray(s.properties) ? s.properties[0] : s.properties;
         const lines = (s.owner_statement_lines as { line_type: string; description: string; amount: number }[]) ?? [];
         return (
           <Card
             key={s.id}
-            title={`${s.statement_number} · ${prop?.name ?? ""}`}
+            title={s.statement_number}
             action={<Badge status={s.status} />}
           >
+            {prop?.name ? (
+              <p className="mb-3 text-sm text-slate-600">
+                <PropertyLink id={s.property_id}>{prop.name}</PropertyLink>
+                {" · "}
+                {s.period_start} to {s.period_end}
+              </p>
+            ) : null}
             <div className="grid gap-2 text-sm sm:grid-cols-4">
               <div>
                 <p className="text-xs text-slate-500">Collections</p>

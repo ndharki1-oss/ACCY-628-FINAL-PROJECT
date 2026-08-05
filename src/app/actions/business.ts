@@ -2,6 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  feePercentFromCredit,
+  managementFeeFromCollection,
+} from "@/lib/utils";
 
 export async function vendorCompleteWorkOrder(formData: FormData) {
   const id = String(formData.get("id"));
@@ -81,6 +85,13 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { data: workOrder, error: woLookupError } = await supabase
+    .from("work_orders")
+    .select("id, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (woLookupError) throw new Error(woLookupError.message);
+
   const { error } = await supabase
     .from("work_orders")
     .update({
@@ -110,28 +121,117 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     p_detail: { reason },
   });
 
+  revalidatePath("/owner");
   revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (workOrder?.property_id) {
+    revalidatePath(`/owner/properties/${workOrder.property_id}`);
+  }
   revalidatePath("/admin/work-orders");
 }
 
 export async function ownerApproveCost(formData: FormData) {
   const id = String(formData.get("id"));
+  const decision = String(formData.get("decision") ?? "approve");
+  const reason = String(formData.get("reason") ?? "").trim();
   const supabase = await createClient();
-  const { error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: cost, error: costLookupError } = await supabase
     .from("cost_entries")
-    .update({
-      owner_approved: true,
-      owner_approved_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-  await supabase.rpc("write_audit", {
-    p_action: "owner_approve_cost",
-    p_entity_type: "cost_entry",
-    p_entity_id: id,
-    p_detail: {},
-  });
+    .select("id, amount, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (costLookupError) throw new Error(costLookupError.message);
+  if (!cost) throw new Error("Cost entry not found");
+
+  if (decision === "deny") {
+    const { error } = await supabase.from("approvals").insert({
+      entity_type: "cost_entry",
+      entity_id: id,
+      approver_role: "owner",
+      status: "rejected",
+      amount: cost.amount,
+      notes: reason || "Owner denied expenditure",
+      decided_by: user.id,
+      decided_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    await supabase.rpc("write_audit", {
+      p_action: "owner_deny_cost",
+      p_entity_type: "cost_entry",
+      p_entity_id: id,
+      p_detail: { reason },
+    });
+  } else {
+    const { error } = await supabase
+      .from("cost_entries")
+      .update({
+        owner_approved: true,
+        owner_approved_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    await supabase.rpc("write_audit", {
+      p_action: "owner_approve_cost",
+      p_entity_type: "cost_entry",
+      p_entity_id: id,
+      p_detail: {},
+    });
+  }
+
+  revalidatePath("/owner");
   revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (cost.property_id) {
+    revalidatePath(`/owner/properties/${cost.property_id}`);
+  }
+}
+
+export async function ownerReviewTenantRequest(formData: FormData) {
+  const id = String(formData.get("id"));
+  const decision = String(formData.get("decision"));
+  const notes = String(formData.get("notes") ?? "").trim();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: request, error: requestLookupError } = await supabase
+    .from("tenant_requests")
+    .select("id, property_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (requestLookupError) throw new Error(requestLookupError.message);
+
+  const status = decision === "approve" ? "approved" : "declined";
+  const { error } = await supabase
+    .from("tenant_requests")
+    .update({ status })
+    .eq("id", id)
+    .eq("status", "open");
+
+  if (error) throw new Error(error.message);
+
+  await supabase.rpc("write_audit", {
+    p_action:
+      decision === "approve" ? "owner_approve_request" : "owner_decline_request",
+    p_entity_type: "tenant_request",
+    p_entity_id: id,
+    p_detail: { notes },
+  });
+
+  revalidatePath("/owner");
+  revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  if (request?.property_id) {
+    revalidatePath(`/owner/properties/${request.property_id}`);
+  }
+  revalidatePath("/tenant/requests");
 }
 
 export async function tenantPayInvoice(formData: FormData) {
@@ -145,8 +245,14 @@ export async function tenantPayInvoice(formData: FormData) {
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, credit_rating")
     .eq("profile_id", user!.id)
+    .single();
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, property_id, owner_id, lease_id, tenant_id")
+    .eq("id", invoiceId)
     .single();
 
   const payNum = `PAY-${Date.now()}`;
@@ -174,17 +280,81 @@ export async function tenantPayInvoice(formData: FormData) {
   });
   if (aErr) throw new Error(aErr.message);
 
-  // Agency GAAP: collection increases owner payable; fee recognized on collection via admin statement process.
-  // Record audit for recognition trail.
+  // Agency GAAP: rent collection is Due to Owner; fee % from tenant credit (4–12%).
+  const credit = tenant?.credit_rating as string | undefined;
+  const feePct = feePercentFromCredit(credit);
+  const feeAmount = managementFeeFromCollection(amount, credit);
+
+  const { data: accounts } = await supabase
+    .from("gl_accounts")
+    .select("id, code")
+    .in("code", ["2000", "4000"]);
+  const ownerPayable = accounts?.find((a) => a.code === "2000")?.id;
+  const feeRevenue = accounts?.find((a) => a.code === "4000")?.id;
+
+  if (ownerPayable && feeRevenue && feeAmount > 0) {
+    const entryNumber = `JE-FEE-${Date.now()}`;
+    const { data: period } = await supabase
+      .from("accounting_periods")
+      .select("id")
+      .eq("year", new Date().getFullYear())
+      .eq("month", new Date().getMonth() + 1)
+      .maybeSingle();
+
+    const { data: je } = await supabase
+      .from("journal_entries")
+      .insert({
+        entry_number: entryNumber,
+        entry_date: new Date().toISOString().slice(0, 10),
+        memo: `Management fee ${feePct}% of collection (credit ${credit ?? "BBB"})`,
+        source_type: "payment",
+        source_id: payment.id,
+        period_id: period?.id,
+        created_by: user!.id,
+      })
+      .select("id")
+      .single();
+
+    if (je) {
+      await supabase.from("journal_lines").insert([
+        {
+          journal_entry_id: je.id,
+          gl_account_id: ownerPayable,
+          debit: feeAmount,
+          credit: 0,
+          property_id: invoice?.property_id,
+          owner_id: invoice?.owner_id,
+        },
+        {
+          journal_entry_id: je.id,
+          gl_account_id: feeRevenue,
+          debit: 0,
+          credit: feeAmount,
+          property_id: invoice?.property_id,
+          owner_id: invoice?.owner_id,
+        },
+      ]);
+    }
+  }
+
   await supabase.rpc("write_audit", {
     p_action: "tenant_payment",
     p_entity_type: "payment",
     p_entity_id: payment.id,
-    p_detail: { invoiceId, amount, agency: true, fee_on_collection: true },
+    p_detail: {
+      invoiceId,
+      amount,
+      agency: true,
+      fee_on_collection: true,
+      credit_rating: credit,
+      management_fee_percent: feePct,
+      management_fee_amount: feeAmount,
+    },
   });
 
   revalidatePath("/tenant/invoices");
   revalidatePath("/tenant");
+  revalidatePath("/admin/accounting");
 }
 
 export async function toggleAutoPay(formData: FormData) {
@@ -249,6 +419,7 @@ export async function createTenantRequest(formData: FormData) {
     preferred_vendor: preferredVendor || null,
   });
   revalidatePath("/tenant/requests");
+  revalidatePath("/owner");
 }
 
 export async function closeAccountingPeriod(formData: FormData) {

@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 
@@ -99,21 +100,25 @@ function LeaseSection({
 
 export default async function TenantLeasePage() {
   const { supabase, user } = await requireRole(["tenant"]);
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("profile_id", user.id)
-    .maybeSingle();
-  const tenantId =
-    tenant?.id ??
-    (await supabase.from("tenants").select("id").limit(1).single()).data?.id;
+  const { tenantId, error: tenantError } = await getLinkedTenantId(supabase, user);
+
+  if (!tenantId) {
+    return (
+      <div className="space-y-8">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">My leases</h1>
+        <p className="text-sm text-rose-700">
+          {tenantError ?? "This login is not linked to a tenant record."}
+        </p>
+      </div>
+    );
+  }
 
   const { data: leases } = await supabase
     .from("leases")
     .select(
       "*, properties(name), security_deposits(amount, status, notes), lease_amendments(amendment_type, description, effective_date)"
     )
-    .eq("tenant_id", tenantId!)
+    .eq("tenant_id", tenantId)
     .order("start_date", { ascending: false });
 
   const allLeases = (leases ?? []) as LeaseRow[];

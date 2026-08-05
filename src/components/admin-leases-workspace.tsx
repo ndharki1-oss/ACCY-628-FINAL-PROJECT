@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
-import { formatMoney } from "@/lib/utils";
+import { formatFeePercent, formatMoney } from "@/lib/utils";
 import {
   expiresWithinDays,
   formatLeaseDate,
@@ -21,6 +21,8 @@ export type AdminLeaseRow = {
   tenantContactName: string | null;
   tenantEmail: string | null;
   tenantPhone: string | null;
+  tenantCreditRating: string | null;
+  managementFeePercent: number;
   propertyId: string;
   propertyName: string;
   unitCode: string;
@@ -103,6 +105,14 @@ function LeaseDetail({
           <DetailItem label="End date" value={formatLeaseDate(lease.endDate)} />
           <DetailItem label="Monthly rent" value={formatMoney(lease.baseRent)} />
           <DetailItem label="CAM / recurring" value={formatMoney(lease.cam)} />
+          <DetailItem
+            label="Management fee"
+            value={`${formatFeePercent(lease.managementFeePercent)} of collected rent`}
+          />
+          <DetailItem
+            label="Tenant credit"
+            value={lease.tenantCreditRating ?? "—"}
+          />
           <DetailItem
             label="Security deposit"
             value={`${formatMoney(lease.securityDeposit)}${

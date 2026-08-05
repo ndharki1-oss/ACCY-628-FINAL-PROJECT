@@ -7,9 +7,9 @@ export default async function AdminWorkOrdersPage() {
   const { data: rows } = await supabase
     .from("work_orders")
     .select(
-      "id, wo_number, wo_type, status, title, scheduled_date, actual_cost, properties(name), vendors(company_name)"
+      "id, wo_number, wo_type, status, title, description, scheduled_date, actual_cost, tenant_request_id, properties(name), vendors(company_name), tenant_requests(id, title, service_type, tenants(company_name))"
     )
-    .order("scheduled_date", { ascending: false });
+    .order("created_at", { ascending: false });
 
   return (
     <div className="space-y-6">
@@ -18,23 +18,50 @@ export default async function AdminWorkOrdersPage() {
       </h1>
       <p className="text-slate-600">
         Vendors complete work; property owners approve. Completion alone does not
-        close the obligation.
+        close the obligation. Tenant maintenance requests automatically create a
+        linked work order here.
       </p>
       <Card title="All assignments">
         <ul className="divide-y divide-slate-100">
           {(rows ?? []).map((w) => {
-            const prop = Array.isArray(w.properties) ? w.properties[0] : w.properties;
+            const prop = Array.isArray(w.properties)
+              ? w.properties[0]
+              : w.properties;
             const vendor = Array.isArray(w.vendors) ? w.vendors[0] : w.vendors;
+            const linkedRequest = Array.isArray(w.tenant_requests)
+              ? w.tenant_requests[0]
+              : w.tenant_requests;
+            const linkedTenant = linkedRequest
+              ? Array.isArray(linkedRequest.tenants)
+                ? linkedRequest.tenants[0]
+                : linkedRequest.tenants
+              : null;
+
             return (
-              <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+              <li
+                key={w.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"
+              >
                 <div>
                   <p className="font-medium">
                     {w.wo_number}: {w.title}
                   </p>
                   <p className="text-slate-600">
                     {prop?.name} · {vendor?.company_name ?? "Unassigned"} ·{" "}
-                    {w.wo_type} · {w.scheduled_date}
+                    {w.wo_type.replaceAll("_", " ")} ·{" "}
+                    {w.scheduled_date ?? "Unscheduled"}
                   </p>
+                  {w.tenant_request_id ? (
+                    <p className="mt-1 text-xs font-medium text-[#c4784a]">
+                      From tenant maintenance request
+                      {linkedTenant?.company_name
+                        ? ` · ${linkedTenant.company_name}`
+                        : ""}
+                      {linkedRequest?.service_type
+                        ? ` · ${linkedRequest.service_type}`
+                        : ""}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-3">
                   <span>{formatMoney(w.actual_cost)}</span>
