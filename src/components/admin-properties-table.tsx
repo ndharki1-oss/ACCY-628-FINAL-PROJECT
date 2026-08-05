@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
 import { formatOccupancyPercent } from "@/lib/property-portfolio";
@@ -22,6 +22,240 @@ export type AdminPropertyRow = {
 
 type SortKey = "name" | "occupancy" | "unitCount";
 
+type GalleryPhoto = { src: string; label: string };
+type PhotoPools = { exterior: string[]; interior: string[] };
+
+const PROPERTY_TYPE_PHOTOS: Record<string, PhotoPools> = {
+  office: {
+    exterior: [
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80",
+    ],
+    interior: [
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1604328698692-f76ea9498e76?auto=format&fit=crop&w=1200&q=80",
+    ],
+  },
+  retail: {
+    exterior: [
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1555636222-cae831e670b3?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1567449303078-57ad995bd329?auto=format&fit=crop&w=1200&q=80",
+    ],
+    interior: [
+      "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=1200&q=80",
+    ],
+  },
+  warehouse: {
+    exterior: [
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1565891741441-64926e441838?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
+    ],
+    interior: [
+      "https://images.unsplash.com/photo-1586528116493-a029325540fa?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1605745341112-85968b19335b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
+    ],
+  },
+  industrial: {
+    exterior: [
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
+    ],
+    interior: [
+      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1586528116493-a029325540fa?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1605745341112-85968b19335b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
+    ],
+  },
+};
+
+function normalizePropertyType(type: string) {
+  const key = type.trim().toLowerCase().replaceAll(" ", "_");
+  if (key === "warehouses") return "warehouse";
+  if (key in PROPERTY_TYPE_PHOTOS) return key;
+  return "office";
+}
+
+function hashSeed(value: string) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+}
+
+function pickDistinct(pool: string[], seed: number, offset: number) {
+  const first = pool[seed % pool.length];
+  let second = pool[(seed + offset) % pool.length];
+  if (second === first && pool.length > 1) {
+    second = pool[(seed + offset + 1) % pool.length];
+  }
+  return [first, second] as const;
+}
+
+function photosForProperty(property: AdminPropertyRow): GalleryPhoto[] {
+  const typeKey = normalizePropertyType(property.type);
+  const pools = PROPERTY_TYPE_PHOTOS[typeKey] ?? PROPERTY_TYPE_PHOTOS.office;
+  const seed = hashSeed(`${property.id}:${typeKey}`);
+  const [exteriorA, exteriorB] = pickDistinct(pools.exterior, seed, 2);
+  const [interiorA, interiorB] = pickDistinct(pools.interior, seed, 3);
+
+  return [
+    { src: exteriorA, label: "Exterior" },
+    { src: exteriorB, label: "Exterior" },
+    { src: interiorA, label: "Interior" },
+    { src: interiorB, label: "Interior" },
+  ];
+}
+
+function PropertyPreviewDialog({
+  property,
+  onClose,
+}: {
+  property: AdminPropertyRow;
+  onClose: () => void;
+}) {
+  const titleId = useId();
+  const photos = useMemo(() => photosForProperty(property), [property]);
+  const [index, setIndex] = useState(0);
+  const current = photos[index] ?? photos[0];
+
+  useEffect(() => {
+    setIndex(0);
+  }, [property.id]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowLeft") {
+        setIndex((value) => (value - 1 + photos.length) % photos.length);
+      }
+      if (event.key === "ArrowRight") {
+        setIndex((value) => (value + 1) % photos.length);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, photos.length]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0c1f2e]/55 p-4 sm:p-8">
+      <button
+        type="button"
+        aria-label="Close property preview"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="relative z-10 mt-6 w-full max-w-lg overflow-hidden rounded-lg border border-slate-800/10 bg-[#f4f1ea] shadow-xl"
+      >
+        <div className="relative aspect-[16/10] bg-slate-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={current.src}
+            alt={`${current.label} photo of ${property.name}`}
+            className="h-full w-full object-cover"
+          />
+          <button
+            type="button"
+            aria-label="Previous photo"
+            onClick={() =>
+              setIndex((value) => (value - 1 + photos.length) % photos.length)
+            }
+            className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#0c1f2e] shadow ring-1 ring-black/10 hover:bg-white"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Next photo"
+            onClick={() => setIndex((value) => (value + 1) % photos.length)}
+            className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#0c1f2e] shadow ring-1 ring-black/10 hover:bg-white"
+          >
+            ›
+          </button>
+          <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-[#0c1f2e]/65 px-2.5 py-1 text-[11px] text-white">
+            <span>{current.label}</span>
+            <span className="opacity-70">
+              {index + 1}/{photos.length}
+            </span>
+          </div>
+        </div>
+        <header className="flex items-start justify-between gap-4 bg-[#0c1f2e] px-5 py-4 text-[#f3efe6]">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-[#d4a574]">
+              Property preview
+            </p>
+            <h3
+              id={titleId}
+              className="font-[family-name:var(--font-display)] text-xl"
+            >
+              {property.name}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded border border-white/20 px-2 py-1 text-sm hover:bg-white/10"
+          >
+            Close
+          </button>
+        </header>
+        <dl className="space-y-3 px-5 py-5 text-sm">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Name
+            </dt>
+            <dd className="mt-0.5 font-medium text-[#0c1f2e]">{property.name}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Address
+            </dt>
+            <dd className="mt-0.5 text-[#0c1f2e]">{property.address}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Owner
+            </dt>
+            <dd className="mt-0.5 text-[#0c1f2e]">{property.owner || "—"}</dd>
+          </div>
+        </dl>
+        <div className="border-t border-slate-200 px-5 py-4">
+          <Link
+            href={`/admin/properties/${property.id}`}
+            className="inline-flex rounded border border-[#0c1f2e]/20 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-[#f3efe6]"
+          >
+            View full details
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function AdminPropertiesTable({
   properties,
 }: {
@@ -32,6 +266,7 @@ export function AdminPropertiesTable({
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [selected, setSelected] = useState<AdminPropertyRow | null>(null);
 
   const types = useMemo(
     () => [...new Set(properties.map((p) => p.type))].sort(),
@@ -72,6 +307,12 @@ export function AdminPropertiesTable({
 
   return (
     <div className="space-y-4">
+      {selected ? (
+        <PropertyPreviewDialog
+          property={selected}
+          onClose={() => setSelected(null)}
+        />
+      ) : null}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <label className="block text-sm md:col-span-2 xl:col-span-1">
           <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
@@ -169,7 +410,13 @@ export function AdminPropertiesTable({
             {rows.map((property) => (
               <tr key={property.id} className="border-b border-slate-100">
                 <td className="py-3 pr-3 font-medium text-[#0c1f2e]">
-                  {property.name}
+                  <button
+                    type="button"
+                    onClick={() => setSelected(property)}
+                    className="text-left text-[#0645ad] underline underline-offset-2 hover:text-[#0b57d0]"
+                  >
+                    {property.name}
+                  </button>
                 </td>
                 <td className="py-3 pr-3">{property.owner || "—"}</td>
                 <td className="py-3 pr-3 capitalize">{property.type}</td>
