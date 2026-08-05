@@ -110,7 +110,7 @@ SELECT l.id, p.id, u.id, t.id, format('HL-%s', lpad(l.n::text, 4, '0')),
        (ARRAY['nnn','modified_gross','full_service','percentage_rent'])[((l.n-1)%4)+1]::public.lease_type,
        CASE WHEN l.n = 37 THEN 'expired' WHEN l.n = 38 THEN 'canceled' WHEN l.n IN (39,40) THEN 'renewal_pending' ELSE 'active' END::public.lease_status,
        CASE WHEN l.n = 37 THEN '2023-01-01' WHEN l.n = 38 THEN '2025-01-01' ELSE '2024-01-01' END,
-       CASE WHEN l.n = 37 THEN '2025-01-31' WHEN l.n = 38 THEN '2025-05-15' WHEN l.n IN (39,40) THEN '2026-12-31' WHEN l.n = 31 THEN '2026-11-05' ELSE '2027-12-31' END,
+       CASE WHEN l.n = 37 THEN '2025-01-31' WHEN l.n = 38 THEN '2025-05-15' WHEN l.n IN (39,40) THEN '2026-12-31' WHEN l.n IN (16,31) THEN '2026-11-05' ELSE '2027-12-31' END,
        2800 + l.n*175, 450 + (l.n%5)*75, CASE WHEN l.n%4 = 0 THEN 6.5 ELSE null END, 1, 3500 + l.n*100
 FROM seed_leases l JOIN seed_properties p ON p.n = l.property_n JOIN seed_units u ON u.property_n = l.property_n AND u.unit_n = l.unit_n JOIN seed_tenants t ON t.n = l.tenant_n
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, end_date = EXCLUDED.end_date, base_rent_monthly = EXCLUDED.base_rent_monthly;
