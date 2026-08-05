@@ -3,7 +3,7 @@ import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { vendorCompleteWorkOrder } from "@/app/actions/business";
 
-export default async function VendorWorkOrdersPage() {
+export default async function EmployeeWorkOrdersPage() {
   const { supabase, user } = await requireRole(["vendor"]);
   const { data: vendor } = await supabase
     .from("vendors")

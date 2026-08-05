@@ -39,14 +39,16 @@ Open [http://localhost:3000](http://localhost:3000).
 | Admin | `admin@example.com` | `Demo123!` |
 | Property owner | `owner@example.com` | `Demo123!` |
 | Tenant | `tenant@example.com` | `Demo123!` |
-| Vendor | `vendor@example.com` | `Demo123!` |
+| Employee | `employee@example.com` | `Demo123!` |
+| Accounting | `accounting@example.com` | `Demo123!` |
 
 ## Roles (meaningfully different)
 
-- **Admin** — portfolio CRUD views, billing/AR, work orders, GL/journals, period close, profitability by property/owner/lease, company P&L.
+- **Admin** — portfolio CRUD views, billing/AR, work orders, profitability by property/owner/lease, company P&L. Accounting GL/journals live on the Accounting login (admin has no Accounting tab).
 - **Owner** — own properties only; approve/reject vendor completions and spend; statements/remittances; NOI.
 - **Tenant** — own lease, invoices, simulated pay + auto-pay, service requests, deposits.
-- **Vendor** — assigned work orders only; submit completion + costs for owner approval.
+- **Employee** — assigned work orders only; submit completion + costs for owner approval (same portal formerly labeled Vendor).
+- **Accounting** — management-company accounting department; Accounting (GL/journals/periods) and Profitability only.
 
 ## GAAP design (agency)
 

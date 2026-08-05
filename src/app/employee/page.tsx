@@ -3,7 +3,7 @@ import { Badge, Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
 
-export default async function VendorDashboard() {
+export default async function EmployeeDashboard() {
   const { supabase, user } = await requireRole(["vendor"]);
   const { data: vendor } = await supabase
     .from("vendors")
@@ -29,7 +29,7 @@ export default async function VendorDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Vendor workspace
+        Employee workspace
       </h1>
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Upcoming / active" value={String(upcoming.length)} />
@@ -39,7 +39,7 @@ export default async function VendorDashboard() {
       <Card
         title="Today & upcoming"
         action={
-          <Link href="/vendor/work-orders" className="text-sm text-[#c4784a]">
+          <Link href="/employee/work-orders" className="text-sm text-[#c4784a]">
             All assignments →
           </Link>
         }

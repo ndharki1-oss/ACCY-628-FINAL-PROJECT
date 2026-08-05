@@ -36,7 +36,8 @@ export default async function LoginPage({
             <li>admin@example.com</li>
             <li>owner@example.com</li>
             <li>tenant@example.com</li>
-            <li>vendor@example.com</li>
+            <li>employee@example.com</li>
+            <li>accounting@example.com</li>
           </ul>
           <p className="mt-2">Password for all: Demo123!</p>
         </div>
