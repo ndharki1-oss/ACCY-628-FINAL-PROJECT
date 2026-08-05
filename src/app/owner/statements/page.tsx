@@ -24,8 +24,8 @@ export default async function OwnerStatementsPage() {
         Owner statements & remittances
       </h1>
       <p className="text-slate-600">
-        Collections − owner expenses − management fee (% of collected) = remittance
-        due to you.
+        Collections − owner expenses − management fee (credit-based % of
+        collected rent) = remittance due to you.
       </p>
       {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
       {(statements ?? []).length === 0 && !error ? (

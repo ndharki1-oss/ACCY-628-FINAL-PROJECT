@@ -2,6 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import {
+  feePercentFromCredit,
+  managementFeeFromCollection,
+} from "@/lib/utils";
 
 export async function vendorCompleteWorkOrder(formData: FormData) {
   const id = String(formData.get("id"));
@@ -241,8 +245,14 @@ export async function tenantPayInvoice(formData: FormData) {
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("id")
+    .select("id, credit_rating")
     .eq("profile_id", user!.id)
+    .single();
+
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("id, property_id, owner_id, lease_id, tenant_id")
+    .eq("id", invoiceId)
     .single();
 
   const payNum = `PAY-${Date.now()}`;
@@ -270,17 +280,81 @@ export async function tenantPayInvoice(formData: FormData) {
   });
   if (aErr) throw new Error(aErr.message);
 
-  // Agency GAAP: collection increases owner payable; fee recognized on collection via admin statement process.
-  // Record audit for recognition trail.
+  // Agency GAAP: rent collection is Due to Owner; fee % from tenant credit (4–12%).
+  const credit = tenant?.credit_rating as string | undefined;
+  const feePct = feePercentFromCredit(credit);
+  const feeAmount = managementFeeFromCollection(amount, credit);
+
+  const { data: accounts } = await supabase
+    .from("gl_accounts")
+    .select("id, code")
+    .in("code", ["2000", "4000"]);
+  const ownerPayable = accounts?.find((a) => a.code === "2000")?.id;
+  const feeRevenue = accounts?.find((a) => a.code === "4000")?.id;
+
+  if (ownerPayable && feeRevenue && feeAmount > 0) {
+    const entryNumber = `JE-FEE-${Date.now()}`;
+    const { data: period } = await supabase
+      .from("accounting_periods")
+      .select("id")
+      .eq("year", new Date().getFullYear())
+      .eq("month", new Date().getMonth() + 1)
+      .maybeSingle();
+
+    const { data: je } = await supabase
+      .from("journal_entries")
+      .insert({
+        entry_number: entryNumber,
+        entry_date: new Date().toISOString().slice(0, 10),
+        memo: `Management fee ${feePct}% of collection (credit ${credit ?? "BBB"})`,
+        source_type: "payment",
+        source_id: payment.id,
+        period_id: period?.id,
+        created_by: user!.id,
+      })
+      .select("id")
+      .single();
+
+    if (je) {
+      await supabase.from("journal_lines").insert([
+        {
+          journal_entry_id: je.id,
+          gl_account_id: ownerPayable,
+          debit: feeAmount,
+          credit: 0,
+          property_id: invoice?.property_id,
+          owner_id: invoice?.owner_id,
+        },
+        {
+          journal_entry_id: je.id,
+          gl_account_id: feeRevenue,
+          debit: 0,
+          credit: feeAmount,
+          property_id: invoice?.property_id,
+          owner_id: invoice?.owner_id,
+        },
+      ]);
+    }
+  }
+
   await supabase.rpc("write_audit", {
     p_action: "tenant_payment",
     p_entity_type: "payment",
     p_entity_id: payment.id,
-    p_detail: { invoiceId, amount, agency: true, fee_on_collection: true },
+    p_detail: {
+      invoiceId,
+      amount,
+      agency: true,
+      fee_on_collection: true,
+      credit_rating: credit,
+      management_fee_percent: feePct,
+      management_fee_amount: feeAmount,
+    },
   });
 
   revalidatePath("/tenant/invoices");
   revalidatePath("/tenant");
+  revalidatePath("/admin/accounting");
 }
 
 export async function toggleAutoPay(formData: FormData) {

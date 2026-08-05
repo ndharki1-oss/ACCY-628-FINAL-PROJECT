@@ -18,3 +18,30 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+.leaflet-container {
+  z-index: 0;
+  font-family: inherit;
+  background: #e8eef5;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgb(12 31 46 / 0.16);
+}
+
+.harborline-map-marker {
+  background: transparent;
+  border: none;
+}
+
+.harborline-map-marker-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #f3efe6;
+  border-radius: 9999px;
+  background: #0c1f2e;
+  box-shadow: 0 0 0 2px rgb(196 120 74 / 0.55);
+}
