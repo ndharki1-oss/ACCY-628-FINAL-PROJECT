@@ -49,6 +49,16 @@ export function statusClass(status: string) {
     vacant: "bg-slate-100 text-slate-700",
     reserved: "bg-indigo-100 text-indigo-800",
     under_maintenance: "bg-amber-100 text-amber-900",
+    renewal_soon: "bg-amber-100 text-amber-900",
+    renewal_pending: "bg-sky-100 text-sky-800",
+    terminated: "bg-slate-200 text-slate-700",
+    healthy: "bg-emerald-100 text-emerald-800",
+    attention_needed: "bg-amber-100 text-amber-900",
+    high_priority: "bg-rose-100 text-rose-800",
+    renewal_amendment_on_file: "bg-indigo-100 text-indigo-800",
+    not_started: "bg-slate-100 text-slate-700",
+    current: "bg-emerald-100 text-emerald-800",
+    none_billed: "bg-slate-100 text-slate-700",
   };
   return map[status] ?? "bg-slate-100 text-slate-700";
 }
