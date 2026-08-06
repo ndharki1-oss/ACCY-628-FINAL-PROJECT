@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
-import { formatMoney } from "@/lib/utils";
+import { formatMoney, statusClass } from "@/lib/utils";
 import {
   adminAssignWorkOrder,
   adminRouteWorkOrder,
@@ -49,7 +49,7 @@ export default async function AdminWorkOrdersPage({
   const { data: rows } = await supabase
     .from("work_orders")
     .select(
-      "id, wo_number, wo_type, status, title, description, scheduled_date, estimated_cost, actual_cost, requires_owner_approval, owner_approved_at, vendor_id, completed_at, rejection_reason, tenant_request_id, properties(name, management_agreements(approval_threshold)), vendors(company_name), tenant_requests(id, title, service_type, tenants(company_name))"
+      "id, wo_number, wo_type, status, title, description, scheduled_date, estimated_cost, actual_cost, requires_owner_approval, owner_approved_at, vendor_id, completed_at, rejection_reason, tenant_request_id, properties(name, management_agreements(approval_threshold)), vendors(company_name, contact_name, worker_type), tenant_requests(id, title, service_type, tenants(company_name))"
     )
     .order("created_at", { ascending: false });
 
@@ -73,6 +73,10 @@ export default async function AdminWorkOrdersPage({
       ["open", "assigned"].includes(w.status) &&
       !w.requires_owner_approval;
 
+    const assigneeLabel = vendor?.contact_name
+      ? `Assigned to ${vendor.contact_name}`
+      : "Unassigned";
+
     return {
       ...w,
       prop,
@@ -82,6 +86,7 @@ export default async function AdminWorkOrdersPage({
       threshold,
       destination,
       needsEstimate,
+      assigneeLabel,
       needsAssign:
         w.status === "approved" && !w.vendor_id && !w.completed_at,
       explanation: routingExplanation({
@@ -89,7 +94,7 @@ export default async function AdminWorkOrdersPage({
         approvalThreshold: threshold,
         status: w.status,
         requiresOwnerApproval: Boolean(w.requires_owner_approval),
-        vendorName: vendor?.company_name,
+        vendorName: vendor?.contact_name ?? vendor?.company_name,
       }),
     };
   });
@@ -136,8 +141,10 @@ export default async function AdminWorkOrdersPage({
           Work Orders
         </h1>
         <p className="mt-1 text-slate-600">
-          Set an estimate to route: at or below the property approval threshold →
-          employee; above threshold → owner approval first, then you assign.
+          Tenant requests auto-assign Harborline staff by specialty when
+          possible. Set an estimate to route: at or below the property approval
+          threshold → employee; above threshold → owner approval first, then you
+          assign.
         </p>
       </div>
 
@@ -177,9 +184,15 @@ export default async function AdminWorkOrdersPage({
                       {w.wo_number}: {w.title}
                     </p>
                     <p className="text-slate-600">
-                      {w.prop?.name} ·{" "}
-                      {w.vendor?.company_name ?? "Unassigned"} ·{" "}
-                      {w.wo_type.replaceAll("_", " ")} ·{" "}
+                      {w.prop?.name} · {w.assigneeLabel}
+                      {w.vendor?.worker_type === "staff" && w.vendor.company_name
+                        ? ` (${w.vendor.company_name})`
+                        : w.vendor &&
+                            w.vendor.worker_type !== "staff" &&
+                            w.vendor.company_name
+                          ? ` · ${w.vendor.company_name}`
+                          : ""}{" "}
+                      · {w.wo_type.replaceAll("_", " ")} ·{" "}
                       {w.scheduled_date ?? "Unscheduled"}
                     </p>
                     {w.tenant_request_id ? (
@@ -212,7 +225,15 @@ export default async function AdminWorkOrdersPage({
                     >
                       {destinationLabel(w.destination)}
                     </span>
-                    <Badge status={w.status} />
+                    {w.status === "assigned" && w.vendor?.contact_name ? (
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusClass("assigned")}`}
+                      >
+                        Assigned to {w.vendor.contact_name}
+                      </span>
+                    ) : (
+                      <Badge status={w.status} />
+                    )}
                   </div>
                 </div>
 
