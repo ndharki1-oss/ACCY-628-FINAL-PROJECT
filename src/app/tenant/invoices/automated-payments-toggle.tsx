@@ -9,7 +9,7 @@ export function AutomatedPaymentsToggle({ enabled }: { enabled: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <PageHeading
           as="h2"
-          title="Automated payments"
+          title="Automated Payments"
           info="Turn this on if you want payments drafted automatically. Your choice is saved until changed."
         />
         <form action={toggleAutoPay} className="flex items-center gap-3">

@@ -77,80 +77,65 @@ export function InvoicesByProperty({
 
   if (propertyGroups.length === 0) {
     return (
-      <section className="space-y-3">
-        <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-          Invoices by property
-        </h2>
-        <Card title="No invoices">
-          <p className="text-sm text-slate-600">
-            You do not have any invoices yet.
-          </p>
-        </Card>
-      </section>
+      <Card title="Invoices by Property">
+        <p className="text-sm text-slate-600">
+          You do not have any invoices yet.
+        </p>
+      </Card>
     );
   }
 
   return (
-    <section className="space-y-3">
-      <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-        Invoices by property
-      </h2>
-      <Card title="Property invoices">
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="invoices-by-property"
-              className="mb-1 block text-sm font-medium text-slate-800"
-            >
-              Property
-            </label>
-            <select
-              id="invoices-by-property"
-              value={propertyId}
-              onChange={(e) => setPropertyId(e.target.value)}
-              className="w-full max-w-md rounded border border-slate-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Select a property</option>
-              {propertyGroups.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!selectedGroup ? (
-            <p className="text-sm text-slate-600">
-              Choose a property to view its invoices.
-            </p>
-          ) : selectedGroup.invoices.length === 0 ? (
-            <p className="text-sm text-slate-600">
-              No invoices for this property.
-            </p>
-          ) : (
-            <div className="space-y-5">
-              {STATUS_SECTIONS.map((section) => {
-                const sectionInvoices = selectedGroup.invoices.filter((inv) =>
-                  section.statuses.includes(inv.status)
-                );
-                if (sectionInvoices.length === 0) return null;
-                return (
-                  <div key={section.label}>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {section.label}
-                    </h3>
-                    <div className="space-y-3">
-                      {sectionInvoices.map((inv) => (
-                        <InvoiceSummaryCard key={inv.id} inv={inv} />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+    <Card title="Invoices by Property">
+      <div className="space-y-4">
+        <div>
+          <select
+            id="invoices-by-property"
+            aria-label="Select a property"
+            value={propertyId}
+            onChange={(e) => setPropertyId(e.target.value)}
+            className="w-full max-w-md rounded border border-slate-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">Select a property</option>
+            {propertyGroups.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
         </div>
-      </Card>
-    </section>
+
+        {!selectedGroup ? (
+          <p className="text-sm text-slate-600">
+            Choose a property to view its invoices.
+          </p>
+        ) : selectedGroup.invoices.length === 0 ? (
+          <p className="text-sm text-slate-600">
+            No invoices for this property.
+          </p>
+        ) : (
+          <div className="space-y-5">
+            {STATUS_SECTIONS.map((section) => {
+              const sectionInvoices = selectedGroup.invoices.filter((inv) =>
+                section.statuses.includes(inv.status)
+              );
+              if (sectionInvoices.length === 0) return null;
+              return (
+                <div key={section.label}>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {section.label}
+                  </h3>
+                  <div className="space-y-3">
+                    {sectionInvoices.map((inv) => (
+                      <InvoiceSummaryCard key={inv.id} inv={inv} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
