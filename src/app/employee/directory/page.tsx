@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
+import { formatSpecialtyLabel } from "@/lib/vendors/format-specialty";
 
 export default async function EmployeeDirectoryPage() {
   const { supabase } = await requireRole(["vendor"]);
@@ -44,7 +45,9 @@ export default async function EmployeeDirectoryPage() {
                 <dt className="text-xs uppercase tracking-wider text-slate-500">
                   Specialty
                 </dt>
-                <dd className="text-slate-800">{person.specialty || "—"}</dd>
+                <dd className="text-slate-800">
+                  {formatSpecialtyLabel(person.specialty)}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wider text-slate-500">
