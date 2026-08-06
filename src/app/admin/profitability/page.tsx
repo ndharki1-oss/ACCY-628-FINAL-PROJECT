@@ -1,49 +1,145 @@
 import { requireRole } from "@/lib/auth";
-import { Card, Stat } from "@/components/ui";
-import { formatMoney } from "@/lib/utils";
-import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
+import { MgmtPnlView } from "@/components/admin/mgmt-pnl-view";
+import { periodKey } from "@/lib/statements/fee-components";
 
-export default async function AdminProfitabilityPage() {
+function firstRel<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
+
+function datePeriodKey(date: string | null | undefined) {
+  if (!date) return null;
+  return periodKey(date);
+}
+
+function inSelectedPeriod(
+  date: string | null | undefined,
+  selectedPeriod: string | null
+) {
+  if (!selectedPeriod) return true;
+  return datePeriodKey(date) === selectedPeriod;
+}
+
+export default async function AdminProfitabilityPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const { supabase } = await requireRole(["admin"]);
+  const params = await searchParams;
 
-  const { data: properties } = await supabase
-    .from("properties")
-    .select("id, name, owner_id, owners(company_name)");
-  const { data: costs } = await supabase
-    .from("cost_entries")
-    .select("property_id, amount");
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("property_id, total, status, party_type");
-  const { data: companyExp } = await supabase
-    .from("company_expenses")
-    .select("amount");
-  const { data: feeLines } = await supabase
-    .from("journal_lines")
-    .select("credit, gl_accounts!inner(code)")
-    .eq("gl_accounts.code", "4000");
+  const [
+    { data: properties },
+    { data: costs },
+    { data: invoices },
+    { data: companyExp },
+    { data: feeLines },
+  ] = await Promise.all([
+    supabase
+      .from("properties")
+      .select("id, name, owner_id, owners(company_name)")
+      .order("name"),
+    supabase
+      .from("cost_entries")
+      .select("property_id, amount, incurred_date"),
+    supabase
+      .from("invoices")
+      .select(
+        "property_id, total, status, party_type, period_start, period_end, issue_date"
+      ),
+    supabase.from("company_expenses").select("amount, incurred_date"),
+    supabase
+      .from("journal_lines")
+      .select(
+        "credit, gl_accounts!inner(code), journal_entries!inner(entry_date)"
+      )
+      .eq("gl_accounts.code", "4000"),
+  ]);
 
-  const feeRevenue = (feeLines ?? []).reduce((s, r) => s + Number(r.credit), 0);
-  const companyCosts = (companyExp ?? []).reduce((s, r) => s + Number(r.amount), 0);
+  const periodSet = new Set<string>();
+  for (const inv of invoices ?? []) {
+    const key = datePeriodKey(
+      inv.period_end ?? inv.period_start ?? inv.issue_date
+    );
+    if (key) periodSet.add(key);
+  }
+  for (const cost of costs ?? []) {
+    const key = datePeriodKey(cost.incurred_date);
+    if (key) periodSet.add(key);
+  }
+  for (const exp of companyExp ?? []) {
+    const key = datePeriodKey(exp.incurred_date);
+    if (key) periodSet.add(key);
+  }
+  for (const line of feeLines ?? []) {
+    const entry = firstRel(
+      line.journal_entries as
+        | { entry_date: string }
+        | { entry_date: string }[]
+        | null
+    );
+    const key = datePeriodKey(entry?.entry_date);
+    if (key) periodSet.add(key);
+  }
+
+  const periods = [...periodSet].sort((a, b) => b.localeCompare(a));
+  const selectedPeriod =
+    params.period &&
+    params.period !== "all" &&
+    periods.includes(params.period)
+      ? params.period
+      : null;
+
+  const feeRevenue = (feeLines ?? []).reduce((sum, row) => {
+    const entry = firstRel(
+      row.journal_entries as
+        | { entry_date: string }
+        | { entry_date: string }[]
+        | null
+    );
+    if (!inSelectedPeriod(entry?.entry_date, selectedPeriod)) return sum;
+    return sum + Number(row.credit);
+  }, 0);
+
+  const companyCosts = (companyExp ?? []).reduce((sum, row) => {
+    if (!inSelectedPeriod(row.incurred_date, selectedPeriod)) return sum;
+    return sum + Number(row.amount);
+  }, 0);
 
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
-      .filter((i) => i.property_id === p.id && i.party_type === "tenant" && i.status !== "void")
+      .filter((i) => {
+        if (i.property_id !== p.id || i.party_type !== "tenant" || i.status === "void") {
+          return false;
+        }
+        return inSelectedPeriod(
+          i.period_end ?? i.period_start ?? i.issue_date,
+          selectedPeriod
+        );
+      })
       .reduce((s, i) => s + Number(i.total), 0);
     const expense = (costs ?? [])
-      .filter((c) => c.property_id === p.id)
+      .filter(
+        (c) =>
+          c.property_id === p.id &&
+          inSelectedPeriod(c.incurred_date, selectedPeriod)
+      )
       .reduce((s, c) => s + Number(c.amount), 0);
     return {
       id: p.id,
       name: p.name,
-      owner: (Array.isArray(p.owners) ? p.owners[0] : p.owners)?.company_name,
+      owner: firstRel(p.owners as { company_name: string } | { company_name: string }[] | null)
+        ?.company_name,
       revenue,
       expense,
       noi: revenue - expense,
     };
   });
 
-  const ownerMap = new Map<string, { name: string; revenue: number; expense: number }>();
+  const ownerMap = new Map<
+    string,
+    { name: string; revenue: number; expense: number }
+  >();
   for (const row of byProperty) {
     const key = row.owner ?? "Unknown";
     const cur = ownerMap.get(key) ?? { name: key, revenue: 0, expense: 0 };
@@ -52,83 +148,19 @@ export default async function AdminProfitabilityPage() {
     ownerMap.set(key, cur);
   }
 
-  const weak = byProperty.filter((p) => p.noi < 0);
+  const byOwner = [...ownerMap.values()].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   return (
-    <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Profitability
-      </h1>
-      <p className="text-sm text-slate-600">{ALL_PERIODS_HINT}</p>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat
-          label="Company fee revenue"
-          value={formatMoney(feeRevenue)}
-          hint={`${ALL_PERIODS_HINT} · GL 4000 = credit-based base management fees on collections`}
-        />
-        <Stat
-          label="Company operating costs"
-          value={formatMoney(companyCosts)}
-          hint={`${ALL_PERIODS_HINT} · Harborline company_expenses (not owner property OpEx)`}
-        />
-        <Stat
-          label="Company contribution"
-          value={formatMoney(feeRevenue - companyCosts)}
-          hint={`${ALL_PERIODS_HINT} · Fees − Harborline OpEx (not property NOI)`}
-        />
-      </div>
-
-      {weak.length > 0 ? (
-        <Card title={`Alerts: unprofitable / weak NOI properties · ${ALL_PERIODS_HINT}`}>
-          <ul className="space-y-1 text-sm text-rose-800">
-            {weak.map((p) => (
-              <li key={p.id}>
-                {p.name}: NOI {formatMoney(p.noi)}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      <Card title={`NOI by property · ${ALL_PERIODS_HINT}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-2">Property</th>
-                <th className="py-2">Owner</th>
-                <th className="py-2">Tenant charges</th>
-                <th className="py-2">OpEx</th>
-                <th className="py-2">NOI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {byProperty.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100">
-                  <td className="py-2">{p.name}</td>
-                  <td className="py-2">{p.owner}</td>
-                  <td className="py-2">{formatMoney(p.revenue)}</td>
-                  <td className="py-2">{formatMoney(p.expense)}</td>
-                  <td className={`py-2 font-medium ${p.noi < 0 ? "text-rose-700" : ""}`}>
-                    {formatMoney(p.noi)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      <Card title={`By owner · ${ALL_PERIODS_HINT}`}>
-        <ul className="space-y-2 text-sm">
-          {[...ownerMap.values()].map((o) => (
-            <li key={o.name} className="flex justify-between border-b border-slate-50 py-2">
-              <span>{o.name}</span>
-              <span>NOI {formatMoney(o.revenue - o.expense)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
+    <MgmtPnlView
+      periods={periods}
+      selectedPeriod={selectedPeriod}
+      basePath="/admin/profitability"
+      feeRevenue={feeRevenue}
+      companyCosts={companyCosts}
+      byProperty={byProperty}
+      byOwner={byOwner}
+    />
   );
 }
