@@ -1,26 +1,52 @@
-import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import {
+  AppShellNav,
+  type AppShellNavItem,
+} from "@/components/app-shell-nav";
 import {
   DemoRoleSwitcher,
   type DemoRoleKey,
 } from "@/components/demo-role-switcher";
 import { statusClass } from "@/lib/utils";
 
-const nav: Record<string, { href: string; label: string }[]> = {
+const nav: Record<string, AppShellNavItem[]> = {
   admin: [
     { href: "/admin", label: "Dashboard" },
-    { href: "/admin/properties", label: "Properties" },
-    { href: "/admin/owners", label: "Property Owners" },
-    { href: "/admin/leases", label: "Leases" },
-    { href: "/admin/billing", label: "Billing" },
-    { href: "/admin/statements", label: "Statements" },
+    {
+      label: "Portfolio",
+      children: [
+        { href: "/admin/properties", label: "Properties" },
+        { href: "/admin/owners", label: "Property Owners" },
+        { href: "/admin/leases", label: "Leases" },
+      ],
+    },
+    {
+      label: "Billing",
+      children: [
+        { href: "/admin/billing", label: "Billing" },
+        { href: "/admin/statements", label: "Statements" },
+      ],
+    },
     { href: "/admin/work-orders", label: "Work Orders" },
-    { href: "/admin/profitability", label: "Mgmt P&L" },
-    { href: "/admin/reports/property-pnl", label: "Property P&L" },
-    { href: "/admin/reports/owner-profitability", label: "Owner Profit" },
-    { href: "/admin/reports/maintenance", label: "Maintenance" },
-    { href: "/admin/reports/employee-labor", label: "Labor" },
-    { href: "/admin/reports/expense-breakdown", label: "Expenses" },
+    {
+      label: "Profitability",
+      children: [
+        { href: "/admin/profitability", label: "Mgmt P&L" },
+        { href: "/admin/reports/property-pnl", label: "Property P&L" },
+        {
+          href: "/admin/reports/owner-profitability",
+          label: "Owner Profit",
+        },
+      ],
+    },
+    {
+      label: "Expenses",
+      children: [
+        { href: "/admin/reports/maintenance", label: "Maintenance" },
+        { href: "/admin/reports/employee-labor", label: "Labor" },
+        { href: "/admin/reports/expense-breakdown", label: "Expenses" },
+      ],
+    },
   ],
   owner: [
     { href: "/owner", label: "Dashboard" },
@@ -40,6 +66,12 @@ const nav: Record<string, { href: string; label: string }[]> = {
   ],
 };
 
+const homeHrefByRole: Record<string, string> = {
+  admin: "/admin",
+  owner: "/owner",
+  tenant: "/tenant",
+};
+
 export function AppShell({
   role,
   name,
@@ -53,7 +85,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#e8eef5_0%,_#f4f1ea_45%,_#ebe6dc_100%)] text-slate-900">
-      <header className="border-b border-slate-800/10 bg-[#0c1f2e] text-[#f3efe6]">
+      <header className="relative z-40 overflow-visible border-b border-slate-800/10 bg-[#0c1f2e] text-[#f3efe6]">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div>
             <p className="font-[family-name:var(--font-display)] text-xl tracking-tight sm:text-2xl">
@@ -78,17 +110,10 @@ export function AppShell({
             </form>
           </div>
         </div>
-        <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-3 sm:px-6">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="whitespace-nowrap rounded px-3 py-1.5 text-sm text-slate-200 hover:bg-white/10 hover:text-white"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
+        <AppShellNav
+          links={links}
+          homeHref={homeHrefByRole[role] ?? `/${role}`}
+        />
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
     </div>
