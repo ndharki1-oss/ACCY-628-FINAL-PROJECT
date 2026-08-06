@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Card } from "@/components/ui";
+import { MetricInfoTip } from "@/components/owner/metric-info-tip";
 import { NoiRangePills } from "@/components/owner/noi-range-pills";
 import { formatMoney } from "@/lib/utils";
+import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import {
   formatNoiChangePct,
   formatNoiMargin,
@@ -99,10 +101,6 @@ export default async function OwnerNoiPage({
         Showing <span className="font-medium text-slate-700">{label}</span>
         {" · "}
         {start} → {end}
-        <span className="text-slate-400">
-          {" "}
-          · trend vs prior period {prior.start} → {prior.end}
-        </span>
       </p>
 
       {propertyError ? (
@@ -118,10 +116,42 @@ export default async function OwnerNoiPage({
               <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="py-2 pr-3 font-medium">Property</th>
-                  <th className="py-2 pr-3 font-medium">Charges</th>
-                  <th className="py-2 pr-3 font-medium">OpEx</th>
-                  <th className="py-2 pr-3 font-medium">NOI</th>
-                  <th className="py-2 font-medium">NOI Margin</th>
+                  <th className="py-2 pr-3 font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      Charges
+                      <MetricInfoTip
+                        label="Charges"
+                        detail={METRIC_EXPLAINERS.charges}
+                      />
+                    </span>
+                  </th>
+                  <th className="py-2 pr-3 font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      OpEx
+                      <MetricInfoTip
+                        label="OpEx"
+                        detail={METRIC_EXPLAINERS.opex}
+                      />
+                    </span>
+                  </th>
+                  <th className="py-2 pr-3 font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      NOI
+                      <MetricInfoTip
+                        label="NOI"
+                        detail={METRIC_EXPLAINERS.periodNoi}
+                      />
+                    </span>
+                  </th>
+                  <th className="py-2 font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      NOI Margin
+                      <MetricInfoTip
+                        label="NOI Margin"
+                        detail={METRIC_EXPLAINERS.noiMargin}
+                      />
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>

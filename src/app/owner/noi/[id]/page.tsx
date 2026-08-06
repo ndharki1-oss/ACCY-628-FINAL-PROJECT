@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Card } from "@/components/ui";
+import { MetricInfoTip } from "@/components/owner/metric-info-tip";
 import { NoiRangePills } from "@/components/owner/noi-range-pills";
 import { NoiPropertyTrendChart } from "@/components/owner/noi-property-trend";
 import { NoiMixBars } from "@/components/owner/noi-mix-bars";
 import type { NoiMonthPoint } from "@/components/owner/noi-trend-chart";
 import { formatMoney } from "@/lib/utils";
+import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import {
   classifyIncomeLine,
   formatNoiMargin,
@@ -228,24 +230,37 @@ export default async function OwnerNoiPropertyPage({
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800/70">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800/70">
             Revenue
+            <MetricInfoTip
+              label="Revenue"
+              detail={METRIC_EXPLAINERS.charges}
+            />
           </p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-emerald-950">
             {formatMoney(incomeTotal)}
           </p>
         </div>
         <div className="rounded-lg border border-amber-200/80 bg-amber-50/70 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900/70">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-900/70">
             OpEx
+            <MetricInfoTip
+              label="OpEx"
+              detail={METRIC_EXPLAINERS.opex}
+            />
           </p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-amber-950">
             {formatMoney(opexTotal)}
           </p>
         </div>
         <div className="rounded-lg border border-slate-800/15 bg-[#0c1f2e] px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300">
             NOI
+            <MetricInfoTip
+              label="NOI"
+              detail={METRIC_EXPLAINERS.periodNoi}
+              tone="dark"
+            />
           </p>
           <p
             className={`mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums ${
@@ -256,8 +271,12 @@ export default async function OwnerNoiPropertyPage({
           </p>
         </div>
         <div className="rounded-lg border border-[#e3c4ad] bg-[#f7eee6] px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a5a3a]">
+          <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a5a3a]">
             NOI margin
+            <MetricInfoTip
+              label="NOI margin"
+              detail={METRIC_EXPLAINERS.noiMargin}
+            />
           </p>
           <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-[#6b3f28]">
             {marginLabel}
