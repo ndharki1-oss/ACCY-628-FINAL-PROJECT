@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { MetricInfoTip } from "@/components/owner/metric-info-tip";
 import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
 import { Badge, Card, Stat } from "@/components/ui";
+import {
+  accountingExportFilename,
+  buildAccountingStatementsPdf,
+  downloadPdfBytes,
+} from "@/lib/statements/build-accounting-statements-pdf";
 import { formatMoney } from "@/lib/utils";
 import {
   FEE_LINE_LABELS,
@@ -63,6 +68,7 @@ export function FeeComponentsView({
   selectedPeriod,
   basePath,
   propertyHrefPrefix,
+  enablePdfExport = false,
 }: {
   rows: FeeStatementRow[];
   periods: string[];
@@ -70,12 +76,16 @@ export function FeeComponentsView({
   basePath: string;
   /** e.g. `/admin/properties` — omit to show property name without a link */
   propertyHrefPrefix?: string;
+  /** Accounting portal only — export filtered statements to PDF */
+  enablePdfExport?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const periodRows = useMemo(
     () =>
@@ -148,6 +158,47 @@ export function FeeComponentsView({
     ? formatPeriodLabel(selectedPeriod)
     : "All periods";
 
+  const filterNote = useMemo(() => {
+    const parts: string[] = [];
+    if (query.trim()) parts.push(`search “${query.trim()}”`);
+    if (ownerFilter !== "all") parts.push(`owner ${ownerFilter}`);
+    if (propertyFilter !== "all") {
+      const name =
+        properties.find((p) => p.id === propertyFilter)?.name ?? propertyFilter;
+      parts.push(`property ${name}`);
+    }
+    if (statusFilter !== "all") {
+      parts.push(`status ${statusFilter.replaceAll("_", " ")}`);
+    }
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [query, ownerFilter, propertyFilter, statusFilter, properties]);
+
+  const exportRows = useCallback(
+    async (rowsToExport: FeeStatementRow[]) => {
+      if (!enablePdfExport || rowsToExport.length === 0) return;
+      setExportError(null);
+      setExporting(true);
+      try {
+        const bytes = await buildAccountingStatementsPdf(rowsToExport, {
+          periodLabel: periodHint,
+          filterNote:
+            rowsToExport.length === filtered.length ? filterNote : null,
+        });
+        downloadPdfBytes(
+          bytes,
+          accountingExportFilename(rowsToExport, periodHint)
+        );
+      } catch (e) {
+        setExportError(
+          e instanceof Error ? e.message : "Failed to export PDF."
+        );
+      } finally {
+        setExporting(false);
+      }
+    },
+    [enablePdfExport, periodHint, filterNote, filtered.length]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -156,16 +207,38 @@ export function FeeComponentsView({
           selectedPeriod={selectedPeriod}
           basePath={basePath}
         />
-        <p className="flex max-w-xl items-start gap-2 text-sm text-slate-600">
-          <span>
-            Fees reduce remittance. Base fee is a credit-based % of collections.
-            Remittance = collections − expenses − fees.
-          </span>
-          <MetricInfoTip
-            label="Fee calculation"
-            detail="Agency fee totals come from owner statement fee lines. The base management fee uses each tenant’s credit rating (4–12% of collections), not the property agreement average. Header fee total should match the sum of fee components; mismatches are flagged in the table."
-          />
-        </p>
+        <div className="flex max-w-xl flex-col items-end gap-2">
+          <p className="flex items-start gap-2 text-sm text-slate-600">
+            <span>
+              Fees reduce remittance. Base fee is a credit-based % of
+              collections. Remittance = collections − expenses − fees.
+            </span>
+            <MetricInfoTip
+              label="Fee calculation"
+              detail="Agency fee totals come from owner statement fee lines. The base management fee uses each tenant’s credit rating (4–12% of collections), not the property agreement average. Header fee total should match the sum of fee components; mismatches are flagged in the table."
+            />
+          </p>
+          {enablePdfExport ? (
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                disabled={exporting || filtered.length === 0}
+                onClick={() => void exportRows(filtered)}
+                className="rounded border border-[#0c1f2e] bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-[#f3efe6] transition hover:bg-[#163247] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {exporting
+                  ? "Exporting…"
+                  : `Export to PDF (${filtered.length})`}
+              </button>
+              <p className="text-xs text-slate-500">
+                Exports the statements matching the current period and filters.
+              </p>
+              {exportError ? (
+                <p className="text-xs text-rose-700">{exportError}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -377,16 +450,28 @@ export function FeeComponentsView({
                           <Badge status={r.status} />
                         </td>
                         <td className="py-3">
-                          <button
-                            type="button"
-                            aria-expanded={open}
-                            onClick={() =>
-                              setExpandedId(open ? null : r.id)
-                            }
-                            className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-[#0c1f2e] transition hover:border-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-[#f3efe6]"
-                          >
-                            {open ? "Hide fees" : "Fee mix"}
-                          </button>
+                          <div className="flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              aria-expanded={open}
+                              onClick={() =>
+                                setExpandedId(open ? null : r.id)
+                              }
+                              className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-[#0c1f2e] transition hover:border-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-[#f3efe6]"
+                            >
+                              {open ? "Hide fees" : "Fee mix"}
+                            </button>
+                            {enablePdfExport ? (
+                              <button
+                                type="button"
+                                disabled={exporting}
+                                onClick={() => void exportRows([r])}
+                                className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-[#0c1f2e] transition hover:border-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-[#f3efe6] disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                PDF
+                              </button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                       {open ? (
