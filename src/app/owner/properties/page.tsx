@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
+import { MetricInfoTip } from "@/components/owner/metric-info-tip";
+import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import { formatMoney } from "@/lib/utils";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -216,8 +218,12 @@ export default async function OwnerPropertiesPage() {
 
                 <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
                   <div className="rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                    <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
                       Occupancy
+                      <MetricInfoTip
+                        label="Occupancy"
+                        detail={METRIC_EXPLAINERS.occupancy}
+                      />
                     </p>
                     <p className="mt-0.5 font-semibold text-[#0c1f2e]">{m.occupancyPct}%</p>
                   </div>
@@ -242,8 +248,12 @@ export default async function OwnerPropertiesPage() {
                     </p>
                   </div>
                   <div className="rounded-md border border-slate-200 bg-slate-50/80 px-2.5 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                    <p className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-slate-500">
                       NOI
+                      <MetricInfoTip
+                        label="NOI"
+                        detail={METRIC_EXPLAINERS.propertyNoiAllTime}
+                      />
                     </p>
                     <p
                       className={`mt-0.5 font-semibold ${

@@ -1,10 +1,18 @@
 import Link from "next/link";
 import { requireExactRole } from "@/lib/auth";
+import { AccountingPeriodSelect } from "@/components/accounting/accounting-period-select";
 import {
   BreakdownPie,
+  PIE_ACCENT_RED,
   withPieColors,
 } from "@/components/accounting/breakdown-pie";
+import { MonthlyRentBars } from "@/components/accounting/monthly-rent-bars";
 import { Badge, Card, Stat } from "@/components/ui";
+import {
+  fetchMonthlyRentSummary,
+  listAccountingPeriods,
+  resolveSelectedPeriod,
+} from "@/lib/accounting/monthly-rent";
 import {
   FEE_LINE_LABELS,
   FEE_LINE_TYPES,
@@ -13,8 +21,13 @@ import {
 } from "@/lib/statements/fee-components";
 import { formatMoney } from "@/lib/utils";
 
-export default async function AccountingDashboardPage() {
+export default async function AccountingDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const { supabase } = await requireExactRole(["accounting"]);
+  const params = await searchParams;
 
   const [
     { data: feeLines },
@@ -24,6 +37,7 @@ export default async function AccountingDashboardPage() {
     { data: invoices },
     { data: costs },
     statementRows,
+    accountingPeriods,
   ] = await Promise.all([
     supabase
       .from("journal_lines")
@@ -42,7 +56,14 @@ export default async function AccountingDashboardPage() {
       .select("property_id, total, status, party_type"),
     supabase.from("cost_entries").select("property_id, amount"),
     fetchFeeStatements(supabase).catch(() => []),
+    listAccountingPeriods(supabase),
   ]);
+
+  const selectedPeriod = resolveSelectedPeriod(
+    params.period,
+    accountingPeriods
+  );
+  const rentSummary = await fetchMonthlyRentSummary(supabase, selectedPeriod);
 
   const feeRevenue = (feeLines ?? []).reduce((s, r) => s + Number(r.credit), 0);
   const companyCosts = (companyExp ?? []).reduce(
@@ -56,7 +77,8 @@ export default async function AccountingDashboardPage() {
     FEE_LINE_TYPES.map((t) => ({
       label: FEE_LINE_LABELS[t],
       value: feeTotals[t],
-    })).filter((s) => s.value > 0)
+    })).filter((s) => s.value > 0),
+    { "Base management fee": PIE_ACCENT_RED }
   );
 
   const opexByCategory = new Map<string, number>();
@@ -70,7 +92,8 @@ export default async function AccountingDashboardPage() {
         label: label.replaceAll("_", " "),
         value,
       }))
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => b.value - a.value),
+    { payroll: PIE_ACCENT_RED }
   );
 
   const openPeriods = (periods ?? []).filter((p) => p.status === "open");
@@ -110,32 +133,49 @@ export default async function AccountingDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Dashboard
-        </h1>
-        <p className="mt-1 max-w-3xl text-slate-600">
-          Harborline company snapshot and exceptions. Open Statements or
-          Profitability for detail.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl">
+            Dashboard
+          </h1>
+          <p className="mt-1 max-w-3xl text-slate-600">
+            Harborline company snapshot and exceptions. Open Statements or
+            Profitability for detail.
+          </p>
+        </div>
+        <AccountingPeriodSelect
+          periods={accountingPeriods.map((p) => p.key)}
+          selectedPeriod={selectedPeriod}
+          basePath="/accounting"
+        />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Stat
-          label="Company fee revenue"
-          value={formatMoney(feeRevenue)}
-          hint="GL 4000 · credit-based fees on collections"
-        />
-        <Stat
-          label="Company operating costs"
-          value={formatMoney(companyCosts)}
-          hint="Harborline company_expenses"
-        />
-        <Stat
-          label="Company contribution"
-          value={formatMoney(contribution)}
-          hint="Fees − company OpEx (not property NOI)"
-        />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title="Monthly Rent Overview">
+          <MonthlyRentBars
+            rentDue={rentSummary.rentDue}
+            collected={rentSummary.collected}
+            outstanding={rentSummary.outstanding}
+            collectionRate={rentSummary.collectionRate}
+          />
+        </Card>
+        <div className="grid gap-4 sm:grid-cols-1">
+          <Stat
+            label="Company fee revenue"
+            value={formatMoney(feeRevenue)}
+            hint="GL 4000 · credit-based fees on collections"
+          />
+          <Stat
+            label="Company operating costs"
+            value={formatMoney(companyCosts)}
+            hint="Harborline company_expenses"
+          />
+          <Stat
+            label="Company contribution"
+            value={formatMoney(contribution)}
+            hint="Fees − company OpEx (not property NOI)"
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

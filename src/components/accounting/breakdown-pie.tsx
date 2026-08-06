@@ -27,6 +27,12 @@ function slicePath(
   return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y} Z`;
 }
 
+function formatPiePercent(value: number, total: number) {
+  const pct = (value / total) * 100;
+  if (pct > 0 && pct < 1) return "<1";
+  return pct.toFixed(1);
+}
+
 const COLORS = [
   "#0c1f2e",
   "#c4784a",
@@ -37,12 +43,16 @@ const COLORS = [
   "#a67c52",
 ];
 
+/** Highlight color for key slices (base management fee / payroll). */
+export const PIE_ACCENT_RED = "#c45c5c";
+
 export function withPieColors(
-  rows: { label: string; value: number }[]
+  rows: { label: string; value: number }[],
+  colorByLabel?: Record<string, string>
 ): BreakdownPieSlice[] {
   return rows.map((r, i) => ({
     ...r,
-    color: COLORS[i % COLORS.length]!,
+    color: colorByLabel?.[r.label] ?? COLORS[i % COLORS.length]!,
   }));
 }
 
@@ -89,7 +99,7 @@ export function BreakdownPie({
         aria-label="Breakdown pie chart"
       >
         {paths.map((p) => {
-          const pct = ((p.value / total) * 100).toFixed(0);
+          const pct = formatPiePercent(p.value, total);
           const tip = `${p.label} · ${formatMoney(p.value)} · ${pct}%`;
           return (
             <path
@@ -105,7 +115,7 @@ export function BreakdownPie({
       </svg>
       <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
         {positive.map((s) => {
-          const pct = ((s.value / total) * 100).toFixed(0);
+          const pct = formatPiePercent(s.value, total);
           return (
             <li key={s.label} className="flex items-start justify-between gap-3">
               <span className="flex min-w-0 items-center gap-2">

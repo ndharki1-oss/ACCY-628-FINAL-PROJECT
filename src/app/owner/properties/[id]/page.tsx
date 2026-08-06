@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card, Stat } from "@/components/ui";
+import { StatWithDetail } from "@/components/owner/stat-with-detail";
+import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import { formatMoney } from "@/lib/utils";
 import {
   ownerApproveCost,
@@ -188,10 +190,10 @@ export default async function OwnerPropertyDetailPage({
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat
+        <StatWithDetail
           label="Occupancy"
           value={`${occupancyPct}%`}
-          hint={`${leasedUnitIds.size} leased · ${(units ?? []).length - leasedUnitIds.size} vacant`}
+          detail={`${METRIC_EXPLAINERS.occupancy} Currently ${leasedUnitIds.size} leased · ${(units ?? []).length - leasedUnitIds.size} vacant.`}
         />
         <Stat
           label="In-place monthly rent"
