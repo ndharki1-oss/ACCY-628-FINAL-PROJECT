@@ -133,25 +133,27 @@ export default async function AccountingDashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-3xl">
-            Dashboard
-          </h1>
-          <p className="mt-1 max-w-3xl text-slate-600">
-            Harborline company snapshot and exceptions. Open Statements or
-            Profitability for detail.
-          </p>
-        </div>
-        <AccountingPeriodSelect
-          periods={accountingPeriods.map((p) => p.key)}
-          selectedPeriod={selectedPeriod}
-          basePath="/accounting"
-        />
+      <div>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">
+          Dashboard
+        </h1>
+        <p className="mt-1 max-w-3xl text-slate-600">
+          Harborline company snapshot and exceptions. Open Statements or
+          Profitability for detail.
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Monthly Rent Overview">
+        <Card
+          title="Monthly Rent Overview"
+          action={
+            <AccountingPeriodSelect
+              periods={accountingPeriods.map((p) => p.key)}
+              selectedPeriod={selectedPeriod}
+              basePath="/accounting"
+            />
+          }
+        >
           <MonthlyRentBars
             rentDue={rentSummary.rentDue}
             collected={rentSummary.collected}
