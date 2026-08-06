@@ -23,15 +23,15 @@ const accountingLinks: AccountingNavItem[] = [
     children: [
       {
         href: "/accounting/reports/maintenance",
-        label: "Maintenance Breakdown",
+        label: "Maintenance",
       },
       {
         href: "/accounting/reports/employee-labor",
-        label: "Labor Breakdown",
+        label: "Labor",
       },
       {
         href: "/accounting/reports/expense-breakdown",
-        label: "Expenses Breakdown",
+        label: "Expenses",
       },
     ],
   },
