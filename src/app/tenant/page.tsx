@@ -173,7 +173,10 @@ export default async function TenantDashboard() {
         <Card
           title="My Leases"
           action={
-            <Link href="/tenant/lease" className="text-sm text-[#c4784a]">
+            <Link
+              href="/tenant/lease"
+              className="text-sm text-[#c4784a] hover:underline"
+            >
               View all →
             </Link>
           }
@@ -239,7 +242,10 @@ export default async function TenantDashboard() {
         <Card
           title="Maintenance Requests"
           action={
-            <Link href="/tenant/requests" className="text-sm text-[#c4784a]">
+            <Link
+              href="/tenant/requests"
+              className="text-sm text-[#c4784a] hover:underline"
+            >
               Manage →
             </Link>
           }
