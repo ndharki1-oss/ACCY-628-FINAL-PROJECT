@@ -94,7 +94,10 @@ export default async function AdminDashboard() {
   ] = await Promise.all([
     supabase.from("owners").select("*", { count: "exact", head: true }),
     supabase.from("properties").select("*", { count: "exact", head: true }),
-    supabase.from("leases").select("*", { count: "exact", head: true }),
+    supabase
+      .from("leases")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["active", "renewal_pending"]),
     supabase
       .from("invoices")
       .select("id, total, amount_paid, status, due_date, invoice_number")

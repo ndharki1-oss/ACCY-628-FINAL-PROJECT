@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { MgmtPnlView } from "@/components/admin/mgmt-pnl-view";
+import { buildMgmtPnlMonthlySeries } from "@/lib/reports/mgmt-pnl-monthly";
 import { periodKey } from "@/lib/statements/fee-components";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -34,6 +35,7 @@ export default async function AdminProfitabilityPage({
     { data: invoices },
     { data: companyExp },
     { data: feeLines },
+    { data: labor },
   ] = await Promise.all([
     supabase
       .from("properties")
@@ -54,6 +56,7 @@ export default async function AdminProfitabilityPage({
         "credit, gl_accounts!inner(code), journal_entries!inner(entry_date)"
       )
       .eq("gl_accounts.code", "4000"),
+    supabase.from("labor_time_entries").select("labor_cost, work_date"),
   ]);
 
   const periodSet = new Set<string>();
@@ -69,6 +72,10 @@ export default async function AdminProfitabilityPage({
   }
   for (const exp of companyExp ?? []) {
     const key = datePeriodKey(exp.incurred_date);
+    if (key) periodSet.add(key);
+  }
+  for (const row of labor ?? []) {
+    const key = datePeriodKey(row.work_date);
     if (key) periodSet.add(key);
   }
   for (const line of feeLines ?? []) {
@@ -107,11 +114,42 @@ export default async function AdminProfitabilityPage({
     return sum + Number(row.amount);
   }, 0);
 
+  const companyCostsFromLabor = (labor ?? []).reduce((sum, row) => {
+    if (!inSelectedPeriod(row.work_date, selectedPeriod)) return sum;
+    return sum + Number(row.labor_cost);
+  }, 0);
+
   const companyCosts =
     (companyExp ?? []).reduce((sum, row) => {
       if (!inSelectedPeriod(row.incurred_date, selectedPeriod)) return sum;
       return sum + Number(row.amount);
-    }, 0) + companyCostsFromEntries;
+    }, 0) +
+    companyCostsFromEntries +
+    companyCostsFromLabor;
+
+  const monthlySeries = buildMgmtPnlMonthlySeries({
+    feeLines: (feeLines ?? []).map((row) => {
+      const entry = firstRel(
+        row.journal_entries as
+          | { entry_date: string }
+          | { entry_date: string }[]
+          | null
+      );
+      return { credit: Number(row.credit), entryDate: entry?.entry_date };
+    }),
+    companyExpenses: (companyExp ?? []).map((row) => ({
+      amount: Number(row.amount),
+      incurredDate: row.incurred_date,
+    })),
+    companyPaidCosts: (costs ?? [])
+      .filter((row) => row.paid_by === "company")
+      .map((row) => ({
+        amount: Number(row.amount),
+        incurredDate: row.incurred_date,
+      })),
+    // Chart has its own date-range control; keep full monthly history here.
+    selectedPeriod: null,
+  });
 
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
@@ -167,6 +205,7 @@ export default async function AdminProfitabilityPage({
       basePath="/admin/profitability"
       feeRevenue={feeRevenue}
       companyCosts={companyCosts}
+      monthlySeries={monthlySeries}
       byProperty={byProperty}
       byOwner={byOwner}
     />
