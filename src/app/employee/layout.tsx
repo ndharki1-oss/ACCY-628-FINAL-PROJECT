@@ -4,7 +4,6 @@ import { requireRole } from "@/lib/auth";
 const employeeLinks = [
   { href: "/employee", label: "Dashboard" },
   { href: "/employee/work-orders", label: "Assignments" },
-  { href: "/employee/reports/maintenance", label: "My Hours" },
   { href: "/employee/reports/employee-labor", label: "My Labor" },
 ];
 

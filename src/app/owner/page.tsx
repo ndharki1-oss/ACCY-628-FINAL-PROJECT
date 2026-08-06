@@ -9,7 +9,7 @@ import {
   type NoiPropertySeries,
 } from "@/components/owner/noi-trend-chart";
 import { formatMoney } from "@/lib/utils";
-import { ownerApproveCost } from "@/app/actions/business";
+import { fetchOwnerMyItems } from "@/lib/owner/my-items";
 import Link from "next/link";
 
 const emptyId = "00000000-0000-0000-0000-000000000000";
@@ -79,18 +79,12 @@ export default async function OwnerDashboard() {
   const horizonEnd = inMonths(24);
 
   const [
-    { data: agreements },
     { data: units },
     { data: leases },
     { data: invoices },
     { data: costs },
     { data: statements },
-    { data: deniedApprovals },
   ] = await Promise.all([
-    supabase
-      .from("management_agreements")
-      .select("property_id, approval_threshold, fee_percent")
-      .eq("owner_id", ownerId),
     supabase
       .from("units")
       .select("id, property_id, unit_code, square_feet")
@@ -119,17 +113,10 @@ export default async function OwnerDashboard() {
       )
       .eq("owner_id", ownerId)
       .order("period_end", { ascending: false }),
-    supabase
-      .from("approvals")
-      .select("entity_id, status")
-      .eq("entity_type", "cost_entry")
-      .eq("status", "rejected"),
   ]);
 
-  const thresholdByProperty = new Map(
-    (agreements ?? []).map((a) => [a.property_id, Number(a.approval_threshold)])
-  );
-  const deniedCostIds = new Set((deniedApprovals ?? []).map((a) => a.entity_id));
+  const myItems = await fetchOwnerMyItems(supabase, ownerId);
+
   const propertyName = (id: string) =>
     (properties ?? []).find((p) => p.id === id)?.name ?? "Property";
 
@@ -220,12 +207,6 @@ export default async function OwnerDashboard() {
     months: buildMonths(p.id),
   }));
 
-  const awaitingCosts = (costs ?? []).filter((c) => {
-    if (c.owner_approved || deniedCostIds.has(c.id)) return false;
-    const threshold = thresholdByProperty.get(c.property_id) ?? 2500;
-    return Number(c.amount) > threshold;
-  });
-
   const expiringLeases = activeLeases
     .concat((leases ?? []).filter((l) => l.status === "renewal_pending"))
     .filter((l) => l.end_date && l.end_date >= today && l.end_date <= horizonEnd)
@@ -307,73 +288,86 @@ export default async function OwnerDashboard() {
           title="Action needed"
           accent="amber"
           action={
-            <Link href="/owner/approvals" className="text-sm text-[#c4784a]">
-              All approvals →
+            <Link href="/owner/items" className="text-sm text-[#c4784a]">
+              My Items →
             </Link>
           }
         >
-          <p className="mb-5 text-sm leading-relaxed text-slate-600">
-            Expenditures above your management-agreement threshold. Approve or deny
-            before they hit your statement.
-          </p>
-          {awaitingCosts.length === 0 ? (
-            <p className="text-sm text-slate-600">Nothing is waiting on you.</p>
+          {myItems.attentionCount === 0 ? (
+            <p className="text-sm text-slate-600">
+              Nothing needs your attention right now.
+            </p>
           ) : (
-            <ul className="space-y-5">
-              {awaitingCosts.map((c) => (
-                <li key={c.id} className="rounded-lg border border-amber-200/80 bg-white/80 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="font-medium text-[#0c1f2e]">{c.description}</p>
-                      <p className="text-sm text-slate-600">
-                        <PropertyLink
-                          id={c.property_id}
-                          className="text-slate-700 hover:text-[#c4784a] hover:underline"
-                        >
-                          {propertyName(c.property_id)}
-                        </PropertyLink>{" "}
-                        · {c.category} · {c.incurred_date}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Threshold{" "}
-                        {formatMoney(thresholdByProperty.get(c.property_id) ?? 2500)}
-                      </p>
-                    </div>
-                    <p className="font-[family-name:var(--font-display)] text-xl tabular-nums text-[#0c1f2e]">
-                      {formatMoney(c.amount)}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <form action={ownerApproveCost}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="decision" value="approve" />
-                      <button
-                        type="submit"
-                        className="rounded bg-emerald-700 px-3 py-2 text-sm text-white"
-                      >
-                        Approve
-                      </button>
-                    </form>
-                    <form action={ownerApproveCost} className="flex flex-wrap gap-2">
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="decision" value="deny" />
-                      <input
-                        name="reason"
-                        placeholder="Denial reason"
-                        className="rounded border border-slate-300 px-3 py-2 text-sm"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        className="rounded bg-rose-700 px-3 py-2 text-sm text-white"
-                      >
-                        Deny
-                      </button>
-                    </form>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-2.5 py-1 text-xs font-semibold text-white">
+                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-white/20 px-1 tabular-nums">
+                    {myItems.attentionCount}
+                  </span>
+                  need attention
+                </span>
+                <p className="text-sm text-slate-600">
+                  {myItems.decisionCount} decision
+                  {myItems.decisionCount === 1 ? "" : "s"} ·{" "}
+                  {myItems.overdueInvoices.length} overdue ·{" "}
+                  {
+                    myItems.expirations.filter((e) => e.window === "12 months")
+                      .length
+                  }{" "}
+                  expiring soon
+                </p>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {myItems.costs
+                  .filter((c) => c.overThreshold)
+                  .slice(0, 2)
+                  .map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex justify-between gap-3 rounded-lg border border-amber-200 bg-white/80 px-3 py-2"
+                    >
+                      <span className="text-slate-700">
+                        Cost · {c.property_name} · {c.description}
+                      </span>
+                      <span className="shrink-0 tabular-nums font-medium">
+                        {formatMoney(c.amount)}
+                      </span>
+                    </li>
+                  ))}
+                {myItems.workOrders.slice(0, 1).map((w) => (
+                  <li
+                    key={w.id}
+                    className="flex justify-between gap-3 rounded-lg border border-amber-200 bg-white/80 px-3 py-2"
+                  >
+                    <span className="text-slate-700">
+                      WO · {w.property_name} · {w.title}
+                    </span>
+                    <span className="shrink-0 tabular-nums font-medium">
+                      {formatMoney(w.actual_cost)}
+                    </span>
+                  </li>
+                ))}
+                {myItems.overdueInvoices.slice(0, 1).map((inv) => (
+                  <li
+                    key={inv.id}
+                    className="flex justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50/80 px-3 py-2"
+                  >
+                    <span className="text-slate-700">
+                      Overdue · {inv.tenant_name} · {inv.property_name}
+                    </span>
+                    <span className="shrink-0 tabular-nums font-medium text-rose-800">
+                      {formatMoney(inv.balance)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/owner/items"
+                className="inline-flex text-sm font-medium text-[#c4784a] hover:underline"
+              >
+                Review all in My Items →
+              </Link>
+            </div>
           )}
         </DashboardSection>
 
