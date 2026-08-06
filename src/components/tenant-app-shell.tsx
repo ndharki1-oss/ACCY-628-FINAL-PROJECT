@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { TenantNotifications } from "@/components/tenant-notifications";
+import type {
+  CheckoutLeaseHint,
+  WaitingMessageHint,
+} from "@/lib/tenant-notifications-store";
 
 type NavLink = { href: string; label: string };
 
@@ -12,10 +16,14 @@ export function TenantAppShell({
   name,
   links,
   children,
+  checkoutLeases = [],
+  waitingMessage = null,
 }: {
   name: string;
   links: NavLink[];
   children: React.ReactNode;
+  checkoutLeases?: CheckoutLeaseHint[];
+  waitingMessage?: WaitingMessageHint | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -79,7 +87,10 @@ export function TenantAppShell({
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
-            <TenantNotifications />
+            <TenantNotifications
+              checkoutLeases={checkoutLeases}
+              waitingMessage={waitingMessage}
+            />
             <span className="hidden text-slate-300 sm:inline">
               {name} · <span className="capitalize text-[#d4a574]">tenant</span>
             </span>

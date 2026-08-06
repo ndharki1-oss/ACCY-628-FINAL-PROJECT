@@ -45,8 +45,7 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
         </p>
         <p>Base rent: {formatMoney(lease.base_rent_monthly)}</p>
         <p>CAM: {formatMoney(lease.cam_monthly)}</p>
-        <p>Grace days: {lease.grace_days}</p>
-        <p>Late fee: {lease.late_fee_percent}% of rent after grace</p>
+        <p>Late fee: 5% of rent after 7 days</p>
       </div>
       {deps.length > 0 ? (
         <div className="mt-4 border-t border-slate-100 pt-3 text-sm">

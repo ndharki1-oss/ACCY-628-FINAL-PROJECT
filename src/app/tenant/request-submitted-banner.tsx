@@ -31,6 +31,7 @@ export function RequestSubmittedBanner({
         fromName: "Harborline",
         subject: "Maintenance request submitted",
         preview: THANK_YOU,
+        href: "/tenant/requests",
       });
     }
 
