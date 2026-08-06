@@ -67,7 +67,7 @@ Labor hours come from `labor_time_entries` (not just dollar cost categories).
 | Topic | Treatment |
 |-------|-----------|
 | Rent collection | Dr Cash / Cr Owner Payable (not company revenue) |
-| Management fee | **Canonical:** % of **collected** rent from **tenant credit rating** (AAA 4% … CCC 12%) via `management_fee_percent` / `feePercentFromCredit`. Applied per collection (statement fee lines + payment JEs → GL 4000). Reduces remittance (collections − expenses − fee). **`management_agreements.fee_percent`** is only an unweighted avg of active-lease credit fees (display / fallback) — **not** the billing rate. Do not expect statement fees to equal MA% × collections. |
+| Management fee | **Canonical:** % of **collected** rent from **tenant credit** (AAA 4% … CCC 12%) **plus property risk uplift** (standard +0, elevated +1, high +2), capped at **14%**, via `management_fee_percent` / `feePercentFromCreditAndRisk`. Risk tier is derived from property type (office standard, retail elevated, industrial high). Applied per collection (statement fee lines + payment JEs → GL 4000). Reduces remittance (collections − expenses − fee). **`management_agreements.fee_percent`** is only an unweighted avg of active-lease fees (display / fallback) — **not** the billing rate. Do not expect statement fees to equal MA% × collections. |
 | Security deposits | Liability (escrow), not income |
 | Prepaid rent | Unearned liability until earned |
 | Late fees | Tenant charge; owner economics by default |

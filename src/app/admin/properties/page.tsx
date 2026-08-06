@@ -10,7 +10,7 @@ import {
   isOccupiedLeaseStatus,
   occupancyRate,
 } from "@/lib/property-portfolio";
-import { feePercentFromCredit, formatFeePercent } from "@/lib/utils";
+import { feePercentFromCreditAndRisk, formatFeePercent } from "@/lib/utils";
 
 export default async function AdminPropertiesPage() {
   const { supabase } = await requireRole(["admin"]);
@@ -19,7 +19,7 @@ export default async function AdminPropertiesPage() {
       supabase
         .from("properties")
         .select(
-          "id, name, address_line1, city, state, postal_code, property_type, status, owners(company_name), management_agreements(fee_percent, approval_threshold, status)"
+          "id, name, address_line1, city, state, postal_code, property_type, status, risk_tier, owners(company_name), management_agreements(fee_percent, approval_threshold, status)"
         )
         .order("name"),
       supabase.from("units").select("id, property_id"),
@@ -38,6 +38,10 @@ export default async function AdminPropertiesPage() {
 
   const occupiedUnitsByProperty = new Map<string, Set<string>>();
   const feeByProperty = new Map<string, number[]>();
+  const riskByProperty = new Map<string, string>();
+  for (const property of properties ?? []) {
+    riskByProperty.set(property.id, property.risk_tier ?? "standard");
+  }
   for (const lease of leases ?? []) {
     if (lease.unit_id && isOccupiedLeaseStatus(lease.status)) {
       const set =
@@ -46,7 +50,10 @@ export default async function AdminPropertiesPage() {
       occupiedUnitsByProperty.set(lease.property_id, set);
 
       const tenant = firstRelation(lease.tenants);
-      const pct = feePercentFromCredit(tenant?.credit_rating);
+      const pct = feePercentFromCreditAndRisk(
+        tenant?.credit_rating,
+        riskByProperty.get(lease.property_id)
+      );
       const list = feeByProperty.get(lease.property_id) ?? [];
       list.push(pct);
       feeByProperty.set(lease.property_id, list);
