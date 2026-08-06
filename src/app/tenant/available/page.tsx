@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
+import Link from "next/link";
 
 type AvailableListing = {
   unit_id: string;
@@ -61,6 +62,14 @@ export default async function TenantAvailableLeasesPage() {
                   : "—"}
               </p>
             </div>
+            <p className="mt-4">
+              <Link
+                href={`/tenant/contact?property=${encodeURIComponent(u.property_name)}`}
+                className="text-sm text-[#c4784a] hover:underline"
+              >
+                Contact management
+              </Link>
+            </p>
           </Card>
         ))
       )}
