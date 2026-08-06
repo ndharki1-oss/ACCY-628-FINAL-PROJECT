@@ -17,7 +17,7 @@ export default async function AccountingOwnerProfitabilityPage() {
         subtitle={ALL_PERIODS_HINT}
         info="Profit generated from each property owner across all managed properties."
       />
-      <OwnerProfitTable rows={rows} />
+      <OwnerProfitTable rows={rows} enableExcelExport />
     </div>
   );
 }

@@ -166,7 +166,7 @@ export default async function AccountingExpenseBreakdownPage({
         selectedOwnerId={selectedOwnerId}
         basePath={BASE_PATH}
       />
-      <AdminExpenseAllocation lines={lines} />
+      <AdminExpenseAllocation lines={lines} enableExcelExport />
     </div>
   );
 }

@@ -47,8 +47,8 @@ export default async function AccountingMaintenanceReportPage({
         selectedOwnerId={selectedOwnerId}
         basePath={BASE_PATH}
       />
-      <MaintenanceSummaryTable rows={summary} />
-      <MaintenanceDetailTable rows={detail} />
+      <MaintenanceSummaryTable rows={summary} enableExcelExport />
+      <MaintenanceDetailTable rows={detail} enableExcelExport />
     </div>
   );
 }

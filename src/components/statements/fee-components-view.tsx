@@ -5,6 +5,12 @@ import { Fragment, useCallback, useMemo, useState } from "react";
 import { MetricInfoTip } from "@/components/owner/metric-info-tip";
 import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
 import { Badge, Card, Stat } from "@/components/ui";
+import { ExcelExportButton } from "@/components/export/excel-export-button";
+import {
+  excelStamp,
+  exportExcelCsv,
+  slugForFilename,
+} from "@/lib/export/excel-csv";
 import {
   accountingExportFilename,
   buildAccountingStatementsPdf,
@@ -62,6 +68,57 @@ function FeeBreakdown({ row }: { row: FeeStatementRow }) {
   );
 }
 
+function statementExcelFilename(rows: FeeStatementRow[], periodLabel: string) {
+  const stamp = excelStamp();
+  if (rows.length === 1) {
+    return `${rows[0]!.statement_number}-Accounting-Export.csv`;
+  }
+  const periodSlug = slugForFilename(periodLabel);
+  return `accounting-statements-${periodSlug || "export"}-${stamp}.csv`;
+}
+
+function exportStatementsExcel(rows: FeeStatementRow[], periodLabel: string) {
+  exportExcelCsv({
+    filename: statementExcelFilename(rows, periodLabel),
+    headers: [
+      "Statement",
+      "Owner",
+      "Property",
+      "Period start",
+      "Period end",
+      "Status",
+      "Collections",
+      "Expenses",
+      "Base management fee",
+      "Leasing commission",
+      "Project / CM fee",
+      "Renewal fee",
+      "Late fee retained",
+      "Agency fee total",
+      "Header management fee",
+      "Remittance due",
+    ],
+    rows: rows.map((r) => [
+      r.statement_number,
+      r.owner_name,
+      r.property_name,
+      r.period_start,
+      r.period_end,
+      r.status,
+      r.total_collections,
+      r.total_expenses,
+      r.fees.management_fee,
+      r.fees.leasing_commission,
+      r.fees.project_fee,
+      r.fees.renewal_fee,
+      r.fees.late_fee_retained,
+      feeSumForRow(r),
+      r.management_fee,
+      r.remittance_due,
+    ]),
+  });
+}
+
 export function FeeComponentsView({
   rows,
   periods,
@@ -69,6 +126,7 @@ export function FeeComponentsView({
   basePath,
   propertyHrefPrefix,
   enablePdfExport = false,
+  enableExcelExport = false,
 }: {
   rows: FeeStatementRow[];
   periods: string[];
@@ -78,6 +136,8 @@ export function FeeComponentsView({
   propertyHrefPrefix?: string;
   /** Accounting portal only — export filtered statements to PDF */
   enablePdfExport?: boolean;
+  /** Accounting portal only — export filtered statements to Excel/CSV */
+  enableExcelExport?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
@@ -219,18 +279,31 @@ export function FeeComponentsView({
               detail="Agency fee totals come from owner statement fee lines. The base management fee uses each tenant’s credit rating (4–12% of collections), not the property agreement average. Header fee total should match the sum of fee components; mismatches are flagged in the table."
             />
           </p>
-          {enablePdfExport ? (
+          {enablePdfExport || enableExcelExport ? (
             <div className="flex flex-col items-end gap-1">
-              <button
-                type="button"
-                disabled={exporting || filtered.length === 0}
-                onClick={() => void exportRows(filtered)}
-                className="rounded border border-[#0c1f2e] bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-[#f3efe6] transition hover:bg-[#163247] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {exporting
-                  ? "Exporting…"
-                  : `Export to PDF (${filtered.length})`}
-              </button>
+              <div className="flex flex-wrap justify-end gap-2">
+                {enableExcelExport ? (
+                  <ExcelExportButton
+                    count={filtered.length}
+                    disabled={filtered.length === 0}
+                    onClick={() =>
+                      exportStatementsExcel(filtered, periodHint)
+                    }
+                  />
+                ) : null}
+                {enablePdfExport ? (
+                  <button
+                    type="button"
+                    disabled={exporting || filtered.length === 0}
+                    onClick={() => void exportRows(filtered)}
+                    className="rounded border border-[#0c1f2e] bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-[#f3efe6] transition hover:bg-[#163247] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {exporting
+                      ? "Exporting…"
+                      : `Export to PDF (${filtered.length})`}
+                  </button>
+                ) : null}
+              </div>
               <p className="text-xs text-slate-500">
                 Exports the statements matching the current period and filters.
               </p>
@@ -478,6 +551,14 @@ export function FeeComponentsView({
                             >
                               {open ? "Hide fees" : "Fee mix"}
                             </button>
+                            {enableExcelExport ? (
+                              <ExcelExportButton
+                                compact
+                                onClick={() =>
+                                  exportStatementsExcel([r], periodHint)
+                                }
+                              />
+                            ) : null}
                             {enablePdfExport ? (
                               <button
                                 type="button"
