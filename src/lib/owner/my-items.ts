@@ -228,8 +228,10 @@ export async function fetchOwnerMyItems(
     }))
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
 
+  // Match property "actions": only costs over the approval threshold need a decision.
+  const costsNeedingDecision = costRows.filter((c) => c.overThreshold).length;
   const decisionCount =
-    costRows.length + workOrders.length + requestRows.length;
+    costsNeedingDecision + workOrders.length + requestRows.length;
   const urgentExpirations = expirations.filter((e) => e.window === "12 months")
     .length;
   const attentionCount =
