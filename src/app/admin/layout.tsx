@@ -26,6 +26,7 @@ const adminLinks: AdminNavItem[] = [
     children: [
       { href: "/admin/contracts/owners", label: "Owners" },
       { href: "/admin/contracts/tenants", label: "Tenants" },
+      { href: "/admin/contracts/employees", label: "Employees" },
     ],
   },
   {
@@ -46,11 +47,11 @@ const adminLinks: AdminNavItem[] = [
   {
     label: "Profitability",
     children: [
-      { href: "/admin/profitability", label: "Mgmt P&L" },
-      { href: "/admin/reports/property-pnl", label: "Property P&L" },
+      { href: "/admin/profitability", label: "Management" },
+      { href: "/admin/reports/property-pnl", label: "Property" },
       {
         href: "/admin/reports/owner-profitability",
-        label: "Owner Profit",
+        label: "Owner",
       },
     ],
   },

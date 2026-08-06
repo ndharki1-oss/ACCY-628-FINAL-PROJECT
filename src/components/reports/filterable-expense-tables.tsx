@@ -340,27 +340,11 @@ export function MaintenanceDetailTable({ rows }: { rows: MaintenanceRow[] }) {
 
 type LaborSortKey = "workDate" | "hours" | "hourlyRate" | "laborCost";
 
-export function LaborTable({
-  rows,
-  hideEmployeeFilter = false,
-}: {
-  rows: LaborRow[];
-  /** Employee portal My Labor is already scoped to the logged-in user. */
-  hideEmployeeFilter?: boolean;
-}) {
-  const [employeeFilter, setEmployeeFilter] = useState("all");
+export function LaborTable({ rows }: { rows: LaborRow[] }) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [workOrderFilter, setWorkOrderFilter] = useState("all");
   const [sortKey, setSortKey] = useState<LaborSortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>("none");
-
-  const employees = useMemo(
-    () =>
-      [...new Set(rows.map((r) => r.employeeName))].sort((a, b) =>
-        a.localeCompare(b)
-      ),
-    [rows]
-  );
 
   const properties = useMemo(
     () =>
@@ -390,9 +374,6 @@ export function LaborTable({
 
   const displayed = useMemo(() => {
     const filtered = rows.filter((row) => {
-      if (employeeFilter !== "all" && row.employeeName !== employeeFilter) {
-        return false;
-      }
       if (propertyFilter !== "all" && row.propertyName !== propertyFilter) {
         return false;
       }
@@ -414,7 +395,7 @@ export function LaborTable({
       }
       return (a[sortKey] - b[sortKey]) * factor;
     });
-  }, [rows, employeeFilter, propertyFilter, workOrderFilter, sortKey, sortDir]);
+  }, [rows, propertyFilter, workOrderFilter, sortKey, sortDir]);
 
   return (
     <Card title="Employee labor">
@@ -422,17 +403,6 @@ export function LaborTable({
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
             <tr>
-              <th className="py-2 pr-2 align-bottom">
-                <span className="block">Employee</span>
-                {hideEmployeeFilter ? null : (
-                  <ValueFilterSelect
-                    label="Filter by employee"
-                    value={employeeFilter}
-                    onChange={setEmployeeFilter}
-                    options={employees}
-                  />
-                )}
-              </th>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Date</span>
                 <SortSelect
@@ -488,14 +458,13 @@ export function LaborTable({
           <tbody>
             {displayed.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-6 text-slate-500">
+                <td colSpan={6} className="py-6 text-slate-500">
                   No rows match the current filters.
                 </td>
               </tr>
             ) : (
               displayed.map((r) => (
                 <tr key={r.entryId} className="border-b border-slate-100">
-                  <td className="py-2 pr-2">{r.employeeName}</td>
                   <td className="py-2 pr-2">{r.workDate}</td>
                   <td className="py-2 pr-2">{r.propertyName}</td>
                   <td className="py-2 pr-2">{r.workOrderNumber ?? "—"}</td>
