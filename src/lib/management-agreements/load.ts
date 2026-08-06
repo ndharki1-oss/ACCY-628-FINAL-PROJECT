@@ -29,7 +29,8 @@ export type AdminContractListRow = {
 };
 
 export async function loadAdminContractsByOwner(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  options?: { ownerId?: string }
 ): Promise<
   {
     ownerId: string;
@@ -41,17 +42,46 @@ export async function loadAdminContractsByOwner(
     contracts: AdminContractListRow[];
   }[]
 > {
-  const [{ data: agreements }, { data: leases }] = await Promise.all([
-    supabase
-      .from("management_agreements")
-      .select(
-        "id, start_date, end_date, status, fee_percent, notes, property_id, owner_id, properties(id, name, address_line1, city, state, postal_code, property_type, square_feet), owners(id, company_name, contact_name, email, phone, mailing_address)"
-      )
-      .order("start_date", { ascending: false }),
-    supabase
+  let agreementsQuery = supabase
+    .from("management_agreements")
+    .select(
+      "id, start_date, end_date, status, fee_percent, notes, property_id, owner_id, properties(id, name, address_line1, city, state, postal_code, property_type, square_feet), owners(id, company_name, contact_name, email, phone, mailing_address)"
+    )
+    .order("start_date", { ascending: false });
+
+  if (options?.ownerId) {
+    agreementsQuery = agreementsQuery.eq("owner_id", options.ownerId);
+  }
+
+  const agreementsPromise = agreementsQuery;
+
+  const leasesPromise = (async () => {
+    if (!options?.ownerId) {
+      return supabase
+        .from("leases")
+        .select("property_id, base_rent_monthly, status")
+        .in("status", ["active", "renewal_pending"]);
+    }
+
+    const { data: ownerProperties } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("owner_id", options.ownerId);
+    const propertyIds = (ownerProperties ?? []).map((p) => p.id);
+    if (propertyIds.length === 0) {
+      return { data: [] as { property_id: string; base_rent_monthly: number; status: string }[], error: null };
+    }
+
+    return supabase
       .from("leases")
       .select("property_id, base_rent_monthly, status")
-      .in("status", ["active", "renewal_pending"]),
+      .in("status", ["active", "renewal_pending"])
+      .in("property_id", propertyIds);
+  })();
+
+  const [{ data: agreements }, { data: leases }] = await Promise.all([
+    agreementsPromise,
+    leasesPromise,
   ]);
 
   const baseRentByProperty = new Map<string, number>();
@@ -141,17 +171,31 @@ export async function loadAdminContractsByOwner(
     .sort((a, b) => a.ownerCompany.localeCompare(b.ownerCompany));
 }
 
+export async function loadOwnerManagementAgreements(
+  supabase: SupabaseClient,
+  ownerId: string
+): Promise<AdminContractListRow[]> {
+  const groups = await loadAdminContractsByOwner(supabase, { ownerId });
+  return groups.flatMap((group) => group.contracts);
+}
+
 export async function loadManagementAgreementTemplateData(
   supabase: SupabaseClient,
-  agreementId: string
+  agreementId: string,
+  options?: { ownerId?: string }
 ): Promise<ManagementAgreementTemplateData | null> {
-  const { data: agreement } = await supabase
+  let query = supabase
     .from("management_agreements")
     .select(
-      "id, start_date, end_date, status, fee_percent, notes, property_id, properties(id, name, address_line1, city, state, postal_code, property_type, square_feet), owners(company_name, contact_name, email, phone, mailing_address)"
+      "id, start_date, end_date, status, fee_percent, notes, property_id, owner_id, properties(id, name, address_line1, city, state, postal_code, property_type, square_feet), owners(company_name, contact_name, email, phone, mailing_address)"
     )
-    .eq("id", agreementId)
-    .maybeSingle();
+    .eq("id", agreementId);
+
+  if (options?.ownerId) {
+    query = query.eq("owner_id", options.ownerId);
+  }
+
+  const { data: agreement } = await query.maybeSingle();
 
   if (!agreement) return null;
 

@@ -17,6 +17,7 @@ export default async function Layout({
   const ownerLinks = [
     { href: "/owner", label: "Dashboard" },
     { href: "/owner/properties", label: "Properties" },
+    { href: "/owner/contracts", label: "Contracts" },
     { href: "/owner/items", label: "My Items", badge: attentionCount },
     { href: "/owner/statements", label: "Statements" },
     { href: "/owner/noi", label: "NOI" },
