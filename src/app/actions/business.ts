@@ -10,16 +10,19 @@ import {
   DEMO_EMPLOYEE_VENDOR_ID,
   estimateRequiresOwnerApproval,
 } from "@/lib/work-order-routing";
+import { notifyManagerOfOwnerWorkOrderDecision } from "@/lib/owner/notify-manager";
 
 function revalidateWorkOrderPaths(propertyId?: string | null) {
   revalidatePath("/admin");
   revalidatePath("/admin/work-orders");
+  revalidatePath("/admin/messages");
   revalidatePath("/employee");
   revalidatePath("/employee/work-orders");
   revalidatePath("/owner");
   revalidatePath("/owner/items");
   revalidatePath("/owner/approvals");
   revalidatePath("/owner/properties");
+  revalidatePath("/owner/contact");
   if (propertyId) revalidatePath(`/owner/properties/${propertyId}`);
 }
 
@@ -284,7 +287,7 @@ export async function ownerApproveWorkOrder(formData: FormData) {
 
   const { data: workOrder, error: woLookupError } = await supabase
     .from("work_orders")
-    .select("id, property_id, status")
+    .select("id, property_id, status, wo_number, title, properties(name)")
     .eq("id", id)
     .maybeSingle();
   if (woLookupError) throw new Error(woLookupError.message);
@@ -323,6 +326,21 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     p_entity_id: id,
     p_detail: { reason },
   });
+
+  const propertyRel = Array.isArray(workOrder.properties)
+    ? workOrder.properties[0]
+    : workOrder.properties;
+  if (user?.id && workOrder.property_id) {
+    await notifyManagerOfOwnerWorkOrderDecision(supabase, {
+      userId: user.id,
+      propertyId: workOrder.property_id,
+      decision: decision === "approve" ? "approve" : "reject",
+      woNumber: workOrder.wo_number,
+      title: workOrder.title,
+      propertyName: propertyRel?.name ?? "Property",
+      reason: decision === "reject" ? reason : undefined,
+    });
+  }
 
   revalidateWorkOrderPaths(workOrder.property_id);
 }
