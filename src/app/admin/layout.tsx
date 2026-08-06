@@ -1,4 +1,7 @@
-import { AdminAppShell } from "@/components/admin-app-shell";
+import {
+  AdminAppShell,
+  type AdminNavItem,
+} from "@/components/admin-app-shell";
 import type { AdminMessageBellItem } from "@/components/admin-message-notifications";
 import { requireRole } from "@/lib/auth";
 import {
@@ -6,21 +9,44 @@ import {
   messagePreview,
 } from "@/lib/admin-messages";
 
-const adminLinks = [
+const adminLinks: AdminNavItem[] = [
   { href: "/admin", label: "Dashboard" },
-  { href: "/admin/properties", label: "Properties" },
-  { href: "/admin/owners", label: "Property Owners" },
-  { href: "/admin/leases", label: "Leases" },
+  {
+    label: "Portfolio",
+    children: [
+      { href: "/admin/properties", label: "Properties" },
+      { href: "/admin/owners", label: "Property Owners" },
+      { href: "/admin/leases", label: "Leases" },
+    ],
+  },
   { href: "/admin/messages", label: "Messages" },
-  { href: "/admin/billing", label: "Billing" },
-  { href: "/admin/statements", label: "Statements" },
+  {
+    label: "Billing",
+    children: [
+      { href: "/admin/billing", label: "Billing" },
+      { href: "/admin/statements", label: "Statements" },
+    ],
+  },
   { href: "/admin/work-orders", label: "Work Orders" },
-  { href: "/admin/profitability", label: "Mgmt P&L" },
-  { href: "/admin/reports/property-pnl", label: "Property P&L" },
-  { href: "/admin/reports/owner-profitability", label: "Owner Profit" },
-  { href: "/admin/reports/maintenance", label: "Maintenance" },
-  { href: "/admin/reports/employee-labor", label: "Labor" },
-  { href: "/admin/reports/expense-breakdown", label: "Expenses" },
+  {
+    label: "Profitability",
+    children: [
+      { href: "/admin/profitability", label: "Mgmt P&L" },
+      { href: "/admin/reports/property-pnl", label: "Property P&L" },
+      {
+        href: "/admin/reports/owner-profitability",
+        label: "Owner Profit",
+      },
+    ],
+  },
+  {
+    label: "Expenses",
+    children: [
+      { href: "/admin/reports/maintenance", label: "Maintenance" },
+      { href: "/admin/reports/employee-labor", label: "Labor" },
+      { href: "/admin/reports/expense-breakdown", label: "Expenses" },
+    ],
+  },
 ];
 
 function firstRelation<T>(value: T | T[] | null | undefined): T | null {
