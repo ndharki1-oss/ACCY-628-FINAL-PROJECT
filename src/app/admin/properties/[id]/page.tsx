@@ -19,6 +19,34 @@ const RELATED_TABS = [
   { href: "/admin/owners", label: "Property Owners" },
 ] as const;
 
+function OverviewStat({
+  label,
+  value,
+  hint,
+  capitalize,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  capitalize?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={`mt-1 font-[family-name:var(--font-display)] text-xl text-[#0c1f2e] ${
+          capitalize ? "capitalize" : ""
+        }`}
+      >
+        {value}
+      </p>
+      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
+
 export default async function AdminPropertyDetailPage({
   params,
 }: {
@@ -125,62 +153,53 @@ export default async function AdminPropertyDetailPage({
         <Link href="/admin/properties" className="text-sm text-[#c4784a]">
           ← Properties
         </Link>
-        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          {property.name}
-        </h1>
-        <p className="mt-1 text-slate-600">
-          {property.address_line1}, {property.city}, {property.state}{" "}
-          {property.postal_code}
-        </p>
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
+              {property.name}
+            </h1>
+            <p className="mt-1 text-slate-600">
+              {property.address_line1}, {property.city}, {property.state}{" "}
+              {property.postal_code}
+            </p>
+          </div>
+          <Badge status={property.status} />
+        </div>
       </div>
 
       <Card title="Overview">
-        <dl className="grid gap-3 sm:grid-cols-2">
-          <div className="flex justify-between gap-4 text-sm sm:col-span-2">
-            <dt className="text-slate-500">Address</dt>
-            <dd className="text-right text-[#0c1f2e]">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <OverviewStat label="Type" value={property.property_type.replaceAll("_", " ")} capitalize />
+          <OverviewStat label="Owner" value={ownerName} />
+          <OverviewStat
+            label="Occupancy"
+            value={formatOccupancyPercent(occupancyRate(unitCount, occupiedCount))}
+            hint={`${occupiedCount} of ${unitCount} units occupied`}
+          />
+          <OverviewStat
+            label="Approval threshold"
+            value={formatMoney(agreement?.approval_threshold ?? 2500)}
+            hint="10% of current monthly base rent"
+          />
+        </div>
+        <dl className="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">Address</dt>
+            <dd className="mt-1 text-[#0c1f2e]">
               {property.address_line1}, {property.city}, {property.state}{" "}
               {property.postal_code}
             </dd>
           </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Type</dt>
-            <dd className="capitalize text-[#0c1f2e]">{property.property_type}</dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Owner</dt>
-            <dd className="text-right text-[#0c1f2e]">{ownerName}</dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Status</dt>
-            <dd>
-              <Badge status={property.status} />
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Unit count</dt>
-            <dd className="text-[#0c1f2e]">{unitCount}</dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Occupancy</dt>
-            <dd className="text-[#0c1f2e]">
-              {formatOccupancyPercent(occupancyRate(unitCount, occupiedCount))}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Agreement fee avg</dt>
-            <dd className="text-right text-[#0c1f2e]">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Agreement fee avg
+            </dt>
+            <dd className="mt-1 text-[#0c1f2e]">
               {agreement?.fee_percent != null
-                ? `${agreement.fee_percent}% (reference; billing uses tenant credit)`
+                ? `${agreement.fee_percent}%`
                 : "—"}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 text-sm sm:col-span-2">
-            <dt className="text-slate-500">Approval threshold</dt>
-            <dd className="text-right text-[#0c1f2e]">
-              {formatMoney(agreement?.approval_threshold ?? 2500)}
-              <span className="mt-0.5 block text-xs font-normal text-slate-500">
-                10% of current monthly base rent (active leases)
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Reference only — billing uses tenant credit + risk
               </span>
             </dd>
           </div>

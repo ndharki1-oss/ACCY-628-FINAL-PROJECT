@@ -1,8 +1,9 @@
 import { requireRole } from "@/lib/auth";
 import { PageHeading } from "@/components/page-heading";
-import { Badge, Card } from "@/components/ui";
-import { formatMoney } from "@/lib/utils";
-import { adminDisposeSecurityDeposit } from "@/app/actions/business";
+import {
+  AdminDepositsWorkspace,
+  type AdminDepositRow,
+} from "@/components/admin-deposits-workspace";
 import { firstRelation } from "@/lib/work-order-routing";
 
 export default async function AdminDepositsPage() {
@@ -15,7 +16,7 @@ export default async function AdminDepositsPage() {
     )
     .order("received_date", { ascending: false });
 
-  const rows = (deposits ?? []).map((d) => {
+  const rows: AdminDepositRow[] = (deposits ?? []).map((d) => {
     const property = firstRelation(d.properties);
     const tenant = firstRelation(d.tenants);
     const lease = firstRelation(d.leases);
@@ -29,17 +30,25 @@ export default async function AdminDepositsPage() {
       .filter((e) => e.event_type === "refunded")
       .reduce((s, e) => s + Number(e.amount), 0);
     return {
-      ...d,
+      id: d.id,
+      amount: Number(d.amount),
+      status: d.status,
+      notes: d.notes,
+      received_date: d.received_date,
       propertyName: property?.name ?? "Property",
       tenantName: tenant?.company_name ?? "Tenant",
       leaseNumber: lease?.lease_number ?? "—",
-      events,
+      events: events.map((e) => ({
+        id: e.id,
+        event_type: e.event_type,
+        amount: Number(e.amount),
+        description: e.description,
+        occurred_on: e.occurred_on,
+      })),
       applied,
       refunded,
     };
   });
-
-  const held = rows.filter((r) => r.status === "held");
 
   return (
     <div className="space-y-6">
@@ -49,118 +58,7 @@ export default async function AdminDepositsPage() {
         info="Escrow ledger for tenant deposits."
       />
 
-      <Card title={`Held deposits (${held.length})`}>
-        {held.length === 0 ? (
-          <p className="text-sm text-slate-600">No held deposits right now.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {held.map((d) => (
-              <li key={d.id} className="space-y-3 py-4 text-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-[#0c1f2e]">
-                      {d.tenantName} · {d.propertyName}
-                    </p>
-                    <p className="text-slate-600">
-                      Lease {d.leaseNumber} · received {d.received_date ?? "—"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold tabular-nums">
-                      {formatMoney(d.amount)}
-                    </span>
-                    <Badge status={d.status} />
-                  </div>
-                </div>
-                <form
-                  action={adminDisposeSecurityDeposit}
-                  className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3"
-                >
-                  <input type="hidden" name="deposit_id" value={d.id} />
-                  <label className="text-xs text-slate-600">
-                    Apply to damages (USD)
-                    <input
-                      name="applied_amount"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max={Number(d.amount)}
-                      defaultValue={Math.min(750, Number(d.amount))}
-                      required
-                      className="mt-1 block w-36 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs text-slate-600">
-                    Notes
-                    <input
-                      name="notes"
-                      defaultValue="Move-out: carpet / wall repair"
-                      className="mt-1 block w-56 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
-                    />
-                  </label>
-                  <button
-                    type="submit"
-                    className="rounded bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-white"
-                  >
-                    Record disposition
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card title="Deposit ledger">
-        {rows.length === 0 ? (
-          <p className="text-sm text-slate-600">No deposits on file.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {rows.map((d) => (
-              <li key={d.id} className="space-y-2 py-4 text-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">
-                      {d.tenantName} · {d.propertyName} · {d.leaseNumber}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      Face amount {formatMoney(d.amount)}
-                      {d.applied > 0 ? ` · applied ${formatMoney(d.applied)}` : ""}
-                      {d.refunded > 0
-                        ? ` · refunded ${formatMoney(d.refunded)}`
-                        : ""}
-                    </p>
-                  </div>
-                  <Badge status={d.status} />
-                </div>
-                {d.events.length === 0 ? (
-                  <p className="text-xs text-slate-500">No ledger events yet.</p>
-                ) : (
-                  <ul className="space-y-1 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-xs text-slate-600">
-                    {d.events.map((e) => (
-                      <li key={e.id} className="flex justify-between gap-3">
-                        <span>
-                          <span className="font-medium capitalize text-slate-700">
-                            {e.event_type}
-                          </span>
-                          {e.description ? ` · ${e.description}` : ""}
-                          <span className="text-slate-400">
-                            {" "}
-                            · {e.occurred_on}
-                          </span>
-                        </span>
-                        <span className="shrink-0 tabular-nums text-[#0c1f2e]">
-                          {formatMoney(e.amount)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <AdminDepositsWorkspace rows={rows} />
     </div>
   );
 }

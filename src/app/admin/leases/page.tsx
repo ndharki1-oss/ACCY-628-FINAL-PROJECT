@@ -32,11 +32,12 @@ export default async function AdminLeasesPage() {
     { data: paymentApps },
     { data: workOrders },
     { data: deposits },
+    { data: agreements },
   ] = await Promise.all([
     supabase
       .from("leases")
       .select(
-        "id, lease_number, lease_type, status, start_date, end_date, base_rent_monthly, cam_monthly, billing_day, security_deposit_required, property_id, unit_id, tenant_id, tenants(id, company_name, contact_name, email, phone, credit_rating), properties(id, name, risk_tier), units(id, unit_code), lease_amendments(id, amendment_type, description, effective_date)"
+        "id, lease_number, lease_type, status, start_date, end_date, base_rent_monthly, cam_monthly, billing_day, security_deposit_required, property_id, unit_id, tenant_id, tenants(id, company_name, contact_name, email, phone, credit_rating), properties(id, name, risk_tier, owner_id), units(id, unit_code), lease_amendments(id, amendment_type, description, effective_date)"
       )
       .order("lease_number"),
     supabase.from("units").select("id, property_id"),
@@ -52,6 +53,10 @@ export default async function AdminLeasesPage() {
     supabase.from("payment_applications").select("payment_id, invoice_id, amount"),
     supabase.from("work_orders").select("id, lease_id, unit_id, wo_number, status, title"),
     supabase.from("security_deposits").select("lease_id, amount, status"),
+    supabase
+      .from("management_agreements")
+      .select("id, property_id, owner_id, status")
+      .eq("status", "active"),
   ]);
 
   if (leasesError) {
@@ -95,6 +100,20 @@ export default async function AdminLeasesPage() {
   const depositByLease = new Map(
     (deposits ?? []).map((deposit) => [deposit.lease_id, deposit])
   );
+
+  const agreementByProperty = new Map<
+    string,
+    { id: string; ownerId: string }
+  >();
+  for (const agreement of agreements ?? []) {
+    if (!agreement.property_id) continue;
+    if (!agreementByProperty.has(agreement.property_id)) {
+      agreementByProperty.set(agreement.property_id, {
+        id: agreement.id,
+        ownerId: agreement.owner_id,
+      });
+    }
+  }
 
   const workOrdersByLease = new Map<string, NonNullable<typeof workOrders>>();
   const workOrdersByUnit = new Map<string, NonNullable<typeof workOrders>>();
@@ -164,6 +183,9 @@ export default async function AdminLeasesPage() {
     }
 
     const deposit = depositByLease.get(lease.id);
+    const agreement = agreementByProperty.get(lease.property_id);
+    const ownerId =
+      property?.owner_id ?? agreement?.ownerId ?? null;
 
     return {
       id: lease.id,
@@ -180,6 +202,8 @@ export default async function AdminLeasesPage() {
       ),
       propertyId: lease.property_id,
       propertyName: property?.name ?? "—",
+      ownerId,
+      agreementId: agreement?.id ?? null,
       unitCode: unit?.unit_code ?? "—",
       leaseType: lease.lease_type,
       dbStatus: lease.status,

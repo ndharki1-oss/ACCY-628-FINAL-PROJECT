@@ -54,7 +54,7 @@ function PropertyPreviewDialog({
   }, [onClose, photos.length]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#0c1f2e]/55 p-4 sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#0c1f2e]/55 p-4 sm:p-8">
       <button
         type="button"
         aria-label="Close property preview"
@@ -65,7 +65,7 @@ function PropertyPreviewDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 mt-6 w-full max-w-lg overflow-hidden rounded-lg border border-slate-800/10 bg-[#f4f1ea] shadow-xl"
+        className="relative z-10 my-auto w-full max-w-lg overflow-hidden rounded-lg border border-slate-800/10 bg-[#f4f1ea] shadow-xl"
       >
         <div className="relative aspect-[16/10] bg-slate-200">
           {/* eslint-disable-next-line @next/next/no-img-element */}
