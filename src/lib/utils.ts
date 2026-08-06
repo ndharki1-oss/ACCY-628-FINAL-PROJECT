@@ -3,6 +3,7 @@ export type UserRole = "admin" | "owner" | "tenant" | "vendor" | "accounting";
 /** DB role → portal URL path (vendor portal is labeled Employee). */
 export function roleHomePath(role: string): string {
   if (role === "vendor") return "/employee";
+  if (role === "accounting") return "/accounting/statements";
   return `/${role}`;
 }
 
@@ -14,6 +15,10 @@ export function roleShellKey(role: string): string {
 
 /** Whether a pathname belongs to this DB role's portal. */
 export function pathMatchesRole(pathname: string, role: string): boolean {
+  // Accounting home is Statements, but the whole /accounting/* portal is in-scope.
+  if (role === "accounting") {
+    return pathname === "/accounting" || pathname.startsWith("/accounting/");
+  }
   const home = roleHomePath(role);
   return pathname === home || pathname.startsWith(`${home}/`);
 }
