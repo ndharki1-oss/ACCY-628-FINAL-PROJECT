@@ -10,15 +10,10 @@ export async function createTenantRequest(formData: FormData) {
   const recurringRaw = String(formData.get("recurring_issue") ?? "no");
   const description = String(formData.get("description") ?? "").trim();
   const requestDate = String(formData.get("request_date") ?? "").trim();
-  const notifyEmail = formData.get("notify_email") === "on";
-  const notifySms = formData.get("notify_sms") === "on";
+  const sendCopy = formData.get("send_copy") === "on";
 
   if (!title || !serviceType || !description || !requestDate) {
     throw new Error("Please complete all required fields.");
-  }
-
-  if (!notifyEmail && !notifySms) {
-    throw new Error("Choose email and/or text message to receive a copy.");
   }
 
   const recurringIssue =
@@ -37,11 +32,8 @@ export async function createTenantRequest(formData: FormData) {
     .single();
   if (!tenant) throw new Error("Tenant profile not found.");
 
-  if (notifyEmail && !tenant.email) {
-    throw new Error("No email is on file for your tenant account.");
-  }
-  if (notifySms && !tenant.phone) {
-    throw new Error("No phone number is on file for your tenant account.");
+  if (sendCopy && !tenant.email && !tenant.phone) {
+    throw new Error("No contact information is on file for your tenant account.");
   }
 
   const { data: lease } = await supabase
@@ -66,8 +58,11 @@ export async function createTenantRequest(formData: FormData) {
 
   // Simulated delivery for coursework demo (no real email/SMS provider configured).
   const channels: string[] = [];
-  if (notifyEmail) channels.push("email");
-  if (notifySms) channels.push("sms");
+  if (sendCopy) {
+    if (tenant.email) channels.push("email");
+    else if (tenant.phone) channels.push("sms");
+    else channels.push("copy");
+  }
 
   revalidatePath("/tenant/requests");
   revalidatePath("/tenant");

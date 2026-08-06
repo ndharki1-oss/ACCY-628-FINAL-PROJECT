@@ -32,7 +32,7 @@ export default async function TenantAvailableLeasesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Available leases
+          Available Leases
         </h1>
         <p className="mt-2 text-slate-600">
           Vacant units in the Harborline network that are not currently leased.

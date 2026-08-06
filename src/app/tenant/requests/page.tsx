@@ -135,7 +135,7 @@ export default async function TenantRequestsPage({
     .map((v) => v.trim())
     .filter(Boolean);
   const sentViaLabels = via.map((channel) =>
-    channel === "sms" ? "text message" : "email"
+    channel === "sms" ? "text message" : channel === "email" ? "email" : "copy"
   );
 
   return (
@@ -240,43 +240,21 @@ export default async function TenantRequestsPage({
             />
           </label>
 
-          <fieldset className="space-y-2 rounded border border-slate-200 p-3">
-            <legend className="px-1 font-medium text-[#0c1f2e]">
-              Send me a copy of this request
-            </legend>
-            <p className="text-xs text-slate-500">
-              Uses the contact information on your tenant account.
-            </p>
-            <label className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                name="notify_email"
-                defaultChecked={Boolean(tenantRow?.email)}
-                disabled={!tenantRow?.email}
-                className="mt-1 accent-[#0c1f2e]"
-              />
-              <span>
-                Email
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  {tenantRow?.email ?? "No email on file"}
-                </span>
+          <label className="flex items-start gap-2 rounded border border-slate-200 p-3">
+            <input
+              type="checkbox"
+              name="send_copy"
+              className="mt-1 accent-[#0c1f2e]"
+            />
+            <span>
+              <span className="font-medium text-[#0c1f2e]">
+                Send me a copy of this request
               </span>
-            </label>
-            <label className="flex items-start gap-2">
-              <input
-                type="checkbox"
-                name="notify_sms"
-                disabled={!tenantRow?.phone}
-                className="mt-1 accent-[#0c1f2e]"
-              />
-              <span>
-                Text message
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  {tenantRow?.phone ?? "No phone number on file"}
-                </span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Uses the contact information on your tenant account.
               </span>
-            </label>
-          </fieldset>
+            </span>
+          </label>
 
           <button
             type="submit"
