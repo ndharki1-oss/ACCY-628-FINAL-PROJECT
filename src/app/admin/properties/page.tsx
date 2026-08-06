@@ -102,7 +102,8 @@ export default async function AdminPropertiesPage() {
         </h1>
         <p className="mt-1 text-slate-600">
           Buildings, addresses, units, and occupancy across the portfolio. Fee %
-          is credit-based on collected rent (4–12%).
+          column shows credit-based rates on active leases (4–12%). Agreement avg
+          is a property-level reference only — statements bill by tenant credit.
         </p>
       </div>
 

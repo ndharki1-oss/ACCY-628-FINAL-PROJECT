@@ -61,7 +61,9 @@ export async function fetchPropertyPnL(
     const laborCost = (labor ?? [])
       .filter((l) => l.property_id === p.id)
       .reduce((s, l) => s + Number(l.labor_cost), 0);
-    const expenses = costAmt + laborCost;
+    // Formula A: property NOI = tenant revenue − cost_entries only.
+    // Harborline labor is returned separately and is not subtracted from NOI.
+    const expenses = costAmt;
     const owner = Array.isArray(p.owners) ? p.owners[0] : p.owners;
     return {
       propertyId: p.id,

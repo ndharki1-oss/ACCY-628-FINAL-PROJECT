@@ -1,6 +1,10 @@
 import { requireRole } from "@/lib/auth";
 import { Badge, Card, Stat } from "@/components/ui";
 import { WorkOrderDetailsButton } from "@/components/admin-work-order-details";
+import {
+  FeeRevenueRecognizedCard,
+  type FeeRevenueLine,
+} from "@/components/admin-fee-revenue-breakdown";
 import { PropertyLocationsMap } from "@/components/property-locations-map";
 import { formatMoney } from "@/lib/utils";
 import {
@@ -80,6 +84,7 @@ export default async function AdminDashboard() {
     { data: invoices },
     { data: pendingWo },
     { data: fees },
+    { data: feeStatementLines },
     { count: expiringLeases },
     { count: upcomingInspections },
     { data: mapProperties },
@@ -104,7 +109,20 @@ export default async function AdminDashboard() {
     supabase
       .from("journal_lines")
       .select("credit, gl_accounts!inner(code)")
-      .eq("gl_accounts.code", "4000"),
+      .eq("gl_accounts.code", "4000")
+      .gt("credit", 0),
+    supabase
+      .from("owner_statement_lines")
+      .select(
+        "id, line_type, description, amount, owner_statements!inner(statement_number, period_start, period_end, properties(name), owners(company_name))"
+      )
+      .in("line_type", [
+        "management_fee",
+        "leasing_commission",
+        "project_fee",
+        "renewal_fee",
+        "late_fee_retained",
+      ]),
     supabase
       .from("leases")
       .select("id", { count: "exact", head: true })
@@ -138,6 +156,25 @@ export default async function AdminDashboard() {
     0
   );
   const feeRevenue = (fees ?? []).reduce((s, r) => s + Number(r.credit), 0);
+  const feeLines: FeeRevenueLine[] = (feeStatementLines ?? []).map((row) => {
+    const statement = firstRelation(row.owner_statements);
+    const owner = firstRelation(statement?.owners);
+    const property = firstRelation(statement?.properties);
+    const periodStart = statement?.period_start ?? "";
+    const periodEnd = statement?.period_end ?? "";
+    return {
+      id: row.id,
+      amount: Math.abs(Number(row.amount)),
+      ownerName: owner?.company_name ?? "Unassigned owner",
+      propertyName: property?.name ?? "Unassigned property",
+      statementNumber: statement?.statement_number ?? "—",
+      periodLabel:
+        periodStart && periodEnd ? `${periodStart} → ${periodEnd}` : "—",
+      periodEnd,
+      feeType: String(row.line_type),
+      description: row.description ?? String(row.line_type),
+    };
+  });
   const overdue = (invoices ?? []).filter((i) => i.status === "overdue");
 
   const pendingDetails = (pendingWo ?? []).map((w) => {
@@ -297,18 +334,7 @@ export default async function AdminDashboard() {
 
       <div className="grid items-stretch gap-4 lg:grid-cols-2">
         <div className="flex h-full min-h-0 flex-col gap-4">
-        <Card
-          title="Fee Revenue Recognized (GAAP: on collection)"
-          action={
-            <Link href="/admin/accounting" className="text-sm text-[#c4784a]">
-              Journals →
-            </Link>
-          }
-        >
-          <p className="font-[family-name:var(--font-display)] text-3xl">
-            {formatMoney(feeRevenue)}
-          </p>
-        </Card>
+        <FeeRevenueRecognizedCard total={feeRevenue} lines={feeLines} />
 
         <Card title="Manager Action Center">
           <ul>

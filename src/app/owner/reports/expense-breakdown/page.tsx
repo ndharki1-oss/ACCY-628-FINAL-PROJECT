@@ -4,6 +4,7 @@ import {
   ReportHeading,
 } from "@/components/reports/report-tables";
 import { fetchExpenseBreakdown } from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { ownerPropertyIds } from "@/lib/reports/scope";
 
 export default async function OwnerExpenseBreakdownPage() {
@@ -17,7 +18,7 @@ export default async function OwnerExpenseBreakdownPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Expense Breakdown"
-        subtitle="Summary expense categories for your properties only."
+        subtitle={`${ALL_PERIODS_HINT}. Summary expense categories for your properties only.`}
       />
       <ExpenseBreakdownTable rows={rows} mode="summary" />
     </div>

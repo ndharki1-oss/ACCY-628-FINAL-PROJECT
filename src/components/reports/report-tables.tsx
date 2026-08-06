@@ -9,6 +9,7 @@ import type {
   PropertyPnLRow,
   ReportMode,
 } from "@/lib/reports/types";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 export function PropertyPnLTable({
   rows,
@@ -18,7 +19,7 @@ export function PropertyPnLTable({
   mode: ReportMode;
 }) {
   return (
-    <Card title={mode === "summary" ? "Property P&L (summary)" : "Property Profit & Loss"}>
+    <Card title={mode === "summary" ? `Property P&L (summary) · ${ALL_PERIODS_HINT}` : `Property Profit & Loss · ${ALL_PERIODS_HINT}`}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
@@ -26,8 +27,10 @@ export function PropertyPnLTable({
               <th className="py-2">Property</th>
               {mode === "full" ? <th className="py-2">Owner</th> : null}
               <th className="py-2">Revenue</th>
-              <th className="py-2">Expenses</th>
-              {mode === "full" ? <th className="py-2">Labor</th> : null}
+              <th className="py-2">OpEx (in NOI)</th>
+              {mode === "full" ? (
+                <th className="py-2">Harborline labor — not in NOI</th>
+              ) : null}
               <th className="py-2">NOI</th>
             </tr>
           </thead>
@@ -57,7 +60,7 @@ export function PropertyPnLTable({
 
 export function OwnerProfitTable({ rows }: { rows: OwnerProfitRow[] }) {
   return (
-    <Card title="Owner (Customer) Profitability">
+    <Card title={`Owner (Customer) Profitability · ${ALL_PERIODS_HINT}`}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
@@ -65,7 +68,7 @@ export function OwnerProfitTable({ rows }: { rows: OwnerProfitRow[] }) {
               <th className="py-2">Owner</th>
               <th className="py-2">Properties</th>
               <th className="py-2">Revenue</th>
-              <th className="py-2">Expenses</th>
+              <th className="py-2">OpEx (in NOI)</th>
               <th className="py-2">NOI</th>
             </tr>
           </thead>
@@ -210,8 +213,8 @@ export function ExpenseBreakdownTable({
     <Card
       title={
         mode === "summary"
-          ? "Expense breakdown (summary)"
-          : "Expense breakdown by category"
+          ? `Expense breakdown (summary) · ${ALL_PERIODS_HINT}`
+          : `Expense breakdown by category · ${ALL_PERIODS_HINT}`
       }
     >
       <ul className="space-y-2 text-sm">

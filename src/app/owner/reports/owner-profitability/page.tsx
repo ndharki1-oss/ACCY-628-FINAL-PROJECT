@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { ReportHeading, OwnerProfitTable } from "@/components/reports/report-tables";
 import { fetchOwnerProfitability } from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { ownerPropertyIds } from "@/lib/reports/scope";
 
 export default async function OwnerOwnerProfitabilityPage() {
@@ -14,7 +15,7 @@ export default async function OwnerOwnerProfitabilityPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Your Owner Profitability"
-        subtitle="Profit across the properties you own (owner economics, not Harborline company P&L)."
+        subtitle={`${ALL_PERIODS_HINT}. Profit across the properties you own (owner economics, not Harborline company P&L).`}
       />
       <OwnerProfitTable rows={rows} />
     </div>

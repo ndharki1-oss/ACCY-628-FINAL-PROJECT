@@ -21,12 +21,11 @@ const nav: Record<string, { href: string; label: string }[]> = {
   owner: [
     { href: "/owner", label: "Dashboard" },
     { href: "/owner/properties", label: "Properties" },
-    { href: "/owner/approvals", label: "Approvals" },
+    { href: "/owner/items", label: "My Items" },
     { href: "/owner/statements", label: "Statements" },
     { href: "/owner/noi", label: "NOI" },
     { href: "/owner/reports/property-pnl", label: "Property P&L" },
     { href: "/owner/reports/owner-profitability", label: "My Profitability" },
-    { href: "/owner/reports/maintenance", label: "Maintenance" },
     { href: "/owner/reports/expense-breakdown", label: "Expenses" },
   ],
   tenant: [
@@ -34,22 +33,6 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/tenant/lease", label: "My Lease" },
     { href: "/tenant/invoices", label: "Invoices" },
     { href: "/tenant/requests", label: "Requests" },
-  ],
-  employee: [
-    { href: "/employee", label: "Dashboard" },
-    { href: "/employee/work-orders", label: "Assignments" },
-    { href: "/employee/reports/maintenance", label: "My Hours" },
-    { href: "/employee/reports/employee-labor", label: "My Labor" },
-  ],
-  accounting: [
-    { href: "/accounting", label: "Accounting" },
-    { href: "/accounting/statements", label: "Statements" },
-    { href: "/accounting/profitability", label: "Mgmt P&L" },
-    { href: "/accounting/reports/property-pnl", label: "Property P&L" },
-    { href: "/accounting/reports/owner-profitability", label: "Owner Profit" },
-    { href: "/accounting/reports/maintenance", label: "Maintenance" },
-    { href: "/accounting/reports/employee-labor", label: "Labor" },
-    { href: "/accounting/reports/expense-breakdown", label: "Expenses" },
   ],
 };
 

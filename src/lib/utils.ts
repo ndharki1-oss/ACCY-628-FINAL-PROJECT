@@ -3,6 +3,7 @@ export type UserRole = "admin" | "owner" | "tenant" | "vendor" | "accounting";
 /** DB role → portal URL path (vendor portal is labeled Employee). */
 export function roleHomePath(role: string): string {
   if (role === "vendor") return "/employee";
+  if (role === "accounting") return "/accounting/statements";
   return `/${role}`;
 }
 
@@ -14,13 +15,21 @@ export function roleShellKey(role: string): string {
 
 /** Whether a pathname belongs to this DB role's portal. */
 export function pathMatchesRole(pathname: string, role: string): boolean {
+  // Accounting home is Statements, but the whole /accounting/* portal is in-scope.
+  if (role === "accounting") {
+    return pathname === "/accounting" || pathname.startsWith("/accounting/");
+  }
   const home = roleHomePath(role);
   return pathname === home || pathname.startsWith(`${home}/`);
 }
 
 export type CreditRating = "AAA" | "AA" | "A" | "BBB" | "BB" | "B" | "CCC";
 
-/** Harborline management fee % of collected rent from tenant credit (4–12%). */
+/** Harborline management fee % of collected rent from tenant credit (4–12%).
+ * Canonical for statements, remittance, and GL fee recognition.
+ * Do not use management_agreements.fee_percent for billing math — that column is
+ * an unweighted average of active-lease credit fees (display / fallback only).
+ */
 export function feePercentFromCredit(
   rating: CreditRating | string | null | undefined
 ): number {

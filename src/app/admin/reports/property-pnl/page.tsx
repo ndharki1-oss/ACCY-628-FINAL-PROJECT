@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { ReportHeading, PropertyPnLTable } from "@/components/reports/report-tables";
 import { fetchPropertyPnL } from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 export default async function AdminPropertyPnLPage() {
   const { supabase } = await requireRole(["admin"]);
@@ -9,7 +10,7 @@ export default async function AdminPropertyPnLPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Property Profit & Loss"
-        subtitle="Revenue and expenses for each managed property, including labor time costs."
+        subtitle={`${ALL_PERIODS_HINT}. NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI.`}
       />
       <PropertyPnLTable rows={rows} mode="full" />
     </div>

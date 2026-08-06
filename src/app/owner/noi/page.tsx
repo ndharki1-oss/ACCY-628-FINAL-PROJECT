@@ -3,6 +3,7 @@ import { getLinkedOwnerId } from "@/lib/portal";
 import { Card } from "@/components/ui";
 import { PropertyLink } from "@/components/property-link";
 import { formatMoney } from "@/lib/utils";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 export default async function OwnerNoiPage() {
   const { supabase, user } = await requireRole(["owner"]);
@@ -45,12 +46,13 @@ export default async function OwnerNoiPage() {
       </h1>
       <p className="text-slate-600">
         NOI ≈ tenant charges − property operating costs (owner economics). Harborline
-        fee is separate and settled on remittance.
+        fee is separate and settled on remittance. Figures are {ALL_PERIODS_HINT} — not
+        a single month.
       </p>
       {propertyError ? (
         <p className="text-sm text-rose-700">{propertyError.message}</p>
       ) : null}
-      <Card title="By property">
+      <Card title={`By property · ${ALL_PERIODS_HINT}`}>
         {rows.length === 0 ? (
           <p className="text-sm text-slate-600">No property NOI to display yet.</p>
         ) : (

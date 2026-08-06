@@ -231,7 +231,8 @@ export default async function AdminLeasesPage() {
         </h1>
         <p className="mt-1 text-slate-600">
           Operational lease register for daily property-management work.
-          Management fee is a credit-based % of collected rent (4-12%).
+          Management fee billed on collections is each tenant&apos;s credit-based
+          % (4–12%), not the property agreement average.
         </p>
       </div>
 

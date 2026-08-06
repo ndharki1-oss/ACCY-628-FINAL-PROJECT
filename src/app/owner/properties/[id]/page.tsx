@@ -152,6 +152,16 @@ export default async function OwnerPropertyDetailPage({
     return Number(c.amount) > threshold;
   });
 
+  const now = new Date();
+  const mtdStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const ytdStart = `${now.getFullYear()}-01-01`;
+  const maintMtd = (costs ?? [])
+    .filter((c) => String(c.incurred_date) >= mtdStart)
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const maintYtd = (costs ?? [])
+    .filter((c) => String(c.incurred_date) >= ytdStart)
+    .reduce((s, c) => s + Number(c.amount), 0);
+
   const unitById = new Map((units ?? []).map((u) => [u.id, u]));
   const depositByLease = new Map(
     heldDeposits.map((d) => [d.lease_id, Number(d.amount)])
@@ -200,6 +210,26 @@ export default async function OwnerPropertyDetailPage({
         />
       </div>
 
+      <Card title="Maintenance cost report">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Month to date</p>
+            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl text-[#0c1f2e]">
+              {formatMoney(maintMtd)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <p className="text-xs uppercase tracking-wide text-slate-500">Year to date</p>
+            <p className="mt-1 font-[family-name:var(--font-display)] text-2xl text-[#0c1f2e]">
+              {formatMoney(maintYtd)}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-slate-500">
+          Property operating costs recorded for this asset (same basis as the Maintenance report).
+        </p>
+      </Card>
+
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title="Property details">
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -226,8 +256,13 @@ export default async function OwnerPropertyDetailPage({
           {agreement ? (
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Fee</dt>
-                <dd className="mt-1">{agreement.fee_percent}% of collected rent</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Agreement fee avg
+                </dt>
+                <dd className="mt-1">
+                  {agreement.fee_percent}% (unweighted active-lease average —
+                  remittance uses each tenant&apos;s credit-based % of collections)
+                </dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-500">
@@ -337,8 +372,8 @@ export default async function OwnerPropertyDetailPage({
                       </td>
                       <td className="py-4 pr-4">
                         <p>{unit?.unit_code ?? "—"}</p>
-                        <p className="text-xs text-slate-500">
-                          {lease.lease_number} · {lease.lease_type.replaceAll("_", " ")}
+                        <p className="text-xs text-slate-500 capitalize">
+                          {lease.lease_type.replaceAll("_", " ")}
                         </p>
                       </td>
                       <td className="py-4 pr-4 text-slate-600">
@@ -376,7 +411,7 @@ export default async function OwnerPropertyDetailPage({
         )}
       </Card>
 
-      <section className="space-y-4">
+      <section id="actions" className="scroll-mt-24 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
           Actions for this property
         </h2>
@@ -406,7 +441,7 @@ export default async function OwnerPropertyDetailPage({
                         <input type="hidden" name="decision" value="approve" />
                         <button
                           type="submit"
-                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white"
+                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.98]"
                         >
                           Approve
                         </button>
@@ -422,7 +457,7 @@ export default async function OwnerPropertyDetailPage({
                         />
                         <button
                           type="submit"
-                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white"
+                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-[0.98]"
                         >
                           Deny
                         </button>
@@ -461,7 +496,7 @@ export default async function OwnerPropertyDetailPage({
                         <input type="hidden" name="decision" value="approve" />
                         <button
                           type="submit"
-                          className="rounded bg-emerald-700 px-3 py-1.5 text-white"
+                          className="rounded bg-emerald-700 px-3 py-1.5 text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.98]"
                         >
                           Approve
                         </button>
@@ -477,7 +512,7 @@ export default async function OwnerPropertyDetailPage({
                         />
                         <button
                           type="submit"
-                          className="rounded bg-rose-700 px-3 py-1.5 text-white"
+                          className="rounded bg-rose-700 px-3 py-1.5 text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-[0.98]"
                         >
                           Reject
                         </button>
@@ -518,7 +553,7 @@ export default async function OwnerPropertyDetailPage({
                         <input type="hidden" name="decision" value="approve" />
                         <button
                           type="submit"
-                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white"
+                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.98]"
                         >
                           Approve
                         </button>
@@ -533,7 +568,7 @@ export default async function OwnerPropertyDetailPage({
                         />
                         <button
                           type="submit"
-                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white"
+                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-[0.98]"
                         >
                           Decline
                         </button>
