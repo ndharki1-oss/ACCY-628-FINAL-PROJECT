@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { ContractDocumentButton } from "@/app/admin/contracts/contract-document-button";
 import { loadAdminContractsByOwner } from "@/lib/management-agreements/load";
@@ -21,16 +22,11 @@ export default async function AdminOwnerContractsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#0c1f2e]">
-          Owner Contracts
-        </h1>
-        <p className="mt-1 max-w-3xl text-slate-600">
-          Property management agreements between Harborline Commercial Management
-          and each property owner. Approval authority defaults to 10% of active
-          monthly Base Rent unless an owner requests a different amount.
-        </p>
-      </div>
+      <PageHeading
+        title="Owner Contracts"
+        vital="Approval authority defaults to 10% of active monthly Base Rent unless an owner requests a different amount."
+        info="Property management agreements between Harborline Commercial Management and each property owner."
+      />
 
       {groups.length === 0 ? (
         <Card title="No management agreements">

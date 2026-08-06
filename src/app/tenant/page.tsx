@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedTenantId } from "@/lib/portal";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
@@ -108,14 +109,7 @@ export default async function TenantDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Tenant Portal
-        </h1>
-        <p className="text-slate-600">
-          Review your balance, leases, and maintenance activity in one place.
-        </p>
-      </div>
+      <PageHeading title="Tenant Portal" />
 
       <div className="grid gap-4">
         <Card title="Balance Due">

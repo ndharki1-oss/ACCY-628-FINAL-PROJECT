@@ -40,7 +40,7 @@ export default async function AccountingMaintenanceReportPage({
     <div className="space-y-6">
       <ReportHeading
         title="Maintenance Cost Report"
-        subtitle="Labor hours, parts, and contractor costs by property and work order."
+        info="Labor hours, parts, and contractor costs by property and work order."
       />
       <OwnerFilterSelect
         owners={owners}

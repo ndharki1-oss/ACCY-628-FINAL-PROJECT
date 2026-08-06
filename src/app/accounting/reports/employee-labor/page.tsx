@@ -36,7 +36,7 @@ export default async function AccountingEmployeeLaborPage({
     <div className="space-y-6">
       <ReportHeading
         title="Employee Labor Report"
-        subtitle="Labor hours and costs by employee, property, and work order."
+        info="Labor hours and costs by employee, property, and work order."
       />
       <OwnerFilterSelect
         owners={owners}

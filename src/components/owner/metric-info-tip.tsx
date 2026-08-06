@@ -6,10 +6,13 @@ export function MetricInfoTip({
   label,
   detail,
   tone = "light",
+  wide = false,
 }: {
   label: string;
   detail: string;
   tone?: "light" | "dark";
+  /** Wider popover for page-heading help copy */
+  wide?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -67,7 +70,9 @@ export function MetricInfoTip({
           id={panelId}
           role="dialog"
           aria-label={`${label} details`}
-          className={`absolute left-1/2 top-[calc(100%+0.35rem)] z-30 w-56 -translate-x-1/2 rounded-lg border p-2.5 text-left text-xs font-normal normal-case tracking-normal leading-relaxed ${panelClass}`}
+          className={`absolute left-1/2 top-[calc(100%+0.35rem)] z-30 -translate-x-1/2 rounded-lg border p-2.5 text-left text-xs font-normal normal-case tracking-normal leading-relaxed ${
+            wide ? "w-72 sm:w-80" : "w-56"
+          } ${panelClass}`}
         >
           {detail}
         </span>

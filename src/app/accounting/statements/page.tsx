@@ -34,7 +34,7 @@ export default async function AccountingStatementsPage({
     <div className="space-y-6">
       <ReportHeading
         title="Owner remittances & fees"
-        subtitle="What Harborline earned this period and what is owed to each owner."
+        info="What Harborline earned this period and what is owed to each owner."
       />
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
       {!error ? (

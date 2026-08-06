@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui";
 import { AdminBillingTable } from "@/components/admin-billing-table";
 import {
@@ -83,14 +84,11 @@ export default async function AdminBillingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Billing & AR
-      </h1>
-      <p className="text-slate-600">
-        Tenant charges create AR. Collections are agency cash (Due to Owner). Late
-        fees: 7-day grace then 5% of base rent. Click an invoice number for payment
-        method, date, and timing.
-      </p>
+      <PageHeading
+        title="Billing & AR"
+        vital="Tenant charges create AR. Collections are agency cash (Due to Owner). Late fees: 7-day grace then 5% of base rent."
+        info="Click an invoice number for payment method, date, and timing."
+      />
       <Card title="Invoices">
         <AdminBillingTable invoices={rows} />
       </Card>

@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { OwnerManagementAgreementButton } from "@/app/owner/contracts/management-agreement-button";
 import { OwnerTenantLeaseButton } from "@/app/owner/contracts/tenant-lease-button";
@@ -53,26 +54,18 @@ export default async function OwnerContractsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#0c1f2e]">
-          Contracts
-        </h1>
-        <p className="mt-1 max-w-3xl text-slate-600">
-          Your property management agreements with Harborline and the tenant
-          leases on your properties.
-        </p>
-      </div>
+      <PageHeading
+        title="Contracts"
+        info="Your property management agreements with Harborline and the tenant leases on your properties."
+      />
 
       <section className="space-y-4">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#0c1f2e]">
-            Management agreements
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Year-to-year contracts with Harborline Commercial Management.
-            Approval authority defaults to 10% of active monthly Base Rent.
-          </p>
-        </div>
+        <PageHeading
+          as="h2"
+          title="Management agreements"
+          vital="Approval authority defaults to 10% of active monthly Base Rent."
+          info="Year-to-year contracts with Harborline Commercial Management."
+        />
 
         {agreements.length === 0 ? (
           <Card title="No management agreements">
@@ -149,15 +142,11 @@ export default async function OwnerContractsPage() {
       </section>
 
       <section className="space-y-4">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#0c1f2e]">
-            Tenant leases
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Lease agreements between you and the commercial tenants occupying
-            your properties.
-          </p>
-        </div>
+        <PageHeading
+          as="h2"
+          title="Tenant leases"
+          info="Lease agreements between you and the commercial tenants occupying your properties."
+        />
 
         {leases.length === 0 ? (
           <Card title="No tenant leases">

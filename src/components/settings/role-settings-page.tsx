@@ -1,3 +1,4 @@
+import { PageHeading } from "@/components/page-heading";
 import { PortalSettingsForm } from "@/components/settings/portal-settings-form";
 import type { PortalRole } from "@/lib/help/faq-data";
 
@@ -40,15 +41,10 @@ export function RoleSettingsPage({
 }) {
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          {title}
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Browser preferences for this portal. They do not change shared
-          Harborline data.
-        </p>
-      </header>
+      <PageHeading
+        title={title}
+        info="Browser preferences for this portal. They do not change shared Harborline data."
+      />
       <PortalSettingsForm role={role} landingOptions={LANDING[role]} />
     </div>
   );

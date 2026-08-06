@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedVendorId } from "@/lib/portal";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import Link from "next/link";
@@ -28,12 +29,10 @@ export default async function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Employee workspace
-      </h1>
-      <p className="text-slate-600">
-        {vendor?.company_name ?? "Assigned work orders and completion status."}
-      </p>
+      <PageHeading
+        title="Employee workspace"
+        vital={vendor?.company_name ?? undefined}
+      />
       {vendorError ? (
         <p className="text-sm text-rose-700">
           This login is not linked to an employee work record.

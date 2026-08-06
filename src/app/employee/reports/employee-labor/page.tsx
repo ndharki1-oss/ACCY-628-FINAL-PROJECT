@@ -12,9 +12,9 @@ export default async function EmployeeLaborReportPage() {
     <div className="space-y-6">
       <ReportHeading
         title="My Labor Report"
-        subtitle="Hours and labor cost for work orders assigned to you (synced to your login)."
+        info="Hours and labor cost for work orders assigned to you (synced to your login)."
       />
-      <LaborTable rows={rows} />
+      <LaborTable rows={rows} hideEmployeeFilter />
     </div>
   );
 }

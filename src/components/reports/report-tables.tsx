@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui";
+import { PageHeading } from "@/components/page-heading";
 import { formatMoney } from "@/lib/utils";
 import type {
   ExpenseBreakdownRow,
@@ -59,14 +60,13 @@ export function ExpenseBreakdownTable({
 export function ReportHeading({
   title,
   subtitle,
+  info,
 }: {
   title: string;
-  subtitle: string;
+  /** Visible status/period line (optional) */
+  subtitle?: string;
+  /** Helpful definition — shown via circled i */
+  info?: string;
 }) {
-  return (
-    <div>
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">{title}</h1>
-      <p className="mt-1 max-w-3xl text-slate-600">{subtitle}</p>
-    </div>
-  );
+  return <PageHeading title={title} vital={subtitle} info={info} />;
 }

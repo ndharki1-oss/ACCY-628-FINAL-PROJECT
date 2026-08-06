@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui";
 import { sendTenantManagerMessage } from "@/app/tenant/actions";
 import { ContactConversation } from "./contact-conversation";
@@ -34,11 +35,10 @@ export default async function TenantContactPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Contact Management
-        </h1>
-      </div>
+      <PageHeading
+        title="Contact Management"
+        info="Message chain between you and Harborline managers."
+      />
 
       <ContactConversation messages={messages ?? []} />
 

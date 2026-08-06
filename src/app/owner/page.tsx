@@ -386,9 +386,6 @@ export default async function OwnerDashboard() {
         </DashboardSection>
 
         <DashboardSection title="Upcoming lease expirations" accent="slate">
-          <p className="mb-5 text-sm leading-relaxed text-slate-600">
-            Active and renewal-pending leases ending within 12, 18, or 24 months.
-          </p>
           {expiringLeases.length === 0 ? (
             <p className="text-sm text-slate-600">
               No expirations in the next 24 months.

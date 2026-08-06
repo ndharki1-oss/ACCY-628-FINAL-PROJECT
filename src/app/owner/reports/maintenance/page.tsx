@@ -17,7 +17,7 @@ export default async function OwnerMaintenanceReportPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Maintenance Cost Report"
-        subtitle="Summary maintenance costs for your properties (no employee-level detail)."
+        info="Summary maintenance costs for your properties (no employee-level detail)."
       />
       <MaintenanceSummaryTable rows={summary} />
     </div>

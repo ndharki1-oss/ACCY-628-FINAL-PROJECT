@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui";
 import { ownerDisplayPhone, ownerPreferredContact } from "@/lib/owner-contact";
 
@@ -12,15 +13,10 @@ export default async function AdminPropertyOwnersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          Property Owners
-        </h1>
-        <p className="mt-1 text-slate-600">
-          Contact owners quickly when major repairs, emergencies, lease issues, or
-          capital work need authorization.
-        </p>
-      </div>
+      <PageHeading
+        title="Property Owners"
+        info="Contact owners quickly when major repairs, emergencies, lease issues, or capital work need authorization."
+      />
 
       <Card title="Property Owners">
         <div className="overflow-x-auto">
