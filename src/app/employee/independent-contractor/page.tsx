@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { Card } from "@/components/ui";
+import { formatSpecialtyLabel } from "@/lib/vendors/format-specialty";
 
 export default async function IndependentContractorPage() {
   const { supabase } = await requireRole(["vendor"]);
@@ -54,7 +55,9 @@ export default async function IndependentContractorPage() {
               <dt className="text-xs uppercase tracking-wider text-slate-500">
                 Specialty
               </dt>
-              <dd className="text-slate-800">{chen.specialty || "—"}</dd>
+              <dd className="text-slate-800">
+                {formatSpecialtyLabel(chen.specialty)}
+              </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wider text-slate-500">

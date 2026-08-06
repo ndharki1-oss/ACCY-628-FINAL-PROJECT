@@ -43,6 +43,7 @@ export default async function AccountingStatementsPage({
           periods={periods}
           selectedPeriod={selectedPeriod}
           basePath="/accounting/statements"
+          enablePdfExport
         />
       ) : null}
     </div>

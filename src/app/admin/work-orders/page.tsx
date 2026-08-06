@@ -143,8 +143,8 @@ export default async function AdminWorkOrdersPage({
         <p className="mt-1 text-slate-600">
           Tenant requests auto-assign Harborline staff by specialty when
           possible. Set an estimate to route: at or below the property approval
-          threshold → employee; above threshold → owner approval first, then you
-          assign.
+          threshold → Victor Chen; above threshold → owner approval, then
+          auto-assigned to Victor Chen (contractor only — not in-house staff).
         </p>
       </div>
 

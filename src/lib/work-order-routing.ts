@@ -159,15 +159,15 @@ export function routingExplanation(input: {
 
   if (input.status === "pending_owner_approval" || requiresOwnerApproval) {
     if (input.status === "approved") {
-      return `Owner approved; returned to Property Manager for assignment (${formatMoneyPlain(estimate)} exceeded ${formatMoneyPlain(threshold)}).`;
+      return `Owner approved; assign to independent contractor (Victor Chen) — not in-house staff (${formatMoneyPlain(estimate)} exceeded ${formatMoneyPlain(threshold)}).`;
     }
     if (input.status === "assigned" || input.status === "in_progress") {
-      return `Owner approved and assigned${input.vendorName ? ` to ${input.vendorName}` : ""}.`;
+      return `Owner approved and assigned to independent contractor${input.vendorName ? ` (${input.vendorName})` : ""} — over-threshold jobs are not routed to in-house staff.`;
     }
     if (estimate <= 0) {
       return "Awaiting Property Manager estimate before threshold routing.";
     }
-    return `Sent to owner approval because ${formatMoneyPlain(estimate)} exceeds the ${formatMoneyPlain(threshold)} approval threshold.`;
+    return `Sent to owner approval because ${formatMoneyPlain(estimate)} exceeds the ${formatMoneyPlain(threshold)} approval threshold. On approval, assigned to Victor Chen (contractor), not in-house staff.`;
   }
 
   if (input.status === "approved" && !input.vendorName) {
