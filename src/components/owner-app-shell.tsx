@@ -4,17 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { OwnerNotifications } from "@/components/owner-notifications";
 import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
+import type { OwnerItemHint } from "@/lib/owner-notifications-store";
 
 type NavLink = { href: string; label: string; badge?: number };
 
 export function OwnerAppShell({
   name,
   links,
+  itemHints = [],
   children,
 }: {
   name: string;
   links: NavLink[];
+  itemHints?: OwnerItemHint[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -79,6 +83,7 @@ export function OwnerAppShell({
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
+            <OwnerNotifications itemHints={itemHints} />
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole="owner" />
             </span>

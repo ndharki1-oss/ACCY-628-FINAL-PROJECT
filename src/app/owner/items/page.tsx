@@ -69,6 +69,7 @@ export default async function OwnerMyItemsPage() {
           Needs Attention
         </h2>
 
+        <div id="my-items-costs" className="scroll-mt-28">
         <Card title="Costs awaiting approval">
           <p className="mb-3 text-xs text-slate-500">
             Decisions and the nav badge count only costs over the property
@@ -125,7 +126,9 @@ export default async function OwnerMyItemsPage() {
             </ul>
           )}
         </Card>
+        </div>
 
+        <div id="my-items-work-orders" className="scroll-mt-28">
         <Card title="Work orders over threshold">
           {items.workOrders.length === 0 ? (
             <p className="text-sm text-slate-600">
@@ -176,7 +179,9 @@ export default async function OwnerMyItemsPage() {
             </ul>
           )}
         </Card>
+        </div>
 
+        <div id="my-items-requests" className="scroll-mt-28">
         <Card
           title="Open tenant / maintenance requests"
           action={
@@ -228,9 +233,11 @@ export default async function OwnerMyItemsPage() {
             </ul>
           )}
         </Card>
+        </div>
       </section>
 
       <section className="space-y-4">
+        <div id="my-items-overdue" className="scroll-mt-28">
         <Card title="Overdue rent">
           {items.overdueInvoices.length === 0 ? (
             <p className="text-sm text-slate-600">No overdue invoices.</p>
@@ -268,7 +275,9 @@ export default async function OwnerMyItemsPage() {
             </ul>
           )}
         </Card>
+        </div>
 
+        <div id="my-items-expirations" className="scroll-mt-28">
         <Card title="Upcoming lease expirations">
           {items.expirations.length === 0 ? (
             <p className="text-sm text-slate-600">
@@ -309,6 +318,7 @@ export default async function OwnerMyItemsPage() {
             </ul>
           )}
         </Card>
+        </div>
       </section>
     </div>
   );

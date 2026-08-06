@@ -1,6 +1,8 @@
 import { EmployeeAppShell } from "@/components/employee-app-shell";
 import { requireRole } from "@/lib/auth";
 import { getLinkedVendorId } from "@/lib/portal";
+import { employeeCanWorkStatus } from "@/lib/work-order-routing";
+import type { AssignmentHint } from "@/lib/employee-notifications-store";
 
 const employeeLinks = [
   { href: "/employee", label: "Dashboard" },
@@ -16,7 +18,7 @@ export default async function Layout({
   children: React.ReactNode;
 }) {
   const { supabase, user, profile } = await requireRole(["vendor"]);
-  const { vendor } = await getLinkedVendorId(supabase, user);
+  const { vendorId, vendor } = await getLinkedVendorId(supabase, user);
   const isStaff =
     vendor?.worker_type === "staff" || profile.email === "staff@example.com";
   const isContractor =
@@ -30,8 +32,38 @@ export default async function Layout({
       )
     : employeeLinks;
 
+  let assignmentHints: AssignmentHint[] = [];
+  if (vendorId) {
+    const { data: wos } = await supabase
+      .from("work_orders")
+      .select("id, wo_number, title, status, scheduled_date, properties(name)")
+      .eq("vendor_id", vendorId)
+      .order("scheduled_date", { ascending: false })
+      .limit(20);
+
+    assignmentHints = (wos ?? [])
+      .filter((w) => employeeCanWorkStatus(w.status))
+      .slice(0, 8)
+      .map((w) => {
+        const prop = Array.isArray(w.properties) ? w.properties[0] : w.properties;
+        return {
+          id: w.id,
+          woNumber: w.wo_number,
+          title: w.title,
+          propertyName: prop?.name ?? "Property",
+          status: w.status,
+          scheduledDate: w.scheduled_date,
+        };
+      });
+  }
+
   return (
-    <EmployeeAppShell name={profile.full_name} links={links} demoRole={demoRole}>
+    <EmployeeAppShell
+      name={profile.full_name}
+      links={links}
+      demoRole={demoRole}
+      assignmentHints={assignmentHints}
+    >
       {children}
     </EmployeeAppShell>
   );
