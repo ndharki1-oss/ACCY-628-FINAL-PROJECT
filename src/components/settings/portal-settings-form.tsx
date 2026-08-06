@@ -33,14 +33,14 @@ export function PortalSettingsForm({
     <div className="space-y-6">
       <section className="rounded-lg border border-slate-200 bg-white/90 p-5 shadow-sm">
         <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-          Display preferences
+          Display Preferences
         </h2>
         <p className="mt-1 text-sm text-slate-600">
           Stored on this browser only (not shared to the database).
         </p>
 
         <label className="mt-4 block text-sm font-medium text-[#0c1f2e]">
-          Preferred landing area
+          Preferred Landing Area
           <select
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             value={prefs.landingHint ?? landingOptions[0]?.value ?? ""}
@@ -114,7 +114,7 @@ export function PortalSettingsForm({
             setSavedAt(new Date().toLocaleTimeString());
           }}
         >
-          Reset preferences
+          Reset Preferences
         </button>
       </section>
 
@@ -124,7 +124,7 @@ export function PortalSettingsForm({
         </h2>
         <p className="mt-2 text-sm text-slate-600">
           Password and profile edits are managed by Harborline administrators for
-          this demo. Use Sign out from the menu when finished.
+          this demo. Use Sign Out from the menu when finished.
         </p>
       </section>
     </div>

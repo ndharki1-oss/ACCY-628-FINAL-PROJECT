@@ -41,7 +41,7 @@ export function PortalSidebarUtilities({
             type="submit"
             className="w-full rounded px-3 py-2.5 text-left text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
           >
-            Sign out
+            Sign Out
           </button>
         </form>
       </div>

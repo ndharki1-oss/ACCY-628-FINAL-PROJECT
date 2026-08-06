@@ -103,7 +103,7 @@ export function AppShell({
                 type="submit"
                 className="rounded border border-slate-500 px-3 py-1.5 hover:bg-white/10"
               >
-                Sign out
+                Sign Out
               </button>
             </form>
           </div>
