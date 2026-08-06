@@ -73,7 +73,7 @@ export default async function EmployeeWorkOrdersPage() {
                   step="0.01"
                   min="0"
                   defaultValue={Number(w.estimated_cost) || 0}
-                  className="mt-1 w-full max-w-xs rounded border border-slate-300 px-3 py-2"
+                  className="mt-1 w-full max-w-xs rounded border border-slate-300 px-3 py-2 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </label>
               <button
