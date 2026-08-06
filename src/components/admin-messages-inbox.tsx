@@ -11,9 +11,11 @@ import { Card } from "@/components/ui";
 import {
   filterAdminConversationThreads,
   formatMessageDateTime,
+  partyRoleForChannel,
   roleLabel,
   type AdminConversationThread,
   type AdminInboxFilter,
+  type AdminMessageChannel,
 } from "@/lib/admin-messages";
 
 const FILTERS: { id: AdminInboxFilter; label: string }[] = [
@@ -41,7 +43,8 @@ function ThreadReadToggle({
         });
       }}
     >
-      <input type="hidden" name="tenant_id" value={thread.tenantId} />
+      <input type="hidden" name="channel" value={thread.channel} />
+      <input type="hidden" name="party_id" value={thread.partyId} />
       <button
         type="submit"
         disabled={pending}
@@ -62,6 +65,8 @@ function ConversationDrawer({
 }) {
   const [pending, startTransition] = useTransition();
   const [reply, setReply] = useState("");
+  const partyRole = partyRoleForChannel(thread.channel);
+  const partyLabel = thread.channel === "owner" ? "Owner" : "Tenant";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-[#0c1f2e]/45">
@@ -86,7 +91,7 @@ function ConversationDrawer({
               id="admin-thread-detail-title"
               className="mt-1 font-[family-name:var(--font-display)] text-xl"
             >
-              {thread.tenantName}
+              {thread.partyName}
             </h2>
           </div>
           <button
@@ -102,10 +107,10 @@ function ConversationDrawer({
           <dl className="grid gap-3 sm:grid-cols-2">
             <div>
               <dt className="text-xs uppercase tracking-wide text-slate-500">
-                Tenant
+                {partyLabel}
               </dt>
               <dd className="mt-0.5 font-medium text-[#0c1f2e]">
-                {thread.tenantName}
+                {thread.partyName}
               </dd>
             </div>
             <div>
@@ -136,15 +141,15 @@ function ConversationDrawer({
                 Contact
               </dt>
               <dd className="mt-0.5 text-[#0c1f2e]">
-                {thread.tenantContact ?? "—"}
-                {thread.tenantEmail ? (
+                {thread.partyContact ?? "—"}
+                {thread.partyEmail ? (
                   <span className="block text-slate-600">
-                    {thread.tenantEmail}
+                    {thread.partyEmail}
                   </span>
                 ) : null}
-                {thread.tenantPhone ? (
+                {thread.partyPhone ? (
                   <span className="block text-slate-600">
-                    {thread.tenantPhone}
+                    {thread.partyPhone}
                   </span>
                 ) : null}
               </dd>
@@ -165,14 +170,16 @@ function ConversationDrawer({
                 {thread.propertyName ?? "—"}
               </dd>
             </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-slate-500">
-                Suite / unit
-              </dt>
-              <dd className="mt-0.5 text-[#0c1f2e]">
-                {thread.unitCode ?? "—"}
-              </dd>
-            </div>
+            {thread.channel === "tenant" ? (
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Suite / unit
+                </dt>
+                <dd className="mt-0.5 text-[#0c1f2e]">
+                  {thread.unitCode ?? "—"}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <div className="flex flex-wrap gap-2">
@@ -181,12 +188,21 @@ function ConversationDrawer({
               pending={pending}
               startTransition={startTransition}
             />
-            <Link
-              href="/admin/leases"
-              className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
-            >
-              View Tenant
-            </Link>
+            {thread.channel === "tenant" ? (
+              <Link
+                href="/admin/leases"
+                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
+              >
+                View Tenant
+              </Link>
+            ) : (
+              <Link
+                href="/admin/owners"
+                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
+              >
+                View Owners
+              </Link>
+            )}
             {thread.propertyId ? (
               <Link
                 href={`/admin/properties/${thread.propertyId}`}
@@ -195,7 +211,7 @@ function ConversationDrawer({
                 View Property
               </Link>
             ) : null}
-            {thread.leaseId ? (
+            {thread.channel === "tenant" && thread.leaseId ? (
               <Link
                 href="/admin/leases"
                 className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
@@ -203,21 +219,23 @@ function ConversationDrawer({
                 Related lease {thread.leaseNumber}
               </Link>
             ) : null}
-            {thread.relatedRequestId ? (
-              <Link
-                href="/admin/work-orders"
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
-              >
-                View maintenance: {thread.relatedRequestTitle}
-              </Link>
-            ) : (
-              <Link
-                href="/admin/work-orders"
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
-              >
-                Work Orders
-              </Link>
-            )}
+            {thread.channel === "tenant" ? (
+              thread.relatedRequestId ? (
+                <Link
+                  href="/admin/work-orders"
+                  className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
+                >
+                  View maintenance: {thread.relatedRequestTitle}
+                </Link>
+              ) : (
+                <Link
+                  href="/admin/work-orders"
+                  className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-[#0c1f2e] hover:bg-slate-50"
+                >
+                  Work Orders
+                </Link>
+              )
+            ) : null}
           </div>
 
           <div>
@@ -226,29 +244,29 @@ function ConversationDrawer({
             </p>
             <ul className="space-y-4">
               {thread.messages.map((message) => {
-                const fromTenant = message.senderRole === "tenant";
+                const fromParty = message.senderRole === partyRole;
                 return (
                   <li
                     key={message.id}
-                    className={`flex flex-col ${fromTenant ? "items-end" : "items-start"}`}
+                    className={`flex flex-col ${fromParty ? "items-end" : "items-start"}`}
                   >
                     <p className="mb-1 text-xs text-slate-500">
                       {formatMessageDateTime(message.createdAt)}
                     </p>
                     <div
                       className={`max-w-[92%] rounded-lg px-3 py-2 ${
-                        fromTenant
+                        fromParty
                           ? "bg-[#0c1f2e] text-[#f3efe6]"
                           : "border border-slate-200 bg-white text-slate-800"
                       }`}
                     >
                       <p
                         className={`text-xs font-medium ${
-                          fromTenant ? "text-slate-300" : "text-slate-500"
+                          fromParty ? "text-slate-300" : "text-slate-500"
                         }`}
                       >
                         {roleLabel(message.senderRole)} · {message.senderName}
-                        {fromTenant && !message.isRead ? " · Unread" : ""}
+                        {fromParty && !message.isRead ? " · Unread" : ""}
                       </p>
                       <p className="mt-1 whitespace-pre-wrap text-sm">
                         {message.body}
@@ -271,7 +289,8 @@ function ConversationDrawer({
                 });
               }}
             >
-              <input type="hidden" name="tenant_id" value={thread.tenantId} />
+              <input type="hidden" name="channel" value={thread.channel} />
+              <input type="hidden" name="party_id" value={thread.partyId} />
               <label htmlFor="admin-reply-body" className="sr-only">
                 Reply
               </label>
@@ -282,7 +301,11 @@ function ConversationDrawer({
                 rows={4}
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
-                placeholder="Reply in the Contact Management thread…"
+                placeholder={
+                  thread.channel === "owner"
+                    ? "Reply to this property owner…"
+                    : "Reply in the Contact Management thread…"
+                }
                 className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
               />
               <button
@@ -302,36 +325,47 @@ function ConversationDrawer({
 
 export function AdminMessagesInbox({
   threads,
+  channel,
+  title = "Inbox",
+  emptyLabel = "No conversations match this view.",
+  searchPlaceholder = "Search name, property, subject, or message…",
 }: {
   threads: AdminConversationThread[];
+  channel: AdminMessageChannel;
+  title?: string;
+  emptyLabel?: string;
+  searchPlaceholder?: string;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<AdminInboxFilter>("all");
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(
-    null
-  );
+  const [selectedPartyId, setSelectedPartyId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  const channelThreads = useMemo(
+    () => threads.filter((t) => t.channel === channel),
+    [threads, channel]
+  );
+
   const visible = useMemo(
-    () => filterAdminConversationThreads(threads, filter, query),
-    [threads, filter, query]
+    () => filterAdminConversationThreads(channelThreads, filter, query),
+    [channelThreads, filter, query]
   );
 
   const selected =
-    selectedTenantId == null
+    selectedPartyId == null
       ? null
-      : (threads.find((t) => t.tenantId === selectedTenantId) ?? null);
+      : (channelThreads.find((t) => t.partyId === selectedPartyId) ?? null);
 
   return (
     <>
       {selected ? (
         <ConversationDrawer
           thread={selected}
-          onClose={() => setSelectedTenantId(null)}
+          onClose={() => setSelectedPartyId(null)}
         />
       ) : null}
 
-      <Card title="Inbox">
+      <Card title={title}>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="block flex-1 text-sm">
             <span className="sr-only">Search conversations</span>
@@ -339,7 +373,7 @@ export function AdminMessagesInbox({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tenant, property, subject, or message…"
+              placeholder={searchPlaceholder}
               className="w-full rounded border border-slate-300 px-3 py-2"
             />
           </label>
@@ -363,13 +397,13 @@ export function AdminMessagesInbox({
 
         {visible.length === 0 ? (
           <p className="py-10 text-center text-sm text-slate-500">
-            No conversations match this view.
+            {emptyLabel}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {visible.map((thread) => (
               <li
-                key={thread.tenantId}
+                key={`${thread.channel}:${thread.partyId}`}
                 className={`flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between ${
                   thread.isRead
                     ? "bg-transparent"
@@ -389,7 +423,7 @@ export function AdminMessagesInbox({
                         thread.isRead ? "font-medium" : "font-semibold"
                       }`}
                     >
-                      {thread.tenantName}
+                      {thread.partyName}
                     </p>
                     {thread.isUrgent ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-800">
@@ -408,9 +442,11 @@ export function AdminMessagesInbox({
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm text-slate-600">
-                    {[thread.propertyName, thread.unitCode]
-                      .filter(Boolean)
-                      .join(" · ") || "No active lease linked"}
+                    {thread.channel === "tenant"
+                      ? [thread.propertyName, thread.unitCode]
+                          .filter(Boolean)
+                          .join(" · ") || "No active lease linked"
+                      : thread.propertyName || "No properties linked"}
                   </p>
                   <p
                     className={`mt-1 text-sm ${
@@ -438,10 +474,11 @@ export function AdminMessagesInbox({
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedTenantId(thread.tenantId);
+                      setSelectedPartyId(thread.partyId);
                       if (!thread.isRead) {
                         const fd = new FormData();
-                        fd.set("tenant_id", thread.tenantId);
+                        fd.set("channel", thread.channel);
+                        fd.set("party_id", thread.partyId);
                         startTransition(async () => {
                           await markAdminThreadRead(fd);
                         });
