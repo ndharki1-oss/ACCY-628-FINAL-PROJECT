@@ -36,6 +36,7 @@ export default async function AccountingDashboardPage({
     { data: properties },
     { data: invoices },
     { data: costs },
+    { data: labor },
     statementRows,
     accountingPeriods,
   ] = await Promise.all([
@@ -54,7 +55,10 @@ export default async function AccountingDashboardPage({
     supabase
       .from("invoices")
       .select("property_id, total, status, party_type"),
-    supabase.from("cost_entries").select("property_id, amount, paid_by"),
+    supabase
+      .from("cost_entries")
+      .select("property_id, amount, paid_by, category"),
+    supabase.from("labor_time_entries").select("labor_cost"),
     fetchFeeStatements(supabase).catch(() => []),
     listAccountingPeriods(supabase),
   ]);
@@ -66,10 +70,17 @@ export default async function AccountingDashboardPage({
   const rentSummary = await fetchMonthlyRentSummary(supabase, selectedPeriod);
 
   const feeRevenue = (feeLines ?? []).reduce((s, r) => s + Number(r.credit), 0);
-  const companyCosts = (companyExp ?? []).reduce(
-    (s, r) => s + Number(r.amount),
+  const companyPaidWo = (costs ?? [])
+    .filter((c) => c.paid_by === "company")
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const laborCosts = (labor ?? []).reduce(
+    (s, r) => s + Number(r.labor_cost),
     0
   );
+  const companyCosts =
+    (companyExp ?? []).reduce((s, r) => s + Number(r.amount), 0) +
+    companyPaidWo +
+    laborCosts;
   const contribution = feeRevenue - companyCosts;
 
   const feeTotals = sumFeeTotals(statementRows);
@@ -85,6 +96,17 @@ export default async function AccountingDashboardPage({
   for (const row of companyExp ?? []) {
     const cat = String(row.category || "other");
     opexByCategory.set(cat, (opexByCategory.get(cat) ?? 0) + Number(row.amount));
+  }
+  for (const row of costs ?? []) {
+    if (row.paid_by !== "company") continue;
+    const cat = String(row.category || "other");
+    opexByCategory.set(cat, (opexByCategory.get(cat) ?? 0) + Number(row.amount));
+  }
+  if (laborCosts > 0) {
+    opexByCategory.set(
+      "labor",
+      (opexByCategory.get("labor") ?? 0) + laborCosts
+    );
   }
   const opexSlices = withPieColors(
     [...opexByCategory.entries()]
@@ -174,7 +196,7 @@ export default async function AccountingDashboardPage({
           <Stat
             label="Company operating costs"
             value={formatMoney(companyCosts)}
-            hint="Harborline company_expenses"
+            hint="company_expenses + company-paid WO costs + labor"
           />
           <Stat
             label="Company contribution"
@@ -197,7 +219,8 @@ export default async function AccountingDashboardPage({
         </Card>
         <Card title="Company OpEx by category">
           <p className="mb-3 text-xs text-slate-500">
-            Harborline company_expenses only — not owner property costs.
+            Same total as Company operating costs: company_expenses +
+            company-paid WO costs + labor, by category.
           </p>
           <BreakdownPie
             slices={opexSlices}
