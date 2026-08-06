@@ -1,10 +1,24 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
-import { Badge, Card } from "@/components/ui";
-import { PropertyLink } from "@/components/property-link";
-import { formatMoney } from "@/lib/utils";
+import {
+  OwnerStatementCards,
+  type OwnerStatementCardData,
+} from "@/components/owner/statement-cards";
+import { OwnerStatementFilters } from "@/components/owner/statement-filters";
+import {
+  formatPeriodLabel,
+  periodKey,
+} from "@/lib/statements/fee-components";
 
-export default async function OwnerStatementsPage() {
+export default async function OwnerStatementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ property?: string; period?: string }>;
+}) {
+  const params = await searchParams;
+  const selectedProperty = params.property?.trim() || null;
+  const selectedPeriod = params.period?.trim() || null;
+
   const { supabase, user } = await requireRole(["owner"]);
   const { ownerId, error: ownerError } = await getLinkedOwnerId(supabase, user);
 
@@ -12,72 +26,112 @@ export default async function OwnerStatementsPage() {
     ? await supabase
         .from("owner_statements")
         .select(
-          "*, properties(name), owner_statement_lines(line_type, description, amount)"
+          "id, property_id, statement_number, period_start, period_end, status, total_collections, total_expenses, management_fee, remittance_due, properties(name), owner_statement_lines(line_type, description, amount)"
         )
         .eq("owner_id", ownerId)
         .order("period_end", { ascending: false })
     : { data: [], error: ownerError ? { message: ownerError } : null };
 
+  const allCards: OwnerStatementCardData[] = (statements ?? []).map((s) => {
+    const prop = Array.isArray(s.properties) ? s.properties[0] : s.properties;
+    const lines =
+      (s.owner_statement_lines as {
+        line_type: string;
+        description: string;
+        amount: number;
+      }[]) ?? [];
+    const projectFee = lines
+      .filter((l) => l.line_type === "project_fee")
+      .reduce((sum, l) => sum + Number(l.amount), 0);
+
+    return {
+      id: s.id,
+      property_id: s.property_id,
+      statement_number: s.statement_number,
+      period_start: s.period_start,
+      period_end: s.period_end,
+      status: s.status,
+      total_collections: s.total_collections,
+      total_expenses: s.total_expenses,
+      management_fee: s.management_fee,
+      remittance_due: s.remittance_due,
+      propertyName: prop?.name ?? null,
+      projectFee,
+      lines,
+    };
+  });
+
+  const propertyOptions = Array.from(
+    new Map(
+      allCards
+        .filter((c) => c.property_id)
+        .map((c) => [
+          c.property_id,
+          {
+            id: c.property_id,
+            name: c.propertyName ?? "Property",
+          },
+        ])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  const periods = Array.from(
+    new Set(allCards.map((c) => periodKey(c.period_end)).filter(Boolean))
+  ).sort((a, b) => b.localeCompare(a));
+
+  const propertyOk =
+    !selectedProperty ||
+    propertyOptions.some((p) => p.id === selectedProperty);
+  const periodOk = !selectedPeriod || periods.includes(selectedPeriod);
+
+  const filteredCards = allCards.filter((c) => {
+    if (selectedProperty && propertyOk && c.property_id !== selectedProperty) {
+      return false;
+    }
+    if (selectedPeriod && periodOk && periodKey(c.period_end) !== selectedPeriod) {
+      return false;
+    }
+    if (selectedProperty && !propertyOk) return false;
+    if (selectedPeriod && !periodOk) return false;
+    return true;
+  });
+
+  let emptyMessage = "No statements have been issued yet.";
+  if (allCards.length > 0 && filteredCards.length === 0) {
+    const propName = propertyOk
+      ? propertyOptions.find((p) => p.id === selectedProperty)?.name
+      : null;
+    const parts: string[] = [];
+    if (propName) parts.push(propName);
+    if (selectedPeriod && periodOk) parts.push(formatPeriodLabel(selectedPeriod));
+    emptyMessage =
+      parts.length > 0
+        ? `No statements for ${parts.join(" · ")}.`
+        : "No statements match these filters.";
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
+      <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight">
         Owner statements & remittances
       </h1>
-      <p className="text-slate-600">
-        Collections − owner expenses − management fee (credit-based % of
-        collected rent) = remittance due to you.
-      </p>
       {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
-      {(statements ?? []).length === 0 && !error ? (
-        <p className="text-sm text-slate-600">No statements have been issued yet.</p>
+      {!error ? (
+        <>
+          <OwnerStatementFilters
+            properties={propertyOptions}
+            periods={periods}
+            selectedProperty={propertyOk ? selectedProperty : null}
+            selectedPeriod={periodOk ? selectedPeriod : null}
+            filteredCount={filteredCards.length}
+            totalCount={allCards.length}
+          />
+          <OwnerStatementCards
+            statements={filteredCards}
+            emptyMessage={emptyMessage}
+          />
+        </>
       ) : null}
-      {(statements ?? []).map((s) => {
-        const prop = Array.isArray(s.properties) ? s.properties[0] : s.properties;
-        const lines = (s.owner_statement_lines as { line_type: string; description: string; amount: number }[]) ?? [];
-        return (
-          <Card
-            key={s.id}
-            title={s.statement_number}
-            action={<Badge status={s.status} />}
-          >
-            {prop?.name ? (
-              <p className="mb-3 text-sm text-slate-600">
-                <PropertyLink id={s.property_id}>{prop.name}</PropertyLink>
-                {" · "}
-                {s.period_start} to {s.period_end}
-              </p>
-            ) : null}
-            <div className="grid gap-2 text-sm sm:grid-cols-4">
-              <div>
-                <p className="text-xs text-slate-500">Collections</p>
-                <p>{formatMoney(s.total_collections)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Expenses</p>
-                <p>{formatMoney(s.total_expenses)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Mgmt fee</p>
-                <p>{formatMoney(s.management_fee)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Remittance</p>
-                <p className="font-medium">{formatMoney(s.remittance_due)}</p>
-              </div>
-            </div>
-            <ul className="mt-4 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
-              {lines.map((l, i) => (
-                <li key={i} className="flex justify-between">
-                  <span>
-                    [{l.line_type}] {l.description}
-                  </span>
-                  <span>{formatMoney(l.amount)}</span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        );
-      })}
     </div>
   );
 }

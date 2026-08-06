@@ -302,24 +302,20 @@ export default async function OwnerPropertiesPage() {
                                   </p>
                                 ) : null}
                                 <Badge status={lease.status} />
-                                <p className="text-xs leading-relaxed text-slate-600">
-                                  {lease.lease_type.replaceAll("_", " ")}
-                                  <br />
-                                  Ends {lease.end_date ?? "open"}
-                                </p>
                                 <p className="mt-auto text-xs text-slate-600">
-                                  {formatMoney(monthly)}/mo
-                                  <br />
-                                  Bal{" "}
-                                  <span
-                                    className={
-                                      balance > 0
-                                        ? "font-medium text-rose-700"
-                                        : "font-medium text-[#0c1f2e]"
-                                    }
-                                  >
-                                    {formatMoney(balance)}
+                                  <span className="font-medium text-[#0c1f2e]">
+                                    {formatMoney(monthly)}
                                   </span>
+                                  /mo
+                                  {balance > 0 ? (
+                                    <>
+                                      <br />
+                                      Bal{" "}
+                                      <span className="font-medium text-rose-700">
+                                        {formatMoney(balance)}
+                                      </span>
+                                    </>
+                                  ) : null}
                                 </p>
                               </div>
                             )}
