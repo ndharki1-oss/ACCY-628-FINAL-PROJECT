@@ -69,7 +69,7 @@ export function DashboardSection({
         aria-expanded={open}
       >
         <span
-          className={`font-[family-name:var(--font-display)] text-lg ${a.title}`}
+          className={`font-[family-name:var(--font-display)] text-lg tracking-tight ${a.title}`}
         >
           {title}
         </span>
