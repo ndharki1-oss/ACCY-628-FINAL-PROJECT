@@ -24,6 +24,7 @@ export default async function TenantContactPage({
     .from("tenant_manager_messages")
     .select("id, sender_role, sender_name, body, created_at")
     .eq("tenant_id", tenantId!)
+    .neq("sender_role", "owner")
     .order("created_at", { ascending: true });
 
   const propertyName = params.property?.trim();
@@ -37,14 +38,11 @@ export default async function TenantContactPage({
         <h1 className="font-[family-name:var(--font-display)] text-3xl">
           Contact Management
         </h1>
-        <p className="text-slate-600">
-          Message chain between you and Harborline managers.
-        </p>
       </div>
 
       <ContactConversation messages={messages ?? []} />
 
-      <Card title="Send a message">
+      <Card title="Send a Message">
         <form action={sendTenantManagerMessage} className="space-y-3 text-sm">
           <label htmlFor="contact-body" className="sr-only">
             Message
@@ -55,14 +53,14 @@ export default async function TenantContactPage({
             required
             rows={4}
             defaultValue={draftMessage}
-            placeholder={`Write to Harborline management${profile.full_name ? ` as ${profile.full_name}` : ""}…`}
+            placeholder={`Write to Harborline Management${profile.full_name ? ` as ${profile.full_name}` : ""}…`}
             className="w-full rounded border border-slate-300 px-3 py-2"
           />
           <button
             type="submit"
             className="rounded bg-[#0c1f2e] px-4 py-2 text-white"
           >
-            Send message
+            Send Message
           </button>
         </form>
       </Card>

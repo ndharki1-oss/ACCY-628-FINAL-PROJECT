@@ -25,9 +25,10 @@ function formatMessageDate(iso: string) {
 }
 
 function roleLabel(role: string) {
-  if (role === "admin") return "Harborline management";
-  if (role === "owner") return "Property owner";
-  if (role === "tenant") return "You";
+  const normalized = role.trim().toLowerCase();
+  if (normalized === "admin") return "Harborline Management";
+  if (normalized === "owner") return "Property owner";
+  if (normalized === "tenant") return "You";
   return role;
 }
 
