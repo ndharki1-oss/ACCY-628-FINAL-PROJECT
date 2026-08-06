@@ -30,17 +30,19 @@ export function PayByProperty({
   stripeConfigured: boolean;
   stripePublishableKey: string;
 }) {
-  const defaultPropertyId = properties[0]?.id ?? "";
-  const [propertyId, setPropertyId] = useState(defaultPropertyId);
+  const [propertyId, setPropertyId] = useState("");
 
   const selectedInvoices = useMemo(
-    () => invoices.filter((inv) => inv.propertyId === propertyId),
+    () =>
+      propertyId
+        ? invoices.filter((inv) => inv.propertyId === propertyId)
+        : [],
     [invoices, propertyId]
   );
 
   if (properties.length === 0) {
     return (
-      <Card title="Pay invoices">
+      <Card title="Pay Invoices">
         <p className="text-sm text-slate-600">
           There are no open invoices for the selected property at this time.
         </p>
@@ -49,21 +51,17 @@ export function PayByProperty({
   }
 
   return (
-    <Card title="Pay invoices">
+    <Card title="Pay Invoices">
       <div className="space-y-4">
         <div>
-          <label
-            htmlFor="pay-property"
-            className="mb-1 block text-sm font-medium text-slate-800"
-          >
-            Property
-          </label>
           <select
             id="pay-property"
+            aria-label="Select a property"
             value={propertyId}
             onChange={(e) => setPropertyId(e.target.value)}
             className="w-full max-w-md rounded border border-slate-300 bg-white px-3 py-2 text-sm"
           >
+            <option value="">Select a property</option>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -72,7 +70,11 @@ export function PayByProperty({
           </select>
         </div>
 
-        {selectedInvoices.length === 0 ? (
+        {!propertyId ? (
+          <p className="text-sm text-slate-600">
+            Choose a property to view open invoices.
+          </p>
+        ) : selectedInvoices.length === 0 ? (
           <p className="text-sm text-slate-600">
             There are no open invoices for the selected property at this time.
           </p>

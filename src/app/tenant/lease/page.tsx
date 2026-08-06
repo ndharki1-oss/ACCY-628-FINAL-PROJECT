@@ -1,6 +1,10 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
+import {
+  isLeaseTemplateType,
+  leaseTypeLabel,
+} from "@/lib/lease-templates/types";
 import { formatMoney } from "@/lib/utils";
 import { LeaseDocumentButton } from "./lease-document-button";
 
@@ -42,6 +46,21 @@ function isCurrentLease(status: string) {
   return status === "active" || status === "renewal_pending";
 }
 
+function formatLeaseType(type: string) {
+  if (type === "nnn") return "NNN";
+  if (isLeaseTemplateType(type)) return leaseTypeLabel(type);
+  return type
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function depositDisplayNotes(notes: string | null) {
+  if (!notes) return null;
+  if (/not Harborline revenue/i.test(notes)) return null;
+  return notes;
+}
+
 function LeaseCard({ lease }: { lease: LeaseRow }) {
   const prop = Array.isArray(lease.properties)
     ? lease.properties[0]
@@ -55,12 +74,14 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
       action={<Badge status={lease.status} />}
     >
       <div className="grid gap-2 text-sm sm:grid-cols-2">
-        <p>Type: {lease.lease_type.replaceAll("_", " ")}</p>
+        <p>Type: {formatLeaseType(lease.lease_type)}</p>
         <p>
           Term: {lease.start_date} → {lease.end_date}
         </p>
         <p>Base rent: {formatMoney(lease.base_rent_monthly)}</p>
-        <p>CAM: {formatMoney(lease.cam_monthly)}</p>
+        <p>
+          Common Area Maintenance (CAM): {formatMoney(lease.cam_monthly)}
+        </p>
         <p>Late fee: 5% of rent after 7 days</p>
       </div>
       {deps.length > 0 ? (
@@ -71,12 +92,13 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
               const events = [...(d.security_deposit_events ?? [])].sort((a, b) =>
                 String(b.occurred_on).localeCompare(String(a.occurred_on))
               );
+              const notes = depositDisplayNotes(d.notes);
               return (
                 <li key={d.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
                   <div className="flex justify-between gap-3">
                     <span>
                       {formatMoney(d.amount)}
-                      {d.notes ? ` · ${d.notes}` : ""}
+                      {notes ? ` · ${notes}` : ""}
                     </span>
                     <Badge status={d.status} />
                   </div>
@@ -149,7 +171,7 @@ export default async function TenantLeasePage() {
   if (!tenantId) {
     return (
       <div className="space-y-8">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">My leases</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-3xl">My Leases</h1>
         <p className="text-sm text-rose-700">
           {tenantError ?? "This login is not linked to a tenant record."}
         </p>
@@ -171,14 +193,14 @@ export default async function TenantLeasePage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">My leases</h1>
+      <h1 className="font-[family-name:var(--font-display)] text-3xl">My Leases</h1>
       <LeaseSection
-        title="Current leases"
+        title="Current Leases"
         leases={current}
         emptyMessage="No current leases on file."
       />
       <LeaseSection
-        title="Previous leases"
+        title="Previous Leases"
         leases={previous}
         emptyMessage="No previous leases on file."
       />
