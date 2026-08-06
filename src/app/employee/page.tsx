@@ -30,7 +30,7 @@ export default async function EmployeeDashboard() {
   return (
     <div className="space-y-6">
       <PageHeading
-        title="Employee workspace"
+        title="Employee Workspace"
         vital={vendor?.company_name ?? undefined}
       />
       {vendorError ? (
