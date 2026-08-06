@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { AdminInvoiceDocumentButton } from "@/app/admin/billing/invoice-document-button";
+import { AdminBillingPaymentTimingChart } from "@/components/admin-billing-payment-timing-chart";
 import { Badge } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import {
@@ -276,6 +277,8 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
           onClose={() => setSelected(null)}
         />
       ) : null}
+
+      <AdminBillingPaymentTimingChart invoices={invoices} />
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <label className="block text-sm">
