@@ -20,6 +20,7 @@ const adminLinks: AdminNavItem[] = [
       { href: "/admin/leases", label: "Leases" },
     ],
   },
+  { href: "/admin/contracts", label: "Contracts" },
   {
     label: "Messages",
     children: [
