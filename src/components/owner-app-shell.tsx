@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 
-type NavLink = { href: string; label: string };
+type NavLink = { href: string; label: string; badge?: number };
 
 export function OwnerAppShell({
   name,
@@ -120,13 +120,21 @@ export function OwnerAppShell({
               <Link
                 key={l.href}
                 href={l.href}
-                className={`rounded px-3 py-2.5 text-sm transition ${
+                className={`flex items-center justify-between gap-2 rounded px-3 py-2.5 text-sm transition ${
                   active
                     ? "bg-white/15 font-medium text-white"
                     : "text-slate-200 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {l.label}
+                <span>{l.label}</span>
+                {l.badge != null && l.badge > 0 ? (
+                  <span
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-semibold tabular-nums text-white"
+                    aria-label={`${l.badge} items need attention`}
+                  >
+                    {l.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

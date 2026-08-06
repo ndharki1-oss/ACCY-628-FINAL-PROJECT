@@ -21,12 +21,11 @@ const nav: Record<string, { href: string; label: string }[]> = {
   owner: [
     { href: "/owner", label: "Dashboard" },
     { href: "/owner/properties", label: "Properties" },
-    { href: "/owner/approvals", label: "Approvals" },
+    { href: "/owner/items", label: "My Items" },
     { href: "/owner/statements", label: "Statements" },
     { href: "/owner/noi", label: "NOI" },
     { href: "/owner/reports/property-pnl", label: "Property P&L" },
     { href: "/owner/reports/owner-profitability", label: "My Profitability" },
-    { href: "/owner/reports/maintenance", label: "Maintenance" },
     { href: "/owner/reports/expense-breakdown", label: "Expenses" },
   ],
   tenant: [
