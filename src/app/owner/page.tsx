@@ -13,6 +13,7 @@ import {
 import { formatMoney } from "@/lib/utils";
 import { fetchOwnerMyItems } from "@/lib/owner/my-items";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
+import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import Link from "next/link";
 
 const emptyId = "00000000-0000-0000-0000-000000000000";
@@ -261,27 +262,27 @@ export default async function OwnerDashboard() {
             value={formatMoney(remittanceDue)}
             detail={
               remittanceStatement
-                ? `From owner statement for ${formatPeriodLabel(
+                ? `${METRIC_EXPLAINERS.remittance} Statement period: ${formatPeriodLabel(
                     remittanceStatement.period_start,
                     remittanceStatement.period_end
-                  )}. Open Statements for the full remittance breakdown.`
-                : "No statement issued yet."
+                  )}.`
+                : METRIC_EXPLAINERS.remittance
             }
           />
           <StatWithDetail
             label="Portfolio NOI"
             value={formatMoney(portfolioIncome - portfolioExpense)}
-            detail={`${ALL_PERIODS_HINT}. This month: ${formatMoney(monthIncome - monthExpense)}. NOI here is tenant charges minus operating costs (fee is separate).`}
+            detail={`${METRIC_EXPLAINERS.portfolioNoi} ${ALL_PERIODS_HINT}. This month: ${formatMoney(monthIncome - monthExpense)}.`}
           />
           <StatWithDetail
             label="Occupancy"
             value={`${occupancyPct}%`}
-            detail={`${leasedUnitIds.size} leased · ${vacantUnits.length} vacant across your portfolio.`}
+            detail={`${METRIC_EXPLAINERS.occupancy} Currently ${leasedUnitIds.size} leased · ${vacantUnits.length} vacant.`}
           />
           <StatWithDetail
             label="Invoice collection %"
             value={`${collectionRate}%`}
-            detail={`${formatMoney(collected)} paid of ${formatMoney(billed)} billed on invoices covering this month. Uses cumulative amount paid on those invoices — not cash received only this month.`}
+            detail={`${METRIC_EXPLAINERS.collection} ${formatMoney(collected)} paid of ${formatMoney(billed)} billed.`}
           />
         </div>
       </section>

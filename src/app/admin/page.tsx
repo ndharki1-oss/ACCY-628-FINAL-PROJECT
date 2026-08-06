@@ -51,7 +51,7 @@ function ActionCenterRow({
   };
 
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 last:border-b-0">
+    <li className="flex flex-1 items-center justify-between gap-3 border-b border-slate-100 py-3.5 last:border-b-0">
       <div className="flex min-w-0 items-center gap-2.5">
         <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${dots[tone]}`} />
         <span className="truncate text-sm text-[#0c1f2e]">{label}</span>
@@ -333,102 +333,107 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="grid items-stretch gap-4 lg:grid-cols-2">
-        <div className="flex h-full min-h-0 flex-col gap-4">
-        <FeeRevenueRecognizedCard total={feeRevenue} lines={feeLines} />
+        <div className="flex min-h-0 flex-col gap-4">
+          <FeeRevenueRecognizedCard total={feeRevenue} lines={feeLines} />
 
-        <Card title="Manager Action Center">
-          <ul>
-            {(
-              [
-                {
-                  key: "emergency-wos",
-                  label: "Emergency work orders requiring review",
-                  count: pendingDetails.filter((w) => w.priority === "Emergency")
-                    .length,
-                  tone: "rose" as const,
-                  href: "#unapproved-work-risk",
-                },
-                {
-                  key: "vendor-approvals",
-                  label: "Vendor approvals awaiting action",
-                  count: pendingDetails.length,
-                  tone: "amber" as const,
-                  href: "/admin/work-orders",
-                },
-                {
-                  key: "expiring-leases",
-                  label: "Leases expiring within 30 days",
-                  count: expiringLeases ?? 0,
-                  tone: "sky" as const,
-                  href: "/admin/leases",
-                },
-                {
-                  key: "overdue-ar",
-                  label: "Overdue tenant balances needing follow-up",
-                  count: overdue.length,
-                  tone: "rose" as const,
-                  href: "/admin/billing",
-                },
-                {
-                  key: "inspections",
-                  label: "Upcoming property inspections",
-                  count: upcomingInspections ?? 0,
-                  tone: "slate" as const,
-                  href: "/admin/work-orders",
-                },
-              ] as const
-            ).map((row) => (
-              <ActionCenterRow
-                key={row.key}
-                label={row.label}
-                count={row.count}
-                tone={row.tone}
-                href={row.href}
-              />
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Property Locations" className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-[240px] flex-1">
-            <PropertyLocationsMap markers={propertyMarkers} />
-          </div>
-        </Card>
+          <Card
+            title="Manager Action Center"
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <ul className="flex min-h-0 flex-1 flex-col justify-evenly">
+              {(
+                [
+                  {
+                    key: "emergency-wos",
+                    label: "Emergency work orders requiring review",
+                    count: pendingDetails.filter((w) => w.priority === "Emergency")
+                      .length,
+                    tone: "rose" as const,
+                    href: "#unapproved-work-risk",
+                  },
+                  {
+                    key: "vendor-approvals",
+                    label: "Vendor approvals awaiting action",
+                    count: pendingDetails.length,
+                    tone: "amber" as const,
+                    href: "/admin/work-orders",
+                  },
+                  {
+                    key: "expiring-leases",
+                    label: "Leases expiring within 30 days",
+                    count: expiringLeases ?? 0,
+                    tone: "sky" as const,
+                    href: "/admin/leases",
+                  },
+                  {
+                    key: "overdue-ar",
+                    label: "Overdue tenant balances needing follow-up",
+                    count: overdue.length,
+                    tone: "rose" as const,
+                    href: "/admin/billing",
+                  },
+                  {
+                    key: "inspections",
+                    label: "Upcoming property inspections",
+                    count: upcomingInspections ?? 0,
+                    tone: "slate" as const,
+                    href: "/admin/work-orders",
+                  },
+                ] as const
+              ).map((row) => (
+                <ActionCenterRow
+                  key={row.key}
+                  label={row.label}
+                  count={row.count}
+                  tone={row.tone}
+                  href={row.href}
+                />
+              ))}
+            </ul>
+          </Card>
         </div>
 
-        <div id="unapproved-work-risk" className="flex h-full min-h-0 scroll-mt-6 flex-col">
-        <Card title="Unapproved Work/ Spend Risk" className="flex min-h-0 flex-1 flex-col">
-          {pendingDetails.length === 0 ? (
-            <p className="text-sm text-slate-600">No WOs awaiting owner approval.</p>
-          ) : (
-            <ul className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto text-[15px]">
-              {pendingDetails.map((w) => (
-                <li
-                  key={w.id}
-                  className="flex flex-1 flex-col justify-center gap-2 border-b border-slate-100 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
+        <div id="unapproved-work-risk" className="flex min-h-0 scroll-mt-6 flex-col">
+          <Card
+            title="Unapproved Work/ Spend Risk"
+            className="flex h-full min-h-0 flex-col"
+          >
+            {pendingDetails.length === 0 ? (
+              <p className="text-sm text-slate-600">
+                No WOs awaiting owner approval.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100 text-[15px]">
+                {pendingDetails.map((w) => (
+                  <li key={w.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
                     <p className="text-base font-medium text-[#0c1f2e]">
                       {w.woNumber}: {w.title}
                     </p>
                     {w.description ? (
-                      <p className="mt-1 text-sm text-slate-600">{w.description}</p>
+                      <p className="text-sm text-slate-600">{w.description}</p>
                     ) : null}
-                    <p className="mt-1 text-sm text-slate-500">{w.propertyName}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <PriorityBadge priority={w.priority} />
-                    <span className="text-[#0c1f2e]">{formatMoney(w.displayAmount)}</span>
-                    <Badge status={w.status} />
-                    <WorkOrderDetailsButton detail={w} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+                    <p className="text-sm text-slate-500">{w.propertyName}</p>
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                      <PriorityBadge priority={w.priority} />
+                      <span className="text-[#0c1f2e]">
+                        {formatMoney(w.displayAmount)}
+                      </span>
+                      <Badge status={w.status} />
+                      <WorkOrderDetailsButton detail={w} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
         </div>
       </div>
+
+      <Card title="Property Locations">
+        <div className="h-[320px] sm:h-[380px]">
+          <PropertyLocationsMap markers={propertyMarkers} />
+        </div>
+      </Card>
     </div>
   );
 }

@@ -499,6 +499,7 @@ export async function tenantPayInvoice(formData: FormData) {
 
   revalidatePath("/tenant/invoices");
   revalidatePath("/tenant");
+  revalidatePath("/accounting");
   revalidatePath("/admin/accounting");
 }
 
