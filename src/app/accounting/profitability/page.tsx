@@ -23,6 +23,9 @@ export default async function AccountingProfitabilityPage() {
   const { data: companyExp } = await supabase
     .from("company_expenses")
     .select("amount");
+  const { data: labor } = await supabase
+    .from("labor_time_entries")
+    .select("labor_cost");
   const { data: feeLines } = await supabase
     .from("journal_lines")
     .select("credit, gl_accounts!inner(code)")
@@ -32,8 +35,14 @@ export default async function AccountingProfitabilityPage() {
   const companyPaidWo = (costs ?? [])
     .filter((c) => c.paid_by === "company")
     .reduce((s, c) => s + Number(c.amount), 0);
+  const laborCosts = (labor ?? []).reduce(
+    (s, r) => s + Number(r.labor_cost),
+    0
+  );
   const companyCosts =
-    (companyExp ?? []).reduce((s, r) => s + Number(r.amount), 0) + companyPaidWo;
+    (companyExp ?? []).reduce((s, r) => s + Number(r.amount), 0) +
+    companyPaidWo +
+    laborCosts;
 
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
@@ -90,7 +99,7 @@ export default async function AccountingProfitabilityPage() {
         <Stat
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint={`${ALL_PERIODS_HINT} · Harborline company_expenses (not owner property OpEx)`}
+          hint={`${ALL_PERIODS_HINT} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
         />
         <Stat
           label="Company contribution"

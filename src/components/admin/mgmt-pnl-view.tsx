@@ -366,7 +366,7 @@ export function MgmtPnlView({
         <Stat
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint={`${periodLabel} · Harborline company_expenses (not owner property OpEx)`}
+          hint={`${periodLabel} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
         />
         <Stat
           label="Company contribution"
