@@ -33,7 +33,7 @@ export default async function AdminStatementsPage({
   return (
     <div className="space-y-6">
       <ReportHeading
-        title="Owner statements · fee components"
+        title="Owner Statements · Fee Components"
         subtitle="Agency take from owner_statement_lines. Base management fee is tenant credit-based % of collections (not management_agreements.fee_percent)."
       />
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
