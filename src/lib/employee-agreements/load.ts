@@ -2,8 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatSpecialtyLabel } from "@/lib/vendors/format-specialty";
 import {
   FALLBACK_ENGAGEMENT_DATES,
-  hourlyRateForKind,
+  contractorRateSchedule,
+  hourlyRateForWorker,
   type EmployeeAgreementTemplateData,
+  type WorkTypeRate,
   type WorkerAgreementKind,
 } from "./types";
 
@@ -17,6 +19,7 @@ export type AdminEmployeeContractRow = {
   specialtyLabel: string;
   startDate: string;
   hourlyRate: number;
+  rateSchedule: WorkTypeRate[];
   status: string;
 };
 
@@ -120,7 +123,8 @@ export async function loadAdminEmployeeContracts(
         phone: vendor.phone,
         specialtyLabel: formatSpecialtyLabel(vendor.specialty),
         startDate,
-        hourlyRate: hourlyRateForKind(kind),
+        hourlyRate: hourlyRateForWorker(kind, vendor.specialty),
+        rateSchedule: kind === "contractor" ? contractorRateSchedule() : [],
         status: vendor.active ? "active" : "inactive",
       } satisfies AdminEmployeeContractRow;
     })
@@ -148,6 +152,7 @@ export async function loadEmployeeAgreementTemplateData(
     specialtyLabel: row.specialtyLabel,
     startDate: row.startDate,
     hourlyRate: row.hourlyRate,
+    rateSchedule: row.rateSchedule,
     status: row.status,
   };
 }

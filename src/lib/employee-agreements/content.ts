@@ -74,7 +74,7 @@ function buildStaffSections(
     {
       heading: "ARTICLE 4 — COMPENSATION",
       paragraphs: [
-        `4.1 Hourly Wage. Employer shall pay Employee at the rate of ${money(data.hourlyRate)} per hour for hours worked, consistent with Harborline in-house maintenance labor costing.`,
+        `4.1 Hourly Wage. Employer shall pay Employee at the rate of ${money(data.hourlyRate)} per hour for hours worked in the ${specialty} specialty. This rate is set by Harborline's specialty-based in-house labor schedule for the Employee's assigned job type.`,
         "4.2 Pay Schedule. Wages shall be paid biweekly, subject to required withholdings and deductions.",
         "4.3 Overtime. Employee is non-exempt. Hours worked over forty (40) in a workweek shall be paid at one and one-half (1.5) times the regular hourly rate, or as otherwise required by law.",
         "4.4 Timekeeping. Employee shall record time through Employer's work-order and labor systems as directed.",
@@ -177,9 +177,12 @@ function buildContractorSections(
     {
       heading: "ARTICLE 4 — FEES AND INVOICING",
       paragraphs: [
-        `4.1 Rate. Unless a work order states otherwise, Contractor's labor is billed at ${money(data.hourlyRate)} per hour, consistent with Harborline contractor labor costing for escalated work.`,
-        "4.2 Invoices. Contractor shall submit itemized invoices tied to work-order references. Company shall pay undisputed amounts within thirty (30) days of receipt.",
-        "4.3 Expenses. Pre-approved materials and third-party costs may be passed through at cost with documentation. No markup applies unless Company agrees in writing.",
+        `4.1 Rates Depend on Work Performed. Contractor's labor is billed according to the type of work performed on each assignment, not a single flat rate. For work in Contractor's primary specialty of ${specialty}, the schedule rate is ${money(data.hourlyRate)} per hour unless a work order states otherwise.`,
+        `4.2 Rate Schedule. Unless a work order states a different negotiated rate, the following Harborline contractor labor schedule applies: ${data.rateSchedule
+          .map((r) => `${r.workTypeLabel} ${money(r.hourlyRate)}/hr`)
+          .join("; ")}.`,
+        "4.3 Invoices. Contractor shall submit itemized invoices tied to work-order references and identify the work type used for billing. Company shall pay undisputed amounts within thirty (30) days of receipt.",
+        "4.4 Expenses. Pre-approved materials and third-party costs may be passed through at cost with documentation. No markup applies unless Company agrees in writing.",
       ],
     },
     {

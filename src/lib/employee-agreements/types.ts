@@ -2,6 +2,12 @@ import { formatSpecialtyLabel } from "@/lib/vendors/format-specialty";
 
 export type WorkerAgreementKind = "staff" | "contractor";
 
+export type WorkTypeRate = {
+  workTypeKey: string;
+  workTypeLabel: string;
+  hourlyRate: number;
+};
+
 export type EmployeeAgreementTemplateData = {
   vendorId: string;
   kind: WorkerAgreementKind;
@@ -12,6 +18,8 @@ export type EmployeeAgreementTemplateData = {
   specialtyLabel: string;
   startDate: string;
   hourlyRate: number;
+  /** Full schedule used when rates vary by work type (contractors). */
+  rateSchedule: WorkTypeRate[];
   status: string;
 };
 
@@ -20,11 +28,44 @@ export const HARBORLINE_EMPLOYER = {
   label: "Company",
 } as const;
 
-/** Staff labor rate used for in-house WO costing in system. */
+/** Default staff rate when specialty is unknown (General Maintenance baseline). */
 export const STAFF_HOURLY_RATE = 55;
 
-/** Contractor labor rate used for escalated WO costing in system. */
+/** Default contractor rate when work type is unknown. */
 export const CONTRACTOR_HOURLY_RATE = 75;
+
+/**
+ * Staff hourly rates by specialty, aligned with Harborline labor costing tiers
+ * observed in demo labor entries ($50–$60 staff; contractor schedule above that).
+ */
+export const STAFF_HOURLY_RATE_BY_SPECIALTY: Record<string, number> = {
+  "pest control": 52,
+  "general maintenance": 55,
+  plumbing: 58,
+  electrical: 60,
+  hvac: 60,
+};
+
+/**
+ * Contractor hourly rates by work type performed. Retained contractors
+ * (e.g. Victor Chen / Chen Building Services) bill according to the specialty
+ * of the job, not a single flat rate — aligned above in-house staff tiers.
+ */
+export const CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE: Record<string, number> = {
+  "pest control": 68,
+  "general maintenance": 72,
+  plumbing: 74,
+  electrical: 75,
+  hvac: 78,
+};
+
+const WORK_TYPE_LABELS: Record<string, string> = {
+  "pest control": "Pest Control",
+  "general maintenance": "General Maintenance",
+  plumbing: "Plumbing",
+  electrical: "Electrical",
+  hvac: "HVAC",
+};
 
 /**
  * Fallback engagement dates when no earlier WO/labor activity exists.
@@ -39,8 +80,51 @@ export const FALLBACK_ENGAGEMENT_DATES: Record<string, string> = {
   "50000000-0000-0000-0000-000000000011": "2025-03-10", // Avery Quinn
 };
 
-export function hourlyRateForKind(kind: WorkerAgreementKind) {
-  return kind === "contractor" ? CONTRACTOR_HOURLY_RATE : STAFF_HOURLY_RATE;
+function specialtyKey(specialty: string | null | undefined) {
+  const key = (specialty ?? "").trim().toLowerCase();
+  if (
+    key &&
+    (key in STAFF_HOURLY_RATE_BY_SPECIALTY ||
+      key in CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE)
+  ) {
+    return key;
+  }
+  const fromLabel = formatSpecialtyLabel(specialty).toLowerCase();
+  if (
+    fromLabel in STAFF_HOURLY_RATE_BY_SPECIALTY ||
+    fromLabel in CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE
+  ) {
+    return fromLabel;
+  }
+  return null;
+}
+
+export function contractorRateSchedule(): WorkTypeRate[] {
+  return Object.entries(CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE)
+    .map(([workTypeKey, hourlyRate]) => ({
+      workTypeKey,
+      workTypeLabel:
+        WORK_TYPE_LABELS[workTypeKey] ?? formatSpecialtyLabel(workTypeKey),
+      hourlyRate,
+    }))
+    .sort((a, b) => a.hourlyRate - b.hourlyRate);
+}
+
+export function hourlyRateForWorker(
+  kind: WorkerAgreementKind,
+  specialty: string | null | undefined
+) {
+  const key = specialtyKey(specialty);
+  if (kind === "contractor") {
+    if (key && key in CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE) {
+      return CONTRACTOR_HOURLY_RATE_BY_WORK_TYPE[key];
+    }
+    return CONTRACTOR_HOURLY_RATE;
+  }
+  if (key && key in STAFF_HOURLY_RATE_BY_SPECIALTY) {
+    return STAFF_HOURLY_RATE_BY_SPECIALTY[key];
+  }
+  return STAFF_HOURLY_RATE;
 }
 
 export function titleForKind(kind: WorkerAgreementKind) {

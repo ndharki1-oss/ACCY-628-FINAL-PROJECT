@@ -4,7 +4,6 @@ import { Badge, Card } from "@/components/ui";
 import { EmployeeAgreementDocumentButton } from "@/app/admin/contracts/employees/employee-agreement-button";
 import { loadAdminEmployeeContracts } from "@/lib/employee-agreements/load";
 import { titleForKind } from "@/lib/employee-agreements/types";
-import { formatMoney } from "@/lib/utils";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -28,7 +27,7 @@ export default async function AdminEmployeeContractsPage() {
     <div className="space-y-6">
       <PageHeading
         title="Employee Contracts"
-        info="Employment agreements for Harborline maintenance staff and independent contractor agreements for retained contractors. Terms use system labor rates and engagement dates from work activity when available."
+        info="Employment agreements for Harborline maintenance staff and independent contractor agreements for retained contractors. Staff hourly rates follow Harborline's specialty-based labor schedule. Contractor rates vary by the type of work performed on each assignment. Engagement dates come from work activity when available."
       />
 
       {contracts.length === 0 ? (
@@ -84,7 +83,7 @@ function WorkerTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[920px] text-left text-sm">
+      <table className="w-full min-w-[800px] text-left text-sm">
         <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
           <tr>
             <th className="py-2 pr-3">Worker</th>
@@ -92,7 +91,6 @@ function WorkerTable({
             <th className="py-2 pr-3">Type</th>
             <th className="py-2 pr-3">Specialty</th>
             <th className="py-2 pr-3">Start</th>
-            <th className="py-2 pr-3">Rate</th>
             <th className="py-2 pr-3">Status</th>
             <th className="py-2">Contract</th>
           </tr>
@@ -108,7 +106,6 @@ function WorkerTable({
               <td className="py-3 pr-3">{titleForKind(row.kind)}</td>
               <td className="py-3 pr-3">{row.specialtyLabel}</td>
               <td className="py-3 pr-3">{formatDate(row.startDate)}</td>
-              <td className="py-3 pr-3">{formatMoney(row.hourlyRate)}/hr</td>
               <td className="py-3 pr-3">
                 <Badge status={row.status} />
               </td>
