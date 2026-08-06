@@ -353,10 +353,10 @@ export default async function AdminDashboard() {
                   },
                   {
                     key: "vendor-approvals",
-                    label: "Vendor approvals awaiting action",
+                    label: "Work orders awaiting owner approval",
                     count: pendingDetails.length,
                     tone: "amber" as const,
-                    href: "/admin/work-orders",
+                    href: "/admin/work-orders?filter=owner",
                   },
                   {
                     key: "expiring-leases",
