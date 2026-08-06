@@ -196,7 +196,7 @@ export function syncDerivedTenantNotifications(input: {
   const dismissed = new Set(loadDismissedNotificationIds());
 
   const derived: TenantNotification[] = input.checkoutLeases
-    .map((lease) => {
+    .map((lease): TenantNotification | null => {
       const id = `checkout-${lease.leaseId}`;
       if (dismissed.has(id)) return null;
       const prev = existing.find((n) => n.id === id);
@@ -208,7 +208,7 @@ export function syncDerivedTenantNotifications(input: {
             : `${lease.daysLeft} days`;
       return {
         id,
-        fromRole: "system" as const,
+        fromRole: "system",
         fromName: "Harborline",
         subject: "Check-out list due soon",
         preview: `Your lease ${lease.leaseNumber} at ${lease.propertyName} ends in ${daysLabel} (${lease.endDate}). Please fill out your Check Out list before move-out.`,
