@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout } from "@/app/actions/auth";
 import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
 
 export type AccountingNavChild = { href: string; label: string };
 
@@ -159,14 +159,6 @@ export function AccountingAppShell({
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole="accounting" />
             </span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded border border-slate-500 px-3 py-1.5 hover:bg-white/10"
-              >
-                Sign out
-              </button>
-            </form>
           </div>
         </div>
       </header>
@@ -218,6 +210,10 @@ export function AccountingAppShell({
             );
           })}
         </nav>
+        <PortalSidebarUtilities
+          helpHref="/accounting/help"
+          settingsHref="/accounting/settings"
+        />
       </aside>
 
       <main

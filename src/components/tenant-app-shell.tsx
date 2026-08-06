@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout } from "@/app/actions/auth";
 import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
 import { TenantNotifications } from "@/components/tenant-notifications";
 import type {
   CheckoutLeaseHint,
@@ -95,14 +95,6 @@ export function TenantAppShell({
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole="tenant" />
             </span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded border border-slate-500 px-3 py-1.5 hover:bg-white/10"
-              >
-                Sign out
-              </button>
-            </form>
           </div>
         </div>
       </header>
@@ -142,6 +134,10 @@ export function TenantAppShell({
             );
           })}
         </nav>
+        <PortalSidebarUtilities
+          helpHref="/tenant/help"
+          settingsHref="/tenant/settings"
+        />
       </aside>
 
       <main
