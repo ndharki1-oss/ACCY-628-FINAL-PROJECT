@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
+import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
 
 type NavLink = { href: string; label: string; badge?: number };
 
@@ -79,7 +80,7 @@ export function OwnerAppShell({
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
             <span className="hidden text-slate-300 sm:inline">
-              {name} · <span className="capitalize text-[#d4a574]">owner</span>
+              {name} · <DemoRoleSwitcher currentRole="owner" />
             </span>
             <form action={logout}>
               <button
