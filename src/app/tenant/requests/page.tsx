@@ -19,7 +19,6 @@ const SERVICE_TYPES = [
   "Electrical",
   "Pest Control",
   "General Maintenance",
-  "Other",
 ] as const;
 
 function todayIsoDate() {
