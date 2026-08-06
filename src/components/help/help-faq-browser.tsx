@@ -56,7 +56,7 @@ export function HelpFaqBrowser({
     <div className="space-y-5">
       <div className="rounded-lg border border-slate-200 bg-white/90 p-4 shadow-sm">
         <label htmlFor="help-search" className="text-sm font-medium text-[#0c1f2e]">
-          Search {roleLabel} help
+          Search {roleLabel.charAt(0).toUpperCase() + roleLabel.slice(1)} Help
         </label>
         <input
           id="help-search"
