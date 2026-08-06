@@ -49,7 +49,11 @@ export default async function AccountingPage() {
           </ul>
         </Card>
 
-        <Card title="Accounting periods">
+        <Card title="Period close checklist">
+          <p className="mb-3 text-sm text-slate-600">
+            Review open periods and close them when journals and statements are
+            complete for the month.
+          </p>
           <ul className="max-h-80 space-y-2 overflow-y-auto text-sm">
             {(periods ?? []).map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2">

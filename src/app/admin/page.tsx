@@ -80,7 +80,6 @@ export default async function AdminDashboard() {
     { data: invoices },
     { data: pendingWo },
     { data: fees },
-    { data: periods },
     { count: expiringLeases },
     { count: upcomingInspections },
     { data: mapProperties },
@@ -106,13 +105,6 @@ export default async function AdminDashboard() {
       .from("journal_lines")
       .select("credit, gl_accounts!inner(code)")
       .eq("gl_accounts.code", "4000"),
-    supabase
-      .from("accounting_periods")
-      .select("id, year, month, status")
-      .eq("status", "open")
-      .order("year", { ascending: false })
-      .order("month", { ascending: false })
-      .limit(3),
     supabase
       .from("leases")
       .select("id", { count: "exact", head: true })
@@ -393,19 +385,6 @@ export default async function AdminDashboard() {
         </Card>
         </div>
       </div>
-
-      <Card title="Period close checklist">
-        <ul className="space-y-2 text-sm">
-          {(periods ?? []).map((p) => (
-            <li key={p.id} className="flex items-center justify-between">
-              <span>
-                {p.year}-{String(p.month).padStart(2, "0")}
-              </span>
-              <Badge status={p.status} />
-            </li>
-          ))}
-        </ul>
-      </Card>
     </div>
   );
 }
