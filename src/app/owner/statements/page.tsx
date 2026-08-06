@@ -121,7 +121,7 @@ export default async function OwnerStatementsPage({
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight">
-        Owner statements & remittances
+        Owner Statements & Remittances
       </h1>
       {error ? <p className="text-sm text-rose-700">{error.message}</p> : null}
       {!error ? (

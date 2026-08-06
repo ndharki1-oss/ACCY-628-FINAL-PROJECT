@@ -66,7 +66,7 @@ export default async function OwnerMyItemsPage() {
 
       <section className="space-y-4">
         <h2 className="font-[family-name:var(--font-display)] text-xl text-amber-950">
-          Needs attention
+          Needs Attention
         </h2>
 
         <Card title="Costs awaiting approval">

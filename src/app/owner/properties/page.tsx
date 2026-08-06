@@ -176,7 +176,7 @@ export default async function OwnerPropertiesPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Your properties
+        Your Properties
       </h1>
       {error ? (
         <p className="text-sm text-rose-700">{error.message}</p>
