@@ -5,6 +5,7 @@ import {
 import { requireExactRole } from "@/lib/auth";
 
 const accountingLinks: AccountingNavItem[] = [
+  { href: "/accounting", label: "Dashboard" },
   { href: "/accounting/statements", label: "Statements" },
   {
     label: "Profitability",
