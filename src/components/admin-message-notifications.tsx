@@ -90,8 +90,11 @@ export function AdminMessageNotifications({
             </p>
           ) : (
             <ul className="max-h-72 divide-y divide-slate-200 overflow-y-auto">
-              {recentUnread.map((item) => (
-                <li key={item.id} className="px-4 py-3">
+              {recentUnread.map((item, index) => (
+                <li
+                  key={item.id ? `unread:${item.id}` : `unread-fallback:${index}`}
+                  className="px-4 py-3"
+                >
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-semibold text-[#0c1f2e]">
                       {item.tenantName}

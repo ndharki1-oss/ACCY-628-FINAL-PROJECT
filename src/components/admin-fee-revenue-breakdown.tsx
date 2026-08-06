@@ -333,7 +333,7 @@ export function FeeRevenueRecognizedCard({
   const [open, setOpen] = useState(false);
 
   return (
-    <>
+    <div>
       {open ? (
         <FeeRevenueDialog
           total={total}
@@ -359,6 +359,6 @@ export function FeeRevenueRecognizedCard({
           to see every fee / statement line.
         </p>
       </div>
-    </>
+    </div>
   );
 }

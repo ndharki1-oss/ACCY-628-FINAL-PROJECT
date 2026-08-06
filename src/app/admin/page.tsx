@@ -338,36 +338,54 @@ export default async function AdminDashboard() {
 
         <Card title="Manager Action Center">
           <ul>
-            <ActionCenterRow
-              label="Emergency work orders requiring review"
-              count={pendingDetails.filter((w) => w.priority === "Emergency").length}
-              tone="rose"
-              href="#unapproved-work-risk"
-            />
-            <ActionCenterRow
-              label="Vendor approvals awaiting action"
-              count={pendingDetails.length}
-              tone="amber"
-              href="/admin/work-orders"
-            />
-            <ActionCenterRow
-              label="Leases expiring within 30 days"
-              count={expiringLeases ?? 0}
-              tone="sky"
-              href="/admin/leases"
-            />
-            <ActionCenterRow
-              label="Overdue tenant balances needing follow-up"
-              count={overdue.length}
-              tone="rose"
-              href="/admin/billing"
-            />
-            <ActionCenterRow
-              label="Upcoming property inspections"
-              count={upcomingInspections ?? 0}
-              tone="slate"
-              href="/admin/work-orders"
-            />
+            {(
+              [
+                {
+                  key: "emergency-wos",
+                  label: "Emergency work orders requiring review",
+                  count: pendingDetails.filter((w) => w.priority === "Emergency")
+                    .length,
+                  tone: "rose" as const,
+                  href: "#unapproved-work-risk",
+                },
+                {
+                  key: "vendor-approvals",
+                  label: "Vendor approvals awaiting action",
+                  count: pendingDetails.length,
+                  tone: "amber" as const,
+                  href: "/admin/work-orders",
+                },
+                {
+                  key: "expiring-leases",
+                  label: "Leases expiring within 30 days",
+                  count: expiringLeases ?? 0,
+                  tone: "sky" as const,
+                  href: "/admin/leases",
+                },
+                {
+                  key: "overdue-ar",
+                  label: "Overdue tenant balances needing follow-up",
+                  count: overdue.length,
+                  tone: "rose" as const,
+                  href: "/admin/billing",
+                },
+                {
+                  key: "inspections",
+                  label: "Upcoming property inspections",
+                  count: upcomingInspections ?? 0,
+                  tone: "slate" as const,
+                  href: "/admin/work-orders",
+                },
+              ] as const
+            ).map((row) => (
+              <ActionCenterRow
+                key={row.key}
+                label={row.label}
+                count={row.count}
+                tone={row.tone}
+                href={row.href}
+              />
+            ))}
           </ul>
         </Card>
 
