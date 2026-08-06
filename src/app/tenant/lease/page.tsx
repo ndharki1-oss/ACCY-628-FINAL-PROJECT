@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
+import { LeaseDocumentButton } from "./lease-document-button";
 
 type LeaseRow = {
   id: string;
@@ -71,6 +72,12 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
           ))}
         </ul>
       ) : null}
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <LeaseDocumentButton
+          leaseId={lease.id}
+          leaseNumber={lease.lease_number}
+        />
+      </div>
     </Card>
   );
 }
