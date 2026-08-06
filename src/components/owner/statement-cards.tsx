@@ -30,24 +30,16 @@ export type OwnerStatementCardData = {
 function SummaryStat({
   label,
   value,
-  emphasize = false,
 }: {
   label: string;
   value: string;
-  emphasize?: boolean;
 }) {
   return (
     <div>
       <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
         {label}
       </p>
-      <p
-        className={`mt-1 tabular-nums tracking-tight text-[#0c1f2e] ${
-          emphasize
-            ? "font-[family-name:var(--font-display)] text-xl font-semibold"
-            : "text-base font-semibold sm:text-lg"
-        }`}
-      >
+      <p className="mt-1 text-base font-semibold tabular-nums tracking-tight text-[#0c1f2e] sm:text-lg">
         {value}
       </p>
     </div>
@@ -144,6 +136,27 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
           >
             {open ? "Hide details" : "Details"}
           </button>
+          <a
+            href={`/owner/statements/template/${s.id}?download=1`}
+            title="Download PDF"
+            aria-label={`Download PDF for ${s.statement_number}`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 bg-white text-[#0c1f2e] shadow-sm transition hover:border-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0c1f2e]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden
+            >
+              <path d="M12 3v12" />
+              <path d="m7 11 5 5 5-5" />
+              <path d="M5 19h14" />
+            </svg>
+          </a>
         </div>
       </div>
 
@@ -157,7 +170,6 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
         <SummaryStat
           label="Remittance"
           value={formatMoney(s.remittance_due)}
-          emphasize
         />
       </div>
 
