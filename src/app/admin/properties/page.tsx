@@ -106,7 +106,7 @@ export default async function AdminPropertiesPage() {
     <div className="space-y-6">
       <PageHeading
         title="Properties"
-        vital="Fee % column shows credit-based rates on active leases (4–12%). Agreement avg is a property-level reference only — statements bill by tenant credit."
+        info="Fee % column shows credit-based rates on active leases. Agreement avg is a property-level reference only — statements bill by tenant credit."
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
