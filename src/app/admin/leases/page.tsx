@@ -17,7 +17,7 @@ import {
   paymentStatusLabel,
   renewalStatusLabel,
 } from "@/lib/lease-operations";
-import { feePercentFromCredit } from "@/lib/utils";
+import { feePercentFromCreditAndRisk } from "@/lib/utils";
 
 export default async function AdminLeasesPage() {
   const { supabase } = await requireRole(["admin"]);
@@ -35,7 +35,7 @@ export default async function AdminLeasesPage() {
     supabase
       .from("leases")
       .select(
-        "id, lease_number, lease_type, status, start_date, end_date, base_rent_monthly, cam_monthly, billing_day, security_deposit_required, property_id, unit_id, tenant_id, tenants(id, company_name, contact_name, email, phone, credit_rating), properties(id, name), units(id, unit_code), lease_amendments(id, amendment_type, description, effective_date)"
+        "id, lease_number, lease_type, status, start_date, end_date, base_rent_monthly, cam_monthly, billing_day, security_deposit_required, property_id, unit_id, tenant_id, tenants(id, company_name, contact_name, email, phone, credit_rating), properties(id, name, risk_tier), units(id, unit_code), lease_amendments(id, amendment_type, description, effective_date)"
       )
       .order("lease_number"),
     supabase.from("units").select("id, property_id"),
@@ -173,7 +173,10 @@ export default async function AdminLeasesPage() {
       tenantEmail: tenant?.email ?? null,
       tenantPhone: tenant?.phone ?? null,
       tenantCreditRating: tenant?.credit_rating ?? null,
-      managementFeePercent: feePercentFromCredit(tenant?.credit_rating),
+      managementFeePercent: feePercentFromCreditAndRisk(
+        tenant?.credit_rating,
+        property?.risk_tier
+      ),
       propertyId: lease.property_id,
       propertyName: property?.name ?? "—",
       unitCode: unit?.unit_code ?? "—",

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
-  feePercentFromCredit,
+  feePercentFromCreditAndRisk,
   managementFeeFromCollection,
 } from "@/lib/utils";
 import {
@@ -599,7 +599,9 @@ export async function tenantPayInvoice(formData: FormData) {
 
   const { data: invoice } = await supabase
     .from("invoices")
-    .select("id, property_id, owner_id, lease_id, tenant_id")
+    .select(
+      "id, property_id, owner_id, lease_id, tenant_id, properties(risk_tier)"
+    )
     .eq("id", invoiceId)
     .single();
 
@@ -634,10 +636,16 @@ export async function tenantPayInvoice(formData: FormData) {
   });
   if (aErr) throw new Error(aErr.message);
 
-  // Agency GAAP: rent collection is Due to Owner; fee % from tenant credit (4–12%).
+  // Agency GAAP: rent collection is Due to Owner; fee % from credit + property risk.
   const credit = tenant?.credit_rating as string | undefined;
-  const feePct = feePercentFromCredit(credit);
-  const feeAmount = managementFeeFromCollection(amount, credit);
+  const invoiceProperty = Array.isArray(invoice?.properties)
+    ? invoice.properties[0]
+    : invoice?.properties;
+  const riskTier =
+    (invoiceProperty as { risk_tier?: string } | null | undefined)?.risk_tier ??
+    "standard";
+  const feePct = feePercentFromCreditAndRisk(credit, riskTier);
+  const feeAmount = managementFeeFromCollection(amount, credit, riskTier);
 
   const { data: accounts } = await supabase
     .from("gl_accounts")
@@ -660,7 +668,7 @@ export async function tenantPayInvoice(formData: FormData) {
       .insert({
         entry_number: entryNumber,
         entry_date: new Date().toISOString().slice(0, 10),
-        memo: `Management fee ${feePct}% of collection (credit ${credit ?? "BBB"})`,
+        memo: `Management fee ${feePct}% of collection (credit ${credit ?? "BBB"}, risk ${riskTier})`,
         source_type: "payment",
         source_id: payment.id,
         period_id: period?.id,
@@ -707,6 +715,7 @@ export async function tenantPayInvoice(formData: FormData) {
       agency: true,
       fee_on_collection: true,
       credit_rating: credit,
+      property_risk_tier: riskTier,
       management_fee_percent: feePct,
       management_fee_amount: feeAmount,
     },
