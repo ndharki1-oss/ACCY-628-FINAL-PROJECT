@@ -36,11 +36,11 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | `admin@example.com` | `Demo123!` |
-| Property owner | `owner@example.com` | `Demo123!` |
-| Tenant | `tenant@example.com` | `Demo123!` |
-| Employee | `employee@example.com` | `Demo123!` |
-| Accounting | `accounting@example.com` | `Demo123!` |
+| Admin | `admin@example.com` | `demo12` |
+| Property owner | `owner@example.com` | `demo12` |
+| Tenant | `tenant@example.com` | `demo12` |
+| Employee | `employee@example.com` | `demo12` |
+| Accounting | `accounting@example.com` | `demo12` |
 
 ## Roles (meaningfully different)
 

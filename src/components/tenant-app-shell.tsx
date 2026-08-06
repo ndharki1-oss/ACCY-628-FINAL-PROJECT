@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
+import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
 import { TenantNotifications } from "@/components/tenant-notifications";
 import type {
   CheckoutLeaseHint,
@@ -92,7 +93,7 @@ export function TenantAppShell({
               waitingMessage={waitingMessage}
             />
             <span className="hidden text-slate-300 sm:inline">
-              {name} · <span className="capitalize text-[#d4a574]">tenant</span>
+              {name} · <DemoRoleSwitcher currentRole="tenant" />
             </span>
             <form action={logout}>
               <button
