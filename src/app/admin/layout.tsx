@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   AdminAppShell,
   type AdminNavItem,
@@ -19,7 +20,13 @@ const adminLinks: AdminNavItem[] = [
       { href: "/admin/leases", label: "Leases" },
     ],
   },
-  { href: "/admin/messages", label: "Messages" },
+  {
+    label: "Messages",
+    children: [
+      { href: "/admin/messages?channel=tenants", label: "Tenants" },
+      { href: "/admin/messages?channel=owners", label: "Property Owners" },
+    ],
+  },
   {
     label: "Billing",
     children: [
@@ -61,26 +68,53 @@ export default async function Layout({
 }) {
   const { supabase, profile } = await requireRole(["admin"]);
 
-  const { data: unreadMessages } = await supabase
-    .from("tenant_manager_messages")
-    .select(
-      "id, body, created_at, sender_name, tenants(company_name, contact_name)"
-    )
-    .eq("sender_role", "tenant")
-    .is("admin_read_at", null)
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const [
+    { data: unreadTenantMessages },
+    { data: unreadOwnerMessages },
+    unreadTenantCountResult,
+    unreadOwnerCountResult,
+  ] = await Promise.all([
+    supabase
+      .from("tenant_manager_messages")
+      .select(
+        "id, body, created_at, sender_name, tenants(company_name, contact_name)"
+      )
+      .eq("sender_role", "tenant")
+      .is("admin_read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("owner_manager_messages")
+      .select(
+        "id, body, created_at, sender_name, owners(company_name, contact_name)"
+      )
+      .eq("sender_role", "owner")
+      .is("admin_read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("tenant_manager_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender_role", "tenant")
+      .is("admin_read_at", null),
+    supabase
+      .from("owner_manager_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("sender_role", "owner")
+      .is("admin_read_at", null),
+  ]);
 
-  const recentUnread: AdminMessageBellItem[] = (unreadMessages ?? []).map(
+  const tenantItems: AdminMessageBellItem[] = (unreadTenantMessages ?? []).map(
     (msg) => {
       const tenant = firstRelation(msg.tenants);
       return {
         id: msg.id,
-        tenantName:
+        partyName:
           tenant?.company_name ??
           tenant?.contact_name ??
           msg.sender_name ??
           "Tenant",
+        partyKind: "tenant" as const,
         preview: messagePreview(msg.body ?? "", 90),
         createdAt: msg.created_at,
         isUrgent: isUrgentMessageBody(msg.body ?? ""),
@@ -88,20 +122,48 @@ export default async function Layout({
     }
   );
 
-  const unreadCountResult = await supabase
-    .from("tenant_manager_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("sender_role", "tenant")
-    .is("admin_read_at", null);
+  const ownerItems: AdminMessageBellItem[] = (unreadOwnerMessages ?? []).map(
+    (msg) => {
+      const owner = firstRelation(msg.owners);
+      return {
+        id: msg.id,
+        partyName:
+          owner?.company_name ??
+          owner?.contact_name ??
+          msg.sender_name ??
+          "Owner",
+        partyKind: "owner" as const,
+        preview: messagePreview(msg.body ?? "", 90),
+        createdAt: msg.created_at,
+        isUrgent: isUrgentMessageBody(msg.body ?? ""),
+      };
+    }
+  );
+
+  const recentUnread = [...tenantItems, ...ownerItems]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+    .slice(0, 8);
+
+  const unreadCount =
+    (unreadTenantCountResult.count ?? 0) + (unreadOwnerCountResult.count ?? 0);
 
   return (
-    <AdminAppShell
-      name={profile.full_name}
-      links={adminLinks}
-      unreadMessageCount={unreadCountResult.count ?? recentUnread.length}
-      recentUnreadMessages={recentUnread}
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_#e8eef5_0%,_#f4f1ea_45%,_#ebe6dc_100%)]" />
+      }
     >
-      {children}
-    </AdminAppShell>
+      <AdminAppShell
+        name={profile.full_name}
+        links={adminLinks}
+        unreadMessageCount={unreadCount}
+        recentUnreadMessages={recentUnread}
+      >
+        {children}
+      </AdminAppShell>
+    </Suspense>
   );
 }

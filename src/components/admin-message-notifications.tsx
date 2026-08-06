@@ -6,7 +6,8 @@ import { formatMessageDateTime } from "@/lib/admin-messages";
 
 export type AdminMessageBellItem = {
   id: string;
-  tenantName: string;
+  partyName: string;
+  partyKind?: "tenant" | "owner";
   preview: string;
   createdAt: string;
   isUrgent: boolean;
@@ -50,8 +51,8 @@ export function AdminMessageNotifications({
       >
         <span className="sr-only">
           {unreadCount > 0
-            ? `${unreadCount} unread tenant messages`
-            : "Tenant messages"}
+            ? `${unreadCount} unread messages`
+            : "Messages"}
         </span>
         <svg
           viewBox="0 0 24 24"
@@ -86,7 +87,7 @@ export function AdminMessageNotifications({
 
           {recentUnread.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-600">
-              No unread tenant messages.
+              No unread messages.
             </p>
           ) : (
             <ul className="max-h-72 divide-y divide-slate-200 overflow-y-auto">
@@ -97,8 +98,13 @@ export function AdminMessageNotifications({
                 >
                   <div className="flex items-center gap-2">
                     <p className="truncate text-sm font-semibold text-[#0c1f2e]">
-                      {item.tenantName}
+                      {item.partyName}
                     </p>
+                    {item.partyKind ? (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium capitalize text-slate-700">
+                        {item.partyKind}
+                      </span>
+                    ) : null}
                     {item.isUrgent ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-800">
                         Urgent
