@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import {
+  DemoRoleSwitcher,
+  type DemoRoleKey,
+} from "@/components/demo-role-switcher";
 import { statusClass } from "@/lib/utils";
 
 const nav: Record<string, { href: string; label: string }[]> = {
@@ -62,9 +66,7 @@ export function AppShell({
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-300">
               {name} ·{" "}
-              <span className="capitalize text-[#d4a574]">
-                {role === "admin" ? "Property Manager" : role}
-              </span>
+              <DemoRoleSwitcher currentRole={role as DemoRoleKey} />
             </span>
             <form action={logout}>
               <button

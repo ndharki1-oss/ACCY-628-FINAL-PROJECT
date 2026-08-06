@@ -73,7 +73,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
           type="password"
           required
           autoComplete="current-password"
-          defaultValue="Demo123!"
+          defaultValue="demo12"
           className="mt-1 w-full rounded border border-white/20 bg-[#0c1f2e] px-3 py-2 text-white outline-none focus:border-[#d4a574]"
         />
       </label>
