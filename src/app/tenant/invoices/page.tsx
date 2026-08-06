@@ -6,23 +6,10 @@ import {
 } from "@/lib/payments/stripe";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
+import { formatInvoiceDisplayDate } from "@/lib/invoice-documents/types";
 import { AutomatedPaymentsToggle } from "./automated-payments-toggle";
+import { InvoiceDocumentButton } from "./invoice-document-button";
 import { PayByProperty } from "./pay-by-property";
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
 
 const STATUS_SECTIONS: { label: string; statuses: string[] }[] = [
   { label: "Overdue", statuses: ["overdue"] },
@@ -34,37 +21,6 @@ const STATUS_SECTIONS: { label: string; statuses: string[] }[] = [
   { label: "Void", statuses: ["void"] },
 ];
 
-/** Display YYYY-MM-DD without UTC shift (e.g. August 5, 2026). */
-function formatDisplayDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return String(iso);
-  const year = Number(m[1]);
-  const month = Number(m[2]);
-  const day = Number(m[3]);
-  if (!month || month < 1 || month > 12) return String(iso);
-  return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
-}
-
-/**
- * Move trailing YYYY-MM before the descriptor for display only.
- * "HL-16 base rent 2026-08" → "August HL-16 base rent"
- */
-function formatInvoiceLineDescription(description: string) {
-  const match = description.match(/^(.*)\s+(\d{4})-(\d{2})\s*$/);
-  if (!match) return description;
-  const descriptor = match[1].trim();
-  const month = Number(match[3]);
-  if (!descriptor || !month || month < 1 || month > 12) return description;
-  return `${MONTH_NAMES[month - 1]} ${descriptor}`;
-}
-
-type InvoiceLine = {
-  line_type: string;
-  description: string;
-  amount: number;
-};
-
 type InvoiceRow = {
   id: string;
   invoice_number: string;
@@ -75,7 +31,9 @@ type InvoiceRow = {
   amount_paid: number | string;
   dispute_reason?: string | null;
   property_id: string | null;
-  invoice_lines: InvoiceLine[] | null;
+  invoice_lines:
+    | { line_type: string; description: string; amount: number }[]
+    | null;
   properties:
     | { id: string; name: string }
     | { id: string; name: string }[]
@@ -96,34 +54,32 @@ function isPayable(inv: InvoiceRow) {
   return due > 0 && !["void", "disputed", "draft"].includes(inv.status);
 }
 
+function paidLabel(inv: InvoiceRow) {
+  const total = Number(inv.total);
+  const paid = Number(inv.amount_paid);
+  if (inv.status === "paid" || (total > 0 && paid >= total)) return "Paid";
+  if (paid > 0) return "Partially paid";
+  return "Unpaid";
+}
+
 function InvoiceSummaryCard({ inv }: { inv: InvoiceRow }) {
-  const lines = inv.invoice_lines ?? [];
   return (
     <div className="rounded border border-slate-200 bg-white/90 p-3">
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="font-medium text-[#0c1f2e]">{inv.invoice_number}</p>
         <Badge status={inv.status} />
       </div>
-      <div className="text-sm text-slate-600">
-        <p>Issue Date: {formatDisplayDate(inv.issue_date)}</p>
-        <p>Due Date: {formatDisplayDate(inv.due_date)}</p>
+      <div className="space-y-1 text-sm text-slate-600">
+        <p>Due Date: {formatInvoiceDisplayDate(inv.due_date)}</p>
+        <p>Total: {formatMoney(inv.total)}</p>
+        <p>Paid: {paidLabel(inv)}</p>
       </div>
-      <ul className="mt-3 space-y-1 text-xs text-slate-600">
-        {lines.map((l, i) => (
-          <li key={i} className="flex justify-between gap-3">
-            <span>{formatInvoiceLineDescription(l.description)}</span>
-            <span className="shrink-0">{formatMoney(l.amount)}</span>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-sm font-medium text-slate-800">
-        Total {formatMoney(inv.total)}
-      </p>
-      {inv.status === "disputed" && inv.dispute_reason ? (
-        <p className="mt-2 text-sm text-rose-700">
-          Dispute: {inv.dispute_reason}
-        </p>
-      ) : null}
+      <div className="mt-3">
+        <InvoiceDocumentButton
+          invoiceId={inv.id}
+          invoiceNumber={inv.invoice_number}
+        />
+      </div>
     </div>
   );
 }

@@ -31,9 +31,11 @@ export default async function Layout({
 }) {
   const { supabase, user, profile } = await requireRole(["tenant"]);
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const isLeasePopup = pathname.startsWith("/tenant/lease/view/");
+  const isDocumentPopup =
+    pathname.startsWith("/tenant/lease/view/") ||
+    pathname.startsWith("/tenant/invoices/view/");
 
-  if (isLeasePopup) {
+  if (isDocumentPopup) {
     return children;
   }
 
