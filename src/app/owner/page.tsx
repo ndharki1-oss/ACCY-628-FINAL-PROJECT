@@ -1,8 +1,9 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
-import { Badge, Stat } from "@/components/ui";
+import { Badge } from "@/components/ui";
 import { PropertyLink } from "@/components/property-link";
 import { DashboardSection } from "@/components/owner/dashboard-section";
+import { StatWithDetail } from "@/components/owner/stat-with-detail";
 import {
   NoiTrendChart,
   type NoiMonthPoint,
@@ -254,32 +255,32 @@ export default async function OwnerDashboard() {
 
       <section className="space-y-4">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat
+          <StatWithDetail
             label="Remittance due"
             value={formatMoney(remittanceDue)}
-            hint={
+            detail={
               remittanceStatement
-                ? formatPeriodLabel(
+                ? `From owner statement for ${formatPeriodLabel(
                     remittanceStatement.period_start,
                     remittanceStatement.period_end
-                  )
-                : "No statement issued yet"
+                  )}. Open Statements for the full remittance breakdown.`
+                : "No statement issued yet."
             }
           />
-          <Stat
+          <StatWithDetail
             label="Portfolio NOI"
             value={formatMoney(portfolioIncome - portfolioExpense)}
-            hint={`${ALL_PERIODS_HINT} · This month ${formatMoney(monthIncome - monthExpense)}`}
+            detail={`${ALL_PERIODS_HINT}. This month: ${formatMoney(monthIncome - monthExpense)}. NOI here is tenant charges minus operating costs (fee is separate).`}
           />
-          <Stat
+          <StatWithDetail
             label="Occupancy"
             value={`${occupancyPct}%`}
-            hint={`${leasedUnitIds.size} leased · ${vacantUnits.length} vacant`}
+            detail={`${leasedUnitIds.size} leased · ${vacantUnits.length} vacant across your portfolio.`}
           />
-          <Stat
-            label="Collection rate"
+          <StatWithDetail
+            label="Invoice collection %"
             value={`${collectionRate}%`}
-            hint={`${formatMoney(collected)} of ${formatMoney(billed)} billed`}
+            detail={`${formatMoney(collected)} paid of ${formatMoney(billed)} billed on invoices covering this month. Uses cumulative amount paid on those invoices — not cash received only this month.`}
           />
         </div>
       </section>

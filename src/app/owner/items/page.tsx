@@ -74,6 +74,11 @@ export default async function OwnerMyItemsPage() {
         </h2>
 
         <Card title="Costs awaiting approval">
+          <p className="mb-3 text-xs text-slate-500">
+            Decisions and the nav badge count only costs over the property
+            approval threshold (same as property Actions). Below-threshold
+            items still appear here for awareness.
+          </p>
           {items.costs.length === 0 ? (
             <p className="text-sm text-slate-600">No unapproved costs.</p>
           ) : (
