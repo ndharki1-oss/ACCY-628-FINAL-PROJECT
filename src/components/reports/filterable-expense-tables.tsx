@@ -340,7 +340,14 @@ export function MaintenanceDetailTable({ rows }: { rows: MaintenanceRow[] }) {
 
 type LaborSortKey = "workDate" | "hours" | "hourlyRate" | "laborCost";
 
-export function LaborTable({ rows }: { rows: LaborRow[] }) {
+export function LaborTable({
+  rows,
+  hideEmployeeFilter = false,
+}: {
+  rows: LaborRow[];
+  /** Employee portal My Labor is already scoped to the logged-in user. */
+  hideEmployeeFilter?: boolean;
+}) {
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [workOrderFilter, setWorkOrderFilter] = useState("all");
@@ -417,12 +424,14 @@ export function LaborTable({ rows }: { rows: LaborRow[] }) {
             <tr>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Employee</span>
-                <ValueFilterSelect
-                  label="Filter by employee"
-                  value={employeeFilter}
-                  onChange={setEmployeeFilter}
-                  options={employees}
-                />
+                {hideEmployeeFilter ? null : (
+                  <ValueFilterSelect
+                    label="Filter by employee"
+                    value={employeeFilter}
+                    onChange={setEmployeeFilter}
+                    options={employees}
+                  />
+                )}
               </th>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Date</span>
