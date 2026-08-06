@@ -123,11 +123,13 @@ export default async function AccountingProfitabilityPage() {
       <AccountingNoiByPropertyTable
         title={`NOI By Property · ${ALL_PERIODS_HINT}`}
         rows={byProperty}
+        enableExcelExport
       />
 
       <AccountingByOwnerTable
         title={`By owner · ${ALL_PERIODS_HINT}`}
         rows={byOwner}
+        enableExcelExport
       />
     </div>
   );

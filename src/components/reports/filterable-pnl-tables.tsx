@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ExcelExportButton } from "@/components/export/excel-export-button";
 import { OwnerNoiBarChart } from "@/components/reports/owner-noi-bar-chart";
 import { PropertyNoiBarChart } from "@/components/reports/property-noi-bar-chart";
 import { Card } from "@/components/ui";
+import { excelStamp, exportExcelCsv } from "@/lib/export/excel-csv";
 import { formatMoney } from "@/lib/utils";
 import type { PropertyPnLChartActivity } from "@/lib/reports/property-pnl-chart";
 import type {
@@ -25,12 +27,15 @@ export function PropertyPnLTable({
   mode,
   showChart = false,
   chartActivity = [],
+  enableExcelExport = false,
 }: {
   rows: PropertyPnLRow[];
   mode: ReportMode;
   showChart?: boolean;
   /** Dated activity for Admin interactive chart only; does not filter the table. */
   chartActivity?: PropertyPnLChartActivity[];
+  /** Accounting portal only — export currently visible rows. */
+  enableExcelExport?: boolean;
 }) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
@@ -105,6 +110,42 @@ export function PropertyPnLTable({
           mode === "summary"
             ? `Property P&L (summary) · ${ALL_PERIODS_HINT}`
             : `Property Profit & Loss · ${ALL_PERIODS_HINT}`
+        }
+        action={
+          enableExcelExport ? (
+            <ExcelExportButton
+              count={displayed.length}
+              disabled={displayed.length === 0}
+              onClick={() =>
+                exportExcelCsv({
+                  filename: `property-pnl-${excelStamp()}.csv`,
+                  headers:
+                    mode === "full"
+                      ? [
+                          "Property",
+                          "Owner",
+                          "Revenue",
+                          "OpEx (in NOI)",
+                          "Harborline labor (not in NOI)",
+                          "NOI",
+                        ]
+                      : ["Property", "Revenue", "OpEx (in NOI)", "NOI"],
+                  rows: displayed.map((r) =>
+                    mode === "full"
+                      ? [
+                          r.propertyName,
+                          r.ownerName,
+                          r.revenue,
+                          r.expenses,
+                          r.laborCost,
+                          r.noi,
+                        ]
+                      : [r.propertyName, r.revenue, r.expenses, r.noi]
+                  ),
+                })
+              }
+            />
+          ) : undefined
         }
       >
         <div className="overflow-x-auto">
@@ -210,11 +251,14 @@ export function OwnerProfitTable({
   rows,
   showChart = false,
   chartActivity = [],
+  enableExcelExport = false,
 }: {
   rows: OwnerProfitRow[];
   showChart?: boolean;
   /** Dated activity for Admin interactive chart only; does not filter the table. */
   chartActivity?: PropertyPnLChartActivity[];
+  /** Accounting portal only — export currently visible rows. */
+  enableExcelExport?: boolean;
 }) {
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [sortKey, setSortKey] = useState<OwnerSortKey | null>(null);
@@ -264,7 +308,36 @@ export function OwnerProfitTable({
           onOwnerFilterChange={setOwnerFilter}
         />
       ) : null}
-      <Card title={`Owner (Customer) Profitability · ${ALL_PERIODS_HINT}`}>
+      <Card
+        title={`Owner (Customer) Profitability · ${ALL_PERIODS_HINT}`}
+        action={
+          enableExcelExport ? (
+            <ExcelExportButton
+              count={displayed.length}
+              disabled={displayed.length === 0}
+              onClick={() =>
+                exportExcelCsv({
+                  filename: `owner-profitability-${excelStamp()}.csv`,
+                  headers: [
+                    "Owner",
+                    "Properties",
+                    "Revenue",
+                    "OpEx (in NOI)",
+                    "NOI",
+                  ],
+                  rows: displayed.map((r) => [
+                    r.ownerName,
+                    r.propertyCount,
+                    r.revenue,
+                    r.expenses,
+                    r.noi,
+                  ]),
+                })
+              }
+            />
+          ) : undefined
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b text-xs uppercase text-slate-500">

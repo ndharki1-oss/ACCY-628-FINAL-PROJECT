@@ -43,7 +43,7 @@ export default async function AccountingEmployeeLaborPage({
         selectedOwnerId={selectedOwnerId}
         basePath={BASE_PATH}
       />
-      <LaborTable rows={rows} />
+      <LaborTable rows={rows} enableExcelExport />
     </div>
   );
 }

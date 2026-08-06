@@ -17,7 +17,7 @@ export default async function AccountingPropertyPnLPage() {
         subtitle={ALL_PERIODS_HINT}
         info="NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI."
       />
-      <PropertyPnLTable rows={rows} mode="full" />
+      <PropertyPnLTable rows={rows} mode="full" enableExcelExport />
     </div>
   );
 }

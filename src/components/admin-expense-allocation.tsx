@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
+import { ExcelExportButton } from "@/components/export/excel-export-button";
 import { Card, Stat } from "@/components/ui";
+import { excelStamp, exportExcelCsv } from "@/lib/export/excel-csv";
 import { formatMoney } from "@/lib/utils";
 import {
   sumByCategory,
@@ -13,14 +15,42 @@ import {
   type TaxTreatment,
 } from "@/lib/expense-allocation";
 
+function expenseLinesToExcelRows(lines: ExpenseLine[]) {
+  return lines.map((l) => [
+    l.allocation,
+    l.date,
+    l.propertyName ?? "",
+    l.ownerName ?? "",
+    l.category,
+    l.description,
+    l.amount,
+    l.workOrderNumber ?? "",
+    taxTreatmentLabel(l.taxTreatment),
+  ]);
+}
+
+const EXPENSE_EXCEL_HEADERS = [
+  "Allocation",
+  "Date",
+  "Property",
+  "Owner",
+  "Category",
+  "Description",
+  "Amount",
+  "Work order",
+  "Tax treatment (advisory)",
+];
+
 function AllocationDetailDialog({
   allocation,
   lines,
   onClose,
+  enableExcelExport = false,
 }: {
   allocation: ExpenseAllocation;
   lines: ExpenseLine[];
   onClose: () => void;
+  enableExcelExport?: boolean;
 }) {
   const titleId = useId();
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -99,13 +129,28 @@ function AllocationDetailDialog({
               or owner tax filings.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded border border-white/20 px-2 py-1 text-sm hover:bg-white/10"
-          >
-            Close
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {enableExcelExport ? (
+              <ExcelExportButton
+                count={filtered.length}
+                disabled={filtered.length === 0}
+                onClick={() =>
+                  exportExcelCsv({
+                    filename: `expense-${allocation}-detail-${excelStamp()}.csv`,
+                    headers: EXPENSE_EXCEL_HEADERS,
+                    rows: expenseLinesToExcelRows(filtered),
+                  })
+                }
+              />
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded border border-white/20 px-2 py-1 text-sm hover:bg-white/10"
+            >
+              Close
+            </button>
+          </div>
         </header>
 
         <div className="space-y-4 px-5 py-5">
@@ -249,7 +294,13 @@ function AllocationDetailDialog({
   );
 }
 
-export function AdminExpenseAllocation({ lines }: { lines: ExpenseLine[] }) {
+export function AdminExpenseAllocation({
+  lines,
+  enableExcelExport = false,
+}: {
+  lines: ExpenseLine[];
+  enableExcelExport?: boolean;
+}) {
   const [open, setOpen] = useState<ExpenseAllocation | null>(null);
 
   const ownerLines = useMemo(
@@ -280,6 +331,7 @@ export function AdminExpenseAllocation({ lines }: { lines: ExpenseLine[] }) {
           allocation={open}
           lines={openLines}
           onClose={() => setOpen(null)}
+          enableExcelExport={enableExcelExport}
         />
       ) : null}
 
@@ -311,9 +363,24 @@ export function AdminExpenseAllocation({ lines }: { lines: ExpenseLine[] }) {
       <Card
         title="Allocation overview"
         action={
-          <span className="text-sm text-slate-500">
-            Total {formatMoney(grand)}
-          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {enableExcelExport ? (
+              <ExcelExportButton
+                count={lines.length}
+                disabled={lines.length === 0}
+                onClick={() =>
+                  exportExcelCsv({
+                    filename: `expense-allocation-${excelStamp()}.csv`,
+                    headers: EXPENSE_EXCEL_HEADERS,
+                    rows: expenseLinesToExcelRows(lines),
+                  })
+                }
+              />
+            ) : null}
+            <span className="text-sm text-slate-500">
+              Total {formatMoney(grand)}
+            </span>
+          </div>
         }
       >
         <div className="overflow-x-auto">

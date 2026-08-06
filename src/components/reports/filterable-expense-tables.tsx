@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ExcelExportButton } from "@/components/export/excel-export-button";
 import { Card } from "@/components/ui";
+import { excelStamp, exportExcelCsv } from "@/lib/export/excel-csv";
 import { formatMoney } from "@/lib/utils";
 import type {
   LaborRow,
@@ -23,8 +25,10 @@ type SummarySortKey =
 
 export function MaintenanceSummaryTable({
   rows,
+  enableExcelExport = false,
 }: {
   rows: MaintenanceSummaryRow[];
+  enableExcelExport?: boolean;
 }) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SummarySortKey | null>(null);
@@ -65,7 +69,38 @@ export function MaintenanceSummaryTable({
   }, [rows, propertyFilter, sortKey, sortDir]);
 
   return (
-    <Card title="Maintenance cost by property (summary)">
+    <Card
+      title="Maintenance cost by property (summary)"
+      action={
+        enableExcelExport ? (
+          <ExcelExportButton
+            count={displayed.length}
+            disabled={displayed.length === 0}
+            onClick={() =>
+              exportExcelCsv({
+                filename: `maintenance-summary-${excelStamp()}.csv`,
+                headers: [
+                  "Property",
+                  "Labor",
+                  "Materials/Parts",
+                  "Vendor/Contractor",
+                  "Other",
+                  "Total",
+                ],
+                rows: displayed.map((r) => [
+                  r.propertyName,
+                  r.laborCost,
+                  r.materialsCost,
+                  r.vendorCost,
+                  r.otherCost,
+                  r.total,
+                ]),
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
@@ -149,7 +184,13 @@ export function MaintenanceSummaryTable({
 
 type DetailSortKey = "hours" | "amount";
 
-export function MaintenanceDetailTable({ rows }: { rows: MaintenanceRow[] }) {
+export function MaintenanceDetailTable({
+  rows,
+  enableExcelExport = false,
+}: {
+  rows: MaintenanceRow[];
+  enableExcelExport?: boolean;
+}) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [workOrderFilter, setWorkOrderFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -245,7 +286,40 @@ export function MaintenanceDetailTable({ rows }: { rows: MaintenanceRow[] }) {
   ]);
 
   return (
-    <Card title="Maintenance cost detail">
+    <Card
+      title="Maintenance cost detail"
+      action={
+        enableExcelExport ? (
+          <ExcelExportButton
+            count={displayed.length}
+            disabled={displayed.length === 0}
+            onClick={() =>
+              exportExcelCsv({
+                filename: `maintenance-detail-${excelStamp()}.csv`,
+                headers: [
+                  "Property",
+                  "Work order",
+                  "Category",
+                  "Description",
+                  "Employee",
+                  "Hours",
+                  "Amount",
+                ],
+                rows: displayed.map((r) => [
+                  r.propertyName,
+                  r.workOrderNumber ?? "",
+                  r.category,
+                  r.description,
+                  r.employeeName ?? "",
+                  r.hours,
+                  r.amount,
+                ]),
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
@@ -340,7 +414,13 @@ export function MaintenanceDetailTable({ rows }: { rows: MaintenanceRow[] }) {
 
 type LaborSortKey = "workDate" | "hours" | "hourlyRate" | "laborCost";
 
-export function LaborTable({ rows }: { rows: LaborRow[] }) {
+export function LaborTable({
+  rows,
+  enableExcelExport = false,
+}: {
+  rows: LaborRow[];
+  enableExcelExport?: boolean;
+}) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [workOrderFilter, setWorkOrderFilter] = useState("all");
   const [sortKey, setSortKey] = useState<LaborSortKey | null>(null);
@@ -398,7 +478,40 @@ export function LaborTable({ rows }: { rows: LaborRow[] }) {
   }, [rows, propertyFilter, workOrderFilter, sortKey, sortDir]);
 
   return (
-    <Card title="Employee labor">
+    <Card
+      title="Employee labor"
+      action={
+        enableExcelExport ? (
+          <ExcelExportButton
+            count={displayed.length}
+            disabled={displayed.length === 0}
+            onClick={() =>
+              exportExcelCsv({
+                filename: `employee-labor-${excelStamp()}.csv`,
+                headers: [
+                  "Employee",
+                  "Date",
+                  "Property",
+                  "Work order",
+                  "Hours",
+                  "Rate",
+                  "Cost",
+                ],
+                rows: displayed.map((r) => [
+                  r.employeeName,
+                  r.workDate,
+                  r.propertyName,
+                  r.workOrderNumber ?? "",
+                  r.hours,
+                  r.hourlyRate,
+                  r.laborCost,
+                ]),
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">

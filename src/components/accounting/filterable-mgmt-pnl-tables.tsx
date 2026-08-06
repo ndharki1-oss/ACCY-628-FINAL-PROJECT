@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ExcelExportButton } from "@/components/export/excel-export-button";
 import { Card } from "@/components/ui";
+import { excelStamp, exportExcelCsv } from "@/lib/export/excel-csv";
 import { formatMoney } from "@/lib/utils";
 import {
   SortSelect,
@@ -29,9 +31,11 @@ type PropertySortKey = "revenue" | "expense" | "noi";
 export function AccountingNoiByPropertyTable({
   rows,
   title,
+  enableExcelExport = false,
 }: {
   rows: AccountingNoiPropertyRow[];
   title: string;
+  enableExcelExport?: boolean;
 }) {
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
@@ -78,7 +82,30 @@ export function AccountingNoiByPropertyTable({
   }, [rows, propertyFilter, ownerFilter, sortKey, sortDir]);
 
   return (
-    <Card title={title}>
+    <Card
+      title={title}
+      action={
+        enableExcelExport ? (
+          <ExcelExportButton
+            count={displayed.length}
+            disabled={displayed.length === 0}
+            onClick={() =>
+              exportExcelCsv({
+                filename: `mgmt-pnl-by-property-${excelStamp()}.csv`,
+                headers: ["Property", "Owner", "Tenant charges", "OpEx", "NOI"],
+                rows: displayed.map((p) => [
+                  p.name,
+                  p.owner ?? "Unknown",
+                  p.revenue,
+                  p.expense,
+                  p.noi,
+                ]),
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
@@ -163,9 +190,11 @@ type OwnerSortKey = "noi";
 export function AccountingByOwnerTable({
   rows,
   title,
+  enableExcelExport = false,
 }: {
   rows: AccountingNoiOwnerRow[];
   title: string;
+  enableExcelExport?: boolean;
 }) {
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [sortKey, setSortKey] = useState<OwnerSortKey | null>(null);
@@ -204,7 +233,29 @@ export function AccountingByOwnerTable({
   }, [rows, ownerFilter, sortKey, sortDir]);
 
   return (
-    <Card title={title}>
+    <Card
+      title={title}
+      action={
+        enableExcelExport ? (
+          <ExcelExportButton
+            count={displayed.length}
+            disabled={displayed.length === 0}
+            onClick={() =>
+              exportExcelCsv({
+                filename: `mgmt-pnl-by-owner-${excelStamp()}.csv`,
+                headers: ["Owner", "Tenant charges", "OpEx", "NOI"],
+                rows: displayed.map((o) => [
+                  o.name,
+                  o.revenue,
+                  o.expense,
+                  o.revenue - o.expense,
+                ]),
+              })
+            }
+          />
+        ) : undefined
+      }
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[420px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
