@@ -24,11 +24,11 @@ export default async function AccountingStatementsPage({
 
   const periods = uniquePeriods(rows);
   const selectedPeriod =
-    params.period &&
-    params.period !== "all" &&
-    periods.includes(params.period)
-      ? params.period
-      : null;
+    params.period === "all"
+      ? null
+      : params.period && periods.includes(params.period)
+        ? params.period
+        : (periods[0] ?? null);
 
   return (
     <div className="space-y-6">

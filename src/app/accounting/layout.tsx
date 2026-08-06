@@ -9,11 +9,11 @@ const accountingLinks: AccountingNavItem[] = [
   {
     label: "Profitability",
     children: [
-      { href: "/accounting/profitability", label: "Mgmt P&L" },
-      { href: "/accounting/reports/property-pnl", label: "Property P&L" },
+      { href: "/accounting/profitability", label: "Management" },
+      { href: "/accounting/reports/property-pnl", label: "Property" },
       {
         href: "/accounting/reports/owner-profitability",
-        label: "Owner Profit",
+        label: "Owner",
       },
     ],
   },
