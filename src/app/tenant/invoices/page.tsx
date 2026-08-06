@@ -4,22 +4,10 @@ import {
   getStripePublishableKey,
   isStripeConfigured,
 } from "@/lib/payments/stripe";
-import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
-import { formatInvoiceDisplayDate } from "@/lib/invoice-documents/types";
 import { AutomatedPaymentsToggle } from "./automated-payments-toggle";
-import { InvoiceDocumentButton } from "./invoice-document-button";
+import { InvoicesByProperty } from "./invoices-by-property";
 import { PayByProperty } from "./pay-by-property";
-
-const STATUS_SECTIONS: { label: string; statuses: string[] }[] = [
-  { label: "Overdue", statuses: ["overdue"] },
-  { label: "Open", statuses: ["sent"] },
-  { label: "Partial", statuses: ["partial"] },
-  { label: "Disputed", statuses: ["disputed"] },
-  { label: "Draft", statuses: ["draft"] },
-  { label: "Paid", statuses: ["paid"] },
-  { label: "Void", statuses: ["void"] },
-];
 
 type InvoiceRow = {
   id: string;
@@ -52,36 +40,6 @@ function propertyFromInvoice(inv: InvoiceRow) {
 function isPayable(inv: InvoiceRow) {
   const due = Number(inv.total) - Number(inv.amount_paid);
   return due > 0 && !["void", "disputed", "draft"].includes(inv.status);
-}
-
-function paidLabel(inv: InvoiceRow) {
-  const total = Number(inv.total);
-  const paid = Number(inv.amount_paid);
-  if (inv.status === "paid" || (total > 0 && paid >= total)) return "Paid";
-  if (paid > 0) return "Partially paid";
-  return "Unpaid";
-}
-
-function InvoiceSummaryCard({ inv }: { inv: InvoiceRow }) {
-  return (
-    <div className="rounded border border-slate-200 bg-white/90 p-3">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <p className="font-medium text-[#0c1f2e]">{inv.invoice_number}</p>
-        <Badge status={inv.status} />
-      </div>
-      <div className="space-y-1 text-sm text-slate-600">
-        <p>Due Date: {formatInvoiceDisplayDate(inv.due_date)}</p>
-        <p>Total: {formatMoney(inv.total)}</p>
-        <p>Paid: {paidLabel(inv)}</p>
-      </div>
-      <div className="mt-3">
-        <InvoiceDocumentButton
-          invoiceId={inv.id}
-          invoiceNumber={inv.invoice_number}
-        />
-      </div>
-    </div>
-  );
 }
 
 export default async function TenantPaymentsPage() {
@@ -165,9 +123,18 @@ export default async function TenantPaymentsPage() {
     }
   }
 
-  const propertyGroups = [...byProperty.values()].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
+  const propertyGroups = [...byProperty.values()]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((g) => ({
+      id: g.id,
+      name: g.name,
+      invoices: [...g.invoices].sort((a, b) => {
+        const overdueRank = (status: string) => (status === "overdue" ? 0 : 1);
+        const rankDiff = overdueRank(a.status) - overdueRank(b.status);
+        if (rankDiff !== 0) return rankDiff;
+        return String(b.due_date).localeCompare(String(a.due_date));
+      }),
+    }));
 
   const payableInvoices = rows.filter(isPayable).map((inv) => {
     const prop = propertyFromInvoice(inv);
@@ -204,55 +171,7 @@ export default async function TenantPaymentsPage() {
         stripePublishableKey={stripePublishableKey}
       />
 
-      <section className="space-y-3">
-        <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-          Invoices by property
-        </h2>
-        {propertyGroups.length === 0 ? (
-          <Card title="No invoices">
-            <p className="text-sm text-slate-600">
-              You do not have any invoices yet.
-            </p>
-          </Card>
-        ) : (
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {propertyGroups.map((group) => (
-              <div
-                key={group.id}
-                className="min-w-[300px] max-w-xl flex-1 shrink-0 basis-[calc(50%-0.5rem)]"
-              >
-                <Card title={group.name}>
-                  <div className="space-y-5">
-                    {STATUS_SECTIONS.map((section) => {
-                      const sectionInvoices = group.invoices.filter((inv) =>
-                        section.statuses.includes(inv.status)
-                      );
-                      if (sectionInvoices.length === 0) return null;
-                      return (
-                        <div key={section.label}>
-                          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            {section.label}
-                          </h3>
-                          <div className="space-y-3">
-                            {sectionInvoices.map((inv) => (
-                              <InvoiceSummaryCard key={inv.id} inv={inv} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {group.invoices.length === 0 ? (
-                      <p className="text-sm text-slate-600">
-                        No invoices for this property.
-                      </p>
-                    ) : null}
-                  </div>
-                </Card>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      <InvoicesByProperty propertyGroups={propertyGroups} />
     </div>
   );
 }

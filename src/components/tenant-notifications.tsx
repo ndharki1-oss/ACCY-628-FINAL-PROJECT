@@ -6,7 +6,7 @@ import {
   dismissTenantNotification,
   hrefForTenantNotification,
   loadTenantNotifications,
-  markAllTenantNotificationsRead,
+  seedExampleTenantNotifications,
   syncDerivedTenantNotifications,
   TENANT_NOTIFICATIONS_EVENT,
   type CheckoutLeaseHint,
@@ -25,9 +25,10 @@ export function TenantNotifications({
   const [notifications, setNotifications] = useState<TenantNotification[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
-  const unread = notifications.filter((n) => !n.read).length;
+  const count = notifications.length;
 
   useEffect(() => {
+    seedExampleTenantNotifications();
     syncDerivedTenantNotifications({ checkoutLeases, waitingMessage });
     setNotifications(loadTenantNotifications());
     // Serialize so stable server payloads don't thrash on new array identity.
@@ -46,8 +47,6 @@ export function TenantNotifications({
 
   useEffect(() => {
     if (!open) return;
-    markAllTenantNotificationsRead();
-    setNotifications(loadTenantNotifications());
 
     const onPointer = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
@@ -63,6 +62,12 @@ export function TenantNotifications({
     };
   }, [open]);
 
+  function handleNotificationClick(id: string) {
+    dismissTenantNotification(id);
+    setNotifications(loadTenantNotifications());
+    setOpen(false);
+  }
+
   return (
     <div className="relative" ref={rootRef}>
       <button
@@ -75,7 +80,7 @@ export function TenantNotifications({
       >
         <span className="sr-only">
           Notifications
-          {unread > 0 ? `, ${unread} unread` : ""}
+          {count > 0 ? `, ${count} unread` : ""}
         </span>
         <svg
           viewBox="0 0 24 24"
@@ -91,9 +96,9 @@ export function TenantNotifications({
             d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .53-.21 1.04-.59 1.41L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"
           />
         </svg>
-        {unread > 0 ? (
+        {count > 0 ? (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold text-white">
-            {unread > 9 ? "9+" : unread}
+            {count > 9 ? "9+" : count}
           </span>
         ) : null}
       </button>
@@ -126,9 +131,7 @@ export function TenantNotifications({
                       <p className="text-sm font-medium text-[#0c1f2e]">
                         {n.subject}
                       </p>
-                      {!n.read ? (
-                        <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600" />
-                      ) : null}
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600" />
                     </div>
                     <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
                       {n.fromRole} · {n.fromName}
@@ -143,25 +146,24 @@ export function TenantNotifications({
                 return (
                   <li
                     key={n.id}
-                    className={`border-b border-slate-50 last:border-0 ${
-                      n.read ? "bg-white" : "bg-[#f8f1ea]"
-                    }`}
+                    className="border-b border-slate-50 bg-[#f8f1ea] last:border-0"
                   >
                     {href ? (
                       <Link
                         href={href}
-                        onClick={() => {
-                          if (n.id.startsWith("msg-waiting-")) {
-                            dismissTenantNotification(n.id);
-                          }
-                          setOpen(false);
-                        }}
+                        onClick={() => handleNotificationClick(n.id)}
                         className="block px-4 py-3 transition hover:bg-slate-50"
                       >
                         {body}
                       </Link>
                     ) : (
-                      <div className="px-4 py-3">{body}</div>
+                      <button
+                        type="button"
+                        onClick={() => handleNotificationClick(n.id)}
+                        className="block w-full px-4 py-3 text-left transition hover:bg-slate-50"
+                      >
+                        {body}
+                      </button>
                     )}
                   </li>
                 );
