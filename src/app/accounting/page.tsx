@@ -88,12 +88,16 @@ export default async function AccountingDashboardPage({
   }
   const opexSlices = withPieColors(
     [...opexByCategory.entries()]
-      .map(([label, value]) => ({
-        label: label.replaceAll("_", " "),
-        value,
-      }))
+      .map(([raw, value]) => {
+        const words = raw.replaceAll("_", " ").trim();
+        const label =
+          words.length === 0
+            ? "Other"
+            : words.replace(/\b\w/g, (c) => c.toUpperCase());
+        return { label, value };
+      })
       .sort((a, b) => b.value - a.value),
-    { payroll: PIE_ACCENT_RED }
+    { Payroll: PIE_ACCENT_RED }
   );
 
   const openPeriods = (periods ?? []).filter((p) => p.status === "open");
