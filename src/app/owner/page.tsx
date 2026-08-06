@@ -11,7 +11,7 @@ import {
   type NoiPropertySeries,
 } from "@/components/owner/noi-trend-chart";
 import { formatMoney } from "@/lib/utils";
-import { fetchOwnerMyItems } from "@/lib/owner/my-items";
+import { fetchOwnerMyItems, monthsUntilLeaseEnd } from "@/lib/owner/my-items";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
 import Link from "next/link";
@@ -28,16 +28,14 @@ function formatPeriodLabel(start: string, end: string) {
   return `${start} → ${end} · ${monthYear}`;
 }
 
-function expirationWindow(
+function expirationUrgencyClass(
   endDate: string,
   within12: string,
   within18: string
 ) {
-  if (endDate <= within12)
-    return { label: "12 months", className: "bg-rose-100 text-rose-800" };
-  if (endDate <= within18)
-    return { label: "18 months", className: "bg-amber-100 text-amber-900" };
-  return { label: "24 months", className: "bg-slate-200 text-slate-800" };
+  if (endDate <= within12) return "bg-rose-100 text-rose-800";
+  if (endDate <= within18) return "bg-amber-100 text-amber-900";
+  return "bg-slate-200 text-slate-800";
 }
 
 export default async function OwnerDashboard() {
@@ -394,7 +392,12 @@ export default async function OwnerDashboard() {
             <ul className="space-y-4">
               {expiringLeases.map((l) => {
                 const tenant = Array.isArray(l.tenants) ? l.tenants[0] : l.tenants;
-                const window = expirationWindow(l.end_date, within12, within18);
+                const urgencyClass = expirationUrgencyClass(
+                  l.end_date,
+                  within12,
+                  within18
+                );
+                const { monthsLabel } = monthsUntilLeaseEnd(l.end_date, now);
                 return (
                   <li
                     key={l.id}
@@ -415,9 +418,9 @@ export default async function OwnerDashboard() {
                       </p>
                     </div>
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${window.className}`}
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${urgencyClass}`}
                     >
-                      {window.label}
+                      {monthsLabel}
                     </span>
                   </li>
                 );

@@ -52,7 +52,11 @@ export type OwnerMyItemsData = {
     property_name: string;
     tenant_name: string;
     end_date: string;
+    /** Urgency bucket used for badges / attention counts */
     window: "12 months" | "18 months" | "24 months";
+    /** Actual remaining time label, e.g. "3 months" */
+    monthsLabel: string;
+    monthsRemaining: number;
   }[];
   /** Nav badge: decisions + overdue + 12-month expirations */
   attentionCount: number;
@@ -80,6 +84,39 @@ function expirationWindow(
   if (endDate <= within12) return "12 months";
   if (endDate <= within18) return "18 months";
   return "24 months";
+}
+
+/** Round remaining calendar span to whole months for display (never uses bucket labels). */
+export function monthsUntilLeaseEnd(endDateIso: string, from = new Date()) {
+  const end = new Date(`${endDateIso}T12:00:00`);
+  if (Number.isNaN(end.getTime())) {
+    return { monthsRemaining: 0, monthsLabel: "—" };
+  }
+  const start = new Date(
+    from.getFullYear(),
+    from.getMonth(),
+    from.getDate(),
+    12,
+    0,
+    0
+  );
+  const ms = end.getTime() - start.getTime();
+  if (ms <= 0) {
+    return { monthsRemaining: 0, monthsLabel: "Expired" };
+  }
+  const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
+  if (days < 30) {
+    return {
+      monthsRemaining: 0,
+      monthsLabel: days === 1 ? "1 day" : `${days} days`,
+    };
+  }
+  const monthsRemaining = Math.max(1, Math.round(days / 30.437));
+  return {
+    monthsRemaining,
+    monthsLabel:
+      monthsRemaining === 1 ? "1 month" : `${monthsRemaining} months`,
+  };
 }
 
 export async function fetchOwnerMyItems(
@@ -222,14 +259,20 @@ export async function fetchOwnerMyItems(
 
   const expirations = (leases ?? [])
     .filter((l) => l.end_date && l.end_date >= today && l.end_date <= within24)
-    .map((l) => ({
-      id: l.id,
-      property_id: l.property_id,
-      property_name: unwrapName(l.properties) ?? propertyName(l.property_id),
-      tenant_name: unwrapName(l.tenants) ?? "Tenant",
-      end_date: l.end_date as string,
-      window: expirationWindow(l.end_date as string, within12, within18),
-    }))
+    .map((l) => {
+      const endDate = l.end_date as string;
+      const remaining = monthsUntilLeaseEnd(endDate, now);
+      return {
+        id: l.id,
+        property_id: l.property_id,
+        property_name: unwrapName(l.properties) ?? propertyName(l.property_id),
+        tenant_name: unwrapName(l.tenants) ?? "Tenant",
+        end_date: endDate,
+        window: expirationWindow(endDate, within12, within18),
+        monthsLabel: remaining.monthsLabel,
+        monthsRemaining: remaining.monthsRemaining,
+      };
+    })
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
 
   // Match property "actions": only costs over the approval threshold need a decision.

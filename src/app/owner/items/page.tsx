@@ -302,7 +302,7 @@ export default async function OwnerMyItemsPage() {
                           : "bg-slate-200 text-slate-800"
                     }`}
                   >
-                    {l.window}
+                    {l.monthsLabel}
                   </span>
                 </li>
               ))}
