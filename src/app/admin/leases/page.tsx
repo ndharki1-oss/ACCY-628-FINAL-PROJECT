@@ -220,7 +220,8 @@ export default async function AdminLeasesPage() {
   const activeLeases = rows.filter((row) => isLiveLeaseStatus(row.dbStatus)).length;
   const expiringSoon = rows.filter(
     (row) =>
-      isLiveLeaseStatus(row.dbStatus) && expiresWithinDays(row.endDate, 90)
+      isLiveLeaseStatus(row.dbStatus) &&
+      expiresWithinDays(row.endDate, Math.round(6 * (365.25 / 12)))
   ).length;
 
   return (
@@ -238,7 +239,7 @@ export default async function AdminLeasesPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Active Leases" value={String(activeLeases)} />
-        <Stat label="Leases Expiring Within 90 Days" value={String(expiringSoon)} />
+        <Stat label="Leases Expiring Within 6 Months" value={String(expiringSoon)} />
         <Stat label="Vacant Units" value={String(vacantUnits)} />
         <Stat
           label="Tenants With Outstanding Balances"
