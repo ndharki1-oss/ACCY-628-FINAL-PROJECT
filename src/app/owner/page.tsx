@@ -3,6 +3,7 @@ import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge } from "@/components/ui";
 import { PropertyLink } from "@/components/property-link";
 import { DashboardSection } from "@/components/owner/dashboard-section";
+import { SinceLastVisitBanner } from "@/components/owner/since-last-visit-banner";
 import { StatWithDetail } from "@/components/owner/stat-with-detail";
 import {
   NoiTrendChart,
@@ -284,6 +285,16 @@ export default async function OwnerDashboard() {
           />
         </div>
       </section>
+
+      <SinceLastVisitBanner
+        ownerId={ownerId}
+        snapshot={{
+          costApprovals: myItems.costs.filter((c) => c.overThreshold).length,
+          workOrders: myItems.workOrders.length,
+          requests: myItems.requests.length,
+          overdue: myItems.overdueInvoices.length,
+        }}
+      />
 
       <div className="space-y-4">
         <DashboardSection
