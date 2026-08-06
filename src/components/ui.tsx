@@ -35,12 +35,6 @@ const nav: Record<string, { href: string; label: string }[]> = {
     { href: "/tenant/invoices", label: "Invoices" },
     { href: "/tenant/requests", label: "Requests" },
   ],
-  employee: [
-    { href: "/employee", label: "Dashboard" },
-    { href: "/employee/work-orders", label: "Assignments" },
-    { href: "/employee/reports/maintenance", label: "My Hours" },
-    { href: "/employee/reports/employee-labor", label: "My Labor" },
-  ],
 };
 
 export function AppShell({

@@ -4,26 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
-import { TenantNotifications } from "@/components/tenant-notifications";
-import type {
-  CheckoutLeaseHint,
-  WaitingMessageHint,
-} from "@/lib/tenant-notifications-store";
 
 type NavLink = { href: string; label: string };
 
-export function TenantAppShell({
+function linkActive(pathname: string, href: string) {
+  return (
+    pathname === href ||
+    (href !== "/employee" && pathname.startsWith(href))
+  );
+}
+
+export function EmployeeAppShell({
   name,
   links,
   children,
-  checkoutLeases = [],
-  waitingMessage = null,
 }: {
   name: string;
   links: NavLink[];
   children: React.ReactNode;
-  checkoutLeases?: CheckoutLeaseHint[];
-  waitingMessage?: WaitingMessageHint | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -59,7 +57,7 @@ export function TenantAppShell({
               type="button"
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
-              aria-controls="tenant-sidebar"
+              aria-controls="employee-sidebar"
               className="inline-flex h-10 w-10 items-center justify-center rounded border border-slate-500 hover:bg-white/10"
             >
               <span className="sr-only">
@@ -82,17 +80,14 @@ export function TenantAppShell({
                 Harborline
               </p>
               <p className="text-xs uppercase tracking-[0.2em] text-slate-300">
-                Tenant Portal
+                Employee Portal
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
-            <TenantNotifications
-              checkoutLeases={checkoutLeases}
-              waitingMessage={waitingMessage}
-            />
             <span className="hidden text-slate-300 sm:inline">
-              {name} · <span className="capitalize text-[#d4a574]">tenant</span>
+              {name} ·{" "}
+              <span className="capitalize text-[#d4a574]">employee</span>
             </span>
             <form action={logout}>
               <button
@@ -116,16 +111,17 @@ export function TenantAppShell({
       ) : null}
 
       <aside
-        id="tenant-sidebar"
+        id="employee-sidebar"
         className={`fixed bottom-0 left-0 top-[4.75rem] z-40 flex w-64 flex-col border-r border-slate-800/10 bg-[#0c1f2e] text-[#f3efe6] transition-transform duration-200 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Tenant">
+        <nav
+          className="flex flex-1 flex-col gap-1 overflow-y-auto p-3"
+          aria-label="Employee"
+        >
           {links.map((l) => {
-            const active =
-              pathname === l.href ||
-              (l.href !== "/tenant" && pathname.startsWith(l.href));
+            const active = linkActive(pathname, l.href);
             return (
               <Link
                 key={l.href}

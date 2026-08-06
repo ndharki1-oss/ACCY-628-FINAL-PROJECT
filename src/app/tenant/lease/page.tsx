@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth";
 import { getLinkedTenantId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
+import { LeaseDocumentButton } from "./lease-document-button";
 
 type LeaseRow = {
   id: string;
@@ -44,8 +45,7 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
         </p>
         <p>Base rent: {formatMoney(lease.base_rent_monthly)}</p>
         <p>CAM: {formatMoney(lease.cam_monthly)}</p>
-        <p>Grace days: {lease.grace_days}</p>
-        <p>Late fee: {lease.late_fee_percent}% of rent after grace</p>
+        <p>Late fee: 5% of rent after 7 days</p>
       </div>
       {deps.length > 0 ? (
         <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
@@ -71,6 +71,12 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
           ))}
         </ul>
       ) : null}
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <LeaseDocumentButton
+          leaseId={lease.id}
+          leaseNumber={lease.lease_number}
+        />
+      </div>
     </Card>
   );
 }
