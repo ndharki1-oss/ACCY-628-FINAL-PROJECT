@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
-import { getLinkedTenantId } from "@/lib/portal";
 import { buildLeaseTemplatePdf } from "@/lib/lease-templates/build-pdf";
 import { loadLeaseTemplateData } from "@/lib/lease-templates/load";
 
@@ -9,14 +8,9 @@ export async function GET(
   context: { params: Promise<{ leaseId: string }> }
 ) {
   const { leaseId } = await context.params;
-  const { supabase, user } = await requireRole(["tenant"]);
-  const { tenantId } = await getLinkedTenantId(supabase, user);
+  const { supabase } = await requireRole(["admin"]);
+  const data = await loadLeaseTemplateData(supabase, leaseId);
 
-  if (!tenantId) {
-    return NextResponse.json({ error: "Tenant not linked." }, { status: 403 });
-  }
-
-  const data = await loadLeaseTemplateData(supabase, leaseId, { tenantId });
   if (!data) {
     return NextResponse.json({ error: "Lease not found." }, { status: 404 });
   }
