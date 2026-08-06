@@ -96,13 +96,17 @@ export function fillMgmtPnlMonthlySeries(
 
 /**
  * Build monthly Fee Revenue / Operating Costs / Contribution buckets from
- * dated activity. Only months with activity are returned — use
+ * dated activity. Operating costs = company_expenses + company-paid WO costs
+ * + labor (same definition as the Mgmt P&L company OpEx stat).
+ * Only months with activity are returned — use
  * {@link fillMgmtPnlMonthlySeries} to expand to a full date-range spine.
  */
 export function buildMgmtPnlMonthlySeries(input: {
   feeLines: { credit: number; entryDate: string | null | undefined }[];
   companyExpenses: { amount: number; incurredDate: string | null | undefined }[];
   companyPaidCosts: { amount: number; incurredDate: string | null | undefined }[];
+  /** Harborline labor time entries — same OpEx bucket as the Mgmt P&L stat. */
+  laborCosts?: { amount: number; workDate: string | null | undefined }[];
   selectedPeriod: string | null;
 }): MgmtPnlMonthlyPoint[] {
   const buckets = new Map<string, MgmtPnlMonthlyPoint>();
@@ -131,6 +135,11 @@ export function buildMgmtPnlMonthlySeries(input: {
   for (const cost of input.companyPaidCosts) {
     const point = bucket(monthKeyFromDate(cost.incurredDate));
     if (point) point.operatingCosts += Number(cost.amount) || 0;
+  }
+
+  for (const labor of input.laborCosts ?? []) {
+    const point = bucket(monthKeyFromDate(labor.workDate));
+    if (point) point.operatingCosts += Number(labor.amount) || 0;
   }
 
   const series = [...buckets.values()].sort((a, b) =>

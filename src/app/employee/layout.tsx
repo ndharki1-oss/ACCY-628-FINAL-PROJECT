@@ -17,18 +17,21 @@ export default async function Layout({
 }) {
   const { supabase, user, profile } = await requireRole(["vendor"]);
   const { vendor } = await getLinkedVendorId(supabase, user);
-  const demoRole =
-    vendor?.worker_type === "staff" ||
-    profile.email === "staff@example.com"
-      ? ("staff" as const)
-      : ("vendor" as const);
+  const isStaff =
+    vendor?.worker_type === "staff" || profile.email === "staff@example.com";
+  const isContractor =
+    vendor?.worker_type === "contractor" ||
+    profile.email === "employee@example.com";
+  const demoRole = isStaff ? ("staff" as const) : ("vendor" as const);
+
+  const links = isContractor
+    ? employeeLinks.filter(
+        (link) => link.href !== "/employee/independent-contractor"
+      )
+    : employeeLinks;
 
   return (
-    <EmployeeAppShell
-      name={profile.full_name}
-      links={employeeLinks}
-      demoRole={demoRole}
-    >
+    <EmployeeAppShell name={profile.full_name} links={links} demoRole={demoRole}>
       {children}
     </EmployeeAppShell>
   );

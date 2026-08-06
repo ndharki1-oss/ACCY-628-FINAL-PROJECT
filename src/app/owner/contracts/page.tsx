@@ -62,7 +62,7 @@ export default async function OwnerContractsPage() {
       <section className="space-y-4">
         <PageHeading
           as="h2"
-          title="Management agreements"
+          title="Management Agreements"
           vital="Approval authority defaults to 10% of active monthly Base Rent."
           info="Year-to-year contracts with Harborline Commercial Management."
         />
@@ -144,7 +144,7 @@ export default async function OwnerContractsPage() {
       <section className="space-y-4">
         <PageHeading
           as="h2"
-          title="Tenant leases"
+          title="Tenant Leases"
           info="Lease agreements between you and the commercial tenants occupying your properties."
         />
 

@@ -48,7 +48,7 @@ export default async function OwnerDashboard() {
     return (
       <div className="space-y-4">
         <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Owner dashboard
+          Owner Dashboard
         </h1>
         <p className="text-sm text-rose-700">
           {ownerError ?? "This login is not linked to an owner record."}
@@ -252,7 +252,7 @@ export default async function OwnerDashboard() {
   return (
     <div className="space-y-8">
       <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e] sm:text-4xl">
-        Owner dashboard
+        Owner Dashboard
       </h1>
 
       <section className="space-y-4">

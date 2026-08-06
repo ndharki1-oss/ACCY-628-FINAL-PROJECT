@@ -123,14 +123,17 @@ export function Card({
   children,
   action,
   className = "",
+  id,
 }: {
   title: string;
   children: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       className={`rounded-lg border border-slate-800/10 bg-white/80 p-5 shadow-sm backdrop-blur ${className}`.trim()}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
