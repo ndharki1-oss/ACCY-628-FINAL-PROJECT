@@ -154,6 +154,7 @@ export function FeeComponentsView({
   const expenseTotal = filtered.reduce((s, r) => s + r.total_expenses, 0);
   const mismatchCount = filtered.filter(hasFeeMismatch).length;
   const activeFeeTypes = FEE_LINE_TYPES.filter((t) => totals[t] > 0.009);
+  const feeMixTotal = activeFeeTypes.reduce((sum, key) => sum + totals[key], 0);
   const periodHint = selectedPeriod
     ? formatPeriodLabel(selectedPeriod)
     : "All periods";
@@ -278,20 +279,36 @@ export function FeeComponentsView({
             </span>
           }
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {activeFeeTypes.map((t) => (
-              <div
-                key={t}
-                className="rounded-md border border-slate-200 bg-white/70 px-3 py-2"
-              >
-                <p className="text-xs uppercase tracking-wide text-slate-500">
-                  {FEE_LINE_LABELS[t]}
-                </p>
-                <p className="mt-1 font-[family-name:var(--font-display)] text-lg text-[#0c1f2e] tabular-nums">
-                  {formatMoney(totals[t])}
-                </p>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="py-2 pr-3">Fee type</th>
+                  <th className="py-2 text-right">Amount</th>
+                  <th className="py-2 pl-3 text-right">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeFeeTypes.map((t) => {
+                  const amount = totals[t];
+                  const share =
+                    feeMixTotal > 0 ? (amount / feeMixTotal) * 100 : 0;
+                  return (
+                    <tr key={t} className="border-b border-slate-100">
+                      <td className="py-2.5 pr-3 text-[#0c1f2e]">
+                        {FEE_LINE_LABELS[t]}
+                      </td>
+                      <td className="py-2.5 text-right tabular-nums font-medium text-[#0c1f2e]">
+                        {formatMoney(amount)}
+                      </td>
+                      <td className="py-2.5 pl-3 text-right tabular-nums text-slate-600">
+                        {share.toFixed(1)}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </Card>
       ) : null}

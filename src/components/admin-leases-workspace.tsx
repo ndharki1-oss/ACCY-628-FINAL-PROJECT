@@ -25,6 +25,8 @@ export type AdminLeaseRow = {
   managementFeePercent: number;
   propertyId: string;
   propertyName: string;
+  ownerId: string | null;
+  agreementId: string | null;
   unitCode: string;
   leaseType: string;
   dbStatus: string;
@@ -95,11 +97,13 @@ function LeaseDetail({
             value={lease.leaseType.replaceAll("_", " ")}
             capitalize
           />
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Current status</dt>
-            <dd>
+          <div className="rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500">
+              Current status
+            </p>
+            <div className="mt-1">
               <Badge status={lease.displayStatus} />
-            </dd>
+            </div>
           </div>
           <DetailItem label="Start date" value={formatLeaseDate(lease.startDate)} />
           <DetailItem label="End date" value={formatLeaseDate(lease.endDate)} />
@@ -122,11 +126,13 @@ function LeaseDetail({
             }`}
           />
           <DetailItem label="Current balance" value={formatMoney(lease.balance)} />
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Renewal status</dt>
-            <dd>
+          <div className="rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500">
+              Renewal status
+            </p>
+            <div className="mt-1">
               <Badge status={lease.renewalStatus} />
-            </dd>
+            </div>
           </div>
         </dl>
       </section>
@@ -176,11 +182,13 @@ function LeaseDetail({
                 : "—"
             }
           />
-          <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Payment status</dt>
-            <dd>
+          <div className="rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.1em] text-slate-500">
+              Payment status
+            </p>
+            <div className="mt-1">
               <Badge status={lease.paymentStatus} />
-            </dd>
+            </div>
           </div>
         </dl>
       </section>
@@ -253,15 +261,6 @@ function LeaseDetail({
               </ul>
             )}
           </div>
-          <div className="rounded border border-slate-200 p-3 sm:col-span-2">
-            <p className="text-xs uppercase tracking-wide text-slate-500">
-              Related contract
-            </p>
-            <p className="mt-1 text-slate-600">
-              Not linked yet. A future nullable contract ID on the lease can
-              connect this row to the contract module.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -298,9 +297,20 @@ function LeaseDetail({
           <button type="button" onClick={onStartRenewal} className={actionClass()}>
             Start Renewal Review
           </button>
-          <button type="button" disabled className={actionClass(true)}>
-            View Related Contract
-          </button>
+          <Link
+            href={`/admin/contracts/tenants?expand=${encodeURIComponent(lease.tenantId)}`}
+            className={actionClass()}
+          >
+            View Tenant Contract
+          </Link>
+          {lease.ownerId ? (
+            <Link
+              href={`/admin/contracts/owners?expand=${encodeURIComponent(lease.ownerId)}`}
+              className={actionClass()}
+            >
+              View Owner Contract
+            </Link>
+          ) : null}
         </div>
       </section>
     </div>
@@ -317,9 +327,15 @@ function DetailItem({
   capitalize?: boolean;
 }) {
   return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className={`text-right text-[#0c1f2e] ${capitalize ? "capitalize" : ""}`}>
+    <div className="rounded-md border border-slate-100 bg-slate-50/60 px-3 py-2">
+      <dt className="text-[11px] uppercase tracking-[0.1em] text-slate-500">
+        {label}
+      </dt>
+      <dd
+        className={`mt-1 text-sm font-medium text-[#0c1f2e] ${
+          capitalize ? "capitalize" : ""
+        }`}
+      >
         {value}
       </dd>
     </div>
