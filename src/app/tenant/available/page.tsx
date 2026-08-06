@@ -32,7 +32,7 @@ export default async function TenantAvailableLeasesPage() {
   return (
     <div className="space-y-6">
       <PageHeading
-        title="Available leases"
+        title="Available Leases"
         info="Vacant units in the Harborline network that are not currently leased."
       />
       {available.length === 0 ? (
