@@ -44,6 +44,7 @@ export default async function EmployeeWorkOrdersPage() {
         </p>
       ) : null}
 
+      <div id="assignments-open" className="scroll-mt-28">
       <Card title={`Open assignments (${active.length})`}>
         {active.length === 0 ? (
           <p className="text-sm text-slate-600">
@@ -56,7 +57,11 @@ export default async function EmployeeWorkOrdersPage() {
                 ? w.properties[0]
                 : w.properties;
               return (
-                <li key={w.id} className="space-y-3 py-4 text-sm">
+                <li
+                  key={w.id}
+                  id={`assignment-${w.id}`}
+                  className="scroll-mt-28 space-y-3 py-4 text-sm"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="font-medium">
@@ -112,6 +117,7 @@ export default async function EmployeeWorkOrdersPage() {
           </ul>
         )}
       </Card>
+      </div>
 
       <Card title={`Recently completed (${completed.length})`}>
         {completed.length === 0 ? (

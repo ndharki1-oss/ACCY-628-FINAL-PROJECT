@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DemoRoleSwitcher, type DemoRoleKey } from "@/components/demo-role-switcher";
+import { EmployeeNotifications } from "@/components/employee-notifications";
 import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
+import type { AssignmentHint } from "@/lib/employee-notifications-store";
 
 type NavLink = { href: string; label: string };
 
@@ -19,11 +21,13 @@ export function EmployeeAppShell({
   name,
   links,
   demoRole = "vendor",
+  assignmentHints = [],
   children,
 }: {
   name: string;
   links: NavLink[];
   demoRole?: DemoRoleKey;
+  assignmentHints?: AssignmentHint[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -88,6 +92,7 @@ export function EmployeeAppShell({
             </div>
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
+            <EmployeeNotifications assignmentHints={assignmentHints} />
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole={demoRole} />
             </span>
