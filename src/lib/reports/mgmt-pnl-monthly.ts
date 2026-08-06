@@ -103,6 +103,7 @@ export function buildMgmtPnlMonthlySeries(input: {
   feeLines: { credit: number; entryDate: string | null | undefined }[];
   companyExpenses: { amount: number; incurredDate: string | null | undefined }[];
   companyPaidCosts: { amount: number; incurredDate: string | null | undefined }[];
+  laborEntries?: { laborCost: number; workDate: string | null | undefined }[];
   selectedPeriod: string | null;
 }): MgmtPnlMonthlyPoint[] {
   const buckets = new Map<string, MgmtPnlMonthlyPoint>();
@@ -131,6 +132,11 @@ export function buildMgmtPnlMonthlySeries(input: {
   for (const cost of input.companyPaidCosts) {
     const point = bucket(monthKeyFromDate(cost.incurredDate));
     if (point) point.operatingCosts += Number(cost.amount) || 0;
+  }
+
+  for (const row of input.laborEntries ?? []) {
+    const point = bucket(monthKeyFromDate(row.workDate));
+    if (point) point.operatingCosts += Number(row.laborCost) || 0;
   }
 
   const series = [...buckets.values()].sort((a, b) =>

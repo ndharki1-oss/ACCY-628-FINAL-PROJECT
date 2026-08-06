@@ -147,6 +147,10 @@ export default async function AdminProfitabilityPage({
         amount: Number(row.amount),
         incurredDate: row.incurred_date,
       })),
+    laborEntries: (labor ?? []).map((row) => ({
+      laborCost: Number(row.labor_cost),
+      workDate: row.work_date,
+    })),
     // Chart has its own date-range control; keep full monthly history here.
     selectedPeriod: null,
   });
