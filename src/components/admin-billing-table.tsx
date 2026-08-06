@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { AdminInvoiceDocumentButton } from "@/app/admin/billing/invoice-document-button";
 import { Badge } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import {
@@ -126,6 +127,16 @@ function InvoicePaymentDialog({
             </span>
           </div>
 
+          {invoice.partyType === "tenant" ? (
+            <div>
+              <AdminInvoiceDocumentButton
+                invoiceId={invoice.id}
+                invoiceNumber={invoice.invoiceNumber}
+                className="w-full rounded border border-[#0c1f2e] px-3 py-2 text-left text-sm font-medium text-[#0c1f2e] hover:bg-[#0c1f2e] hover:text-white"
+              />
+            </div>
+          ) : null}
+
           <div>
             <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">
               How & when paid
@@ -205,7 +216,8 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
               <th className="py-2 pr-3">Dates</th>
               <th className="py-2 pr-3">Total</th>
               <th className="py-2 pr-3">Paid</th>
-              <th className="py-2">Status</th>
+              <th className="py-2 pr-3">Status</th>
+              <th className="py-2">PDF</th>
             </tr>
           </thead>
           <tbody>
@@ -228,14 +240,24 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
                 </td>
                 <td className="py-3 pr-3">{formatMoney(invoice.total)}</td>
                 <td className="py-3 pr-3">{formatMoney(invoice.amountPaid)}</td>
-                <td className="py-3">
+                <td className="py-3 pr-3">
                   <Badge status={invoice.status} />
+                </td>
+                <td className="py-3">
+                  {invoice.partyType === "tenant" ? (
+                    <AdminInvoiceDocumentButton
+                      invoiceId={invoice.id}
+                      invoiceNumber={invoice.invoiceNumber}
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )}
                 </td>
               </tr>
             ))}
             {invoices.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-500">
+                <td colSpan={7} className="py-8 text-center text-slate-500">
                   No invoices found.
                 </td>
               </tr>
