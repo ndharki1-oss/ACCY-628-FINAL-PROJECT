@@ -52,16 +52,18 @@ const THEME_PHOTOS: Record<string, PhotoPools> = {
   },
   shops: {
     exterior: [
-      U("photo-1441986300917-64674bd600d8"),
+      U("photo-1763824969015-e5d1d6755782"),
+      U("photo-1779614710155-2d5670fc0d06"),
+      U("photo-1601924994987-69e26d50dc26"),
       U("photo-1472851294608-062f824d29cc"),
-      U("photo-1555636222-cae831e670b3"),
-      U("photo-1604719312566-8912e9227c6a"),
     ],
     interior: [
-      U("photo-1441984904996-e0b6ba687e04"),
-      U("photo-1555529669-e69e7aa0ba9a"),
-      U("photo-1601924994987-69e26d50dc26"),
+      U("photo-1753029226995-74b05a344bb1"),
+      U("photo-1441986300917-64674bd600d8"),
       U("photo-1567401893414-76b7b1e5a7a5"),
+      U("photo-1560243563-062bfc001d68"),
+      U("photo-1551488831-00ddcb6c6bd3"),
+      U("photo-1445205170230-053b83016050"),
     ],
   },
   loft: {
@@ -168,16 +170,18 @@ const THEME_PHOTOS: Record<string, PhotoPools> = {
   },
   retail: {
     exterior: [
-      U("photo-1441986300917-64674bd600d8"),
-      U("photo-1555636222-cae831e670b3"),
-      U("photo-1604719312566-8912e9227c6a"),
+      U("photo-1763824969015-e5d1d6755782"),
+      U("photo-1779614710155-2d5670fc0d06"),
+      U("photo-1601924994987-69e26d50dc26"),
       U("photo-1472851294608-062f824d29cc"),
     ],
     interior: [
-      U("photo-1441984904996-e0b6ba687e04"),
-      U("photo-1555529669-e69e7aa0ba9a"),
-      U("photo-1601924994987-69e26d50dc26"),
+      U("photo-1753029226995-74b05a344bb1"),
+      U("photo-1441986300917-64674bd600d8"),
       U("photo-1567401893414-76b7b1e5a7a5"),
+      U("photo-1560243563-062bfc001d68"),
+      U("photo-1551488831-00ddcb6c6bd3"),
+      U("photo-1445205170230-053b83016050"),
     ],
   },
   warehouse: {
@@ -298,6 +302,19 @@ export function photosForProperty(property: {
   name: string;
   type: string;
 }): PropertyGalleryPhoto[] {
+  const normalizedName = property.name.trim().toLowerCase().replace(/\s+/g, " ");
+  if (
+    property.id === "20000000-0000-0000-0000-000000000015" ||
+    normalizedName === "clybourn commerce"
+  ) {
+    return [
+      { src: U("photo-1486406146926-c627a92ad1ab"), label: "Exterior" },
+      { src: U("photo-1554469384-e58fac16e23a"), label: "Exterior" },
+      { src: U("photo-1641159930908-e9eb9ccdc002"), label: "Interior" },
+      { src: U("photo-1771678040857-51d00a11be7a"), label: "Interior" },
+    ];
+  }
+
   const theme = resolvePropertyPhotoTheme(property.name, property.type);
   const pools = THEME_PHOTOS[theme] ?? THEME_PHOTOS.office;
   const seed = hashSeed(`${property.id}:${theme}`);
