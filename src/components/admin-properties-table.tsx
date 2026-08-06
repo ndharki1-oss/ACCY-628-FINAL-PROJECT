@@ -46,16 +46,18 @@ const PROPERTY_TYPE_PHOTOS: Record<string, PhotoPools> = {
   },
   retail: {
     exterior: [
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1555636222-cae831e670b3?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1567449303078-57ad995bd329?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1763824969015-e5d1d6755782?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1779614710155-2d5670fc0d06?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=1200&q=80",
     ],
     interior: [
-      "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1753029226995-74b05a344bb1?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1560243563-062bfc001d68?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1200&q=80",
     ],
   },
   warehouse: {
@@ -116,7 +118,35 @@ function pickDistinct(pool: string[], seed: number, offset: number) {
   return [first, second] as const;
 }
 
+const PROPERTY_PHOTO_OVERRIDES: Record<string, GalleryPhoto[]> = {
+  // Clybourn Commerce — office skyscraper exteriors + unfurnished interiors
+  "20000000-0000-0000-0000-000000000015": [
+    {
+      src: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+      label: "Exterior",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1554469384-e58fac16e23a?auto=format&fit=crop&w=1200&q=80",
+      label: "Exterior",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1641159930908-e9eb9ccdc002?auto=format&fit=crop&w=1200&q=80",
+      label: "Interior",
+    },
+    {
+      src: "https://images.unsplash.com/photo-1771678040857-51d00a11be7a?auto=format&fit=crop&w=1200&q=80",
+      label: "Interior",
+    },
+  ],
+};
+
 function photosForProperty(property: AdminPropertyRow): GalleryPhoto[] {
+  const byId = PROPERTY_PHOTO_OVERRIDES[property.id];
+  if (byId) return byId;
+  if (property.name.trim().toLowerCase() === "clybourn commerce") {
+    return PROPERTY_PHOTO_OVERRIDES["20000000-0000-0000-0000-000000000015"];
+  }
+
   const typeKey = normalizePropertyType(property.type);
   const pools = PROPERTY_TYPE_PHOTOS[typeKey] ?? PROPERTY_TYPE_PHOTOS.office;
   const seed = hashSeed(`${property.id}:${typeKey}`);
