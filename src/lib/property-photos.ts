@@ -315,16 +315,41 @@ export function photosForProperty(property: {
     ];
   }
 
+  if (
+    property.id === "20000000-0000-0000-0000-000000000022" ||
+    normalizedName === "gold coast gallery"
+  ) {
+    return [
+      { src: U("photo-1758570648398-07bd739f7721"), label: "Exterior" },
+      { src: U("photo-1768329238155-6cabb8bb6463"), label: "Exterior" },
+      { src: U("photo-1509403960877-1dee2afbd5bb"), label: "Interior" },
+      { src: U("photo-1774876203004-461433250ada"), label: "Interior" },
+    ];
+  }
+
   const theme = resolvePropertyPhotoTheme(property.name, property.type);
   const pools = THEME_PHOTOS[theme] ?? THEME_PHOTOS.office;
   const seed = hashSeed(`${property.id}:${theme}`);
   const [exteriorA, exteriorB] = pickDistinct(pools.exterior, seed, 2);
   const [interiorA, interiorB] = pickDistinct(pools.interior, seed, 3);
 
-  return [
+  const photos: PropertyGalleryPhoto[] = [
     { src: exteriorA, label: "Exterior" },
     { src: exteriorB, label: "Exterior" },
     { src: interiorA, label: "Interior" },
     { src: interiorB, label: "Interior" },
   ];
+
+  if (
+    property.id === "20000000-0000-0000-0000-000000000003" ||
+    normalizedName === "fulton market lofts"
+  ) {
+    // Exterior 1: modern apartment building
+    photos[0] = {
+      src: U("photo-1460317442991-0ec209397118"),
+      label: "Exterior",
+    };
+  }
+
+  return photos;
 }
