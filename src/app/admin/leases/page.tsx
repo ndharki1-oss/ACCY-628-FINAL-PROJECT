@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card, Stat } from "@/components/ui";
 import {
   AdminLeasesWorkspace,
@@ -229,16 +230,10 @@ export default async function AdminLeasesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          Leases
-        </h1>
-        <p className="mt-1 text-slate-600">
-          Operational lease register for daily property-management work.
-          Management fee billed on collections is each tenant&apos;s credit-based
-          % (4–12%), not the property agreement average.
-        </p>
-      </div>
+      <PageHeading
+        title="Leases"
+        vital="Management fee billed on collections is each tenant's credit-based % (4–12%), not the property agreement average."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Active Leases" value={String(activeLeases)} />

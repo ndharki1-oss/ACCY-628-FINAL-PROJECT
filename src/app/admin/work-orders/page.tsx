@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney, statusClass } from "@/lib/utils";
 import {
@@ -190,17 +191,10 @@ export default async function AdminWorkOrdersPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Work Orders
-        </h1>
-        <p className="mt-1 text-slate-600">
-          Tenant requests auto-assign Harborline staff by specialty when
-          possible. At or below threshold (routine): Jordan Blake / in-house staff —
-          Harborline pays. Above threshold, Emergency/High, or CapEx: owner approval →
-          Victor Chen (contractor) — owner pays.
-        </p>
-      </div>
+      <PageHeading
+        title="Work Orders"
+        vital="Tenant requests auto-assign Harborline staff by specialty when possible. At or below threshold (routine): Jordan Blake / in-house staff — Harborline pays. Above threshold, Emergency/High, or CapEx: owner approval → Victor Chen (contractor) — owner pays."
+      />
 
       <div className="flex flex-wrap gap-2">
         {chips.map((chip) => {

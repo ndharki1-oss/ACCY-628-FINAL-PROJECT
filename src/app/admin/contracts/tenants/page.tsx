@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { TenantLeaseDocumentButton } from "@/app/admin/contracts/tenants/tenant-lease-document-button";
 import { loadAdminTenantContractsByTenant } from "@/lib/lease-templates/load";
@@ -30,15 +31,10 @@ export default async function AdminTenantContractsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#0c1f2e]">
-          Tenant Contracts
-        </h1>
-        <p className="mt-1 max-w-3xl text-slate-600">
-          Lease agreements between property owners and commercial tenants.
-          Documents mirror the lease type templates used in the tenant portal.
-        </p>
-      </div>
+      <PageHeading
+        title="Tenant Contracts"
+        info="Lease agreements between property owners and commercial tenants. Documents mirror the lease type templates used in the tenant portal."
+      />
 
       {groups.length === 0 ? (
         <Card title="No tenant leases">

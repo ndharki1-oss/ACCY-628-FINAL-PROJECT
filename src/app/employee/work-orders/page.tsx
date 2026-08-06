@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedVendorId } from "@/lib/portal";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { vendorCompleteWorkOrder } from "@/app/actions/business";
@@ -32,12 +33,11 @@ export default async function EmployeeWorkOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-[family-name:var(--font-display)] text-3xl">
-        Assignments
-      </h1>
-      <p className="text-slate-600">
-        Work orders assigned to you under Harborline routing rules. {payerNote}
-      </p>
+      <PageHeading
+        title="Assignments"
+        vital={payerNote}
+        info="Work orders assigned to you under Harborline routing rules."
+      />
       {vendorError ? (
         <p className="text-sm text-rose-700">
           This login is not linked to an employee work record.

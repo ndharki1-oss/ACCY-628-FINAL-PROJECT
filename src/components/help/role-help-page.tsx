@@ -1,4 +1,5 @@
 import { HelpFaqBrowser } from "@/components/help/help-faq-browser";
+import { PageHeading } from "@/components/page-heading";
 import {
   FAQ_BY_ROLE,
   HELP_INTRO,
@@ -11,12 +12,7 @@ export function RoleHelpPage({ role }: { role: HelpRole }) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          {intro.title}
-        </h1>
-        <p className="mt-2 max-w-3xl text-slate-600">{intro.blurb}</p>
-      </header>
+      <PageHeading title={intro.title} info={intro.blurb} />
       <HelpFaqBrowser articles={articles} roleLabel={role} />
     </div>
   );

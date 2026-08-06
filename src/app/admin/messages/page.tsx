@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { AdminMessagesInbox } from "@/components/admin-messages-inbox";
 import {
   loadAdminOwnerMessageThreads,
@@ -25,16 +26,14 @@ export default async function AdminMessagesPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-4xl text-[#0c1f2e]">
-          Messages
-        </h1>
-        <p className="mt-1 max-w-2xl text-slate-600">
-          {isOwner
+      <PageHeading
+        title="Messages"
+        info={
+          isOwner
             ? "Property owner conversations from Contact Management. Open a thread to review history and reply."
-            : "Tenant conversations from Contact Management. Open a thread to review history and reply."}
-        </p>
-      </div>
+            : "Tenant conversations from Contact Management. Open a thread to review history and reply."
+        }
+      />
 
       <AdminMessagesInbox
         key={channel}

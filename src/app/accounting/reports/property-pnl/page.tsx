@@ -14,7 +14,8 @@ export default async function AccountingPropertyPnLPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Property Profit & Loss"
-        subtitle={`${ALL_PERIODS_HINT}. NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI.`}
+        subtitle={ALL_PERIODS_HINT}
+        info="NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI."
       />
       <PropertyPnLTable rows={rows} mode="full" />
     </div>

@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui";
 import { formatSpecialtyLabel } from "@/lib/vendors/format-specialty";
 
@@ -14,14 +15,10 @@ export default async function EmployeeDirectoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Employee Directory
-        </h1>
-        <p className="mt-1 max-w-2xl text-slate-600">
-          Harborline maintenance staff and basic contact information.
-        </p>
-      </div>
+      <PageHeading
+        title="Employee Directory"
+        info="Harborline maintenance staff and basic contact information."
+      />
 
       {error ? (
         <p className="text-sm text-rose-700">{error.message}</p>

@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { adminDisposeSecurityDeposit } from "@/app/actions/business";
@@ -42,16 +43,11 @@ export default async function AdminDepositsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Security deposits
-        </h1>
-        <p className="mt-1 text-slate-600">
-          Escrow ledger for tenant deposits. Use disposition on a held deposit to
-          demo applied damages + refund (writes ledger events; does not delete
-          seed).
-        </p>
-      </div>
+      <PageHeading
+        title="Security deposits"
+        vital="Use disposition on a held deposit to demo applied damages + refund (writes ledger events; does not delete seed)."
+        info="Escrow ledger for tenant deposits."
+      />
 
       <Card title={`Held deposits (${held.length})`}>
         {held.length === 0 ? (

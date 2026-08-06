@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { getLinkedTenantId } from "@/lib/portal";
+import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui";
 import { createTenantRequest } from "@/app/tenant/actions";
 import { OpenRequestStatusMenu } from "@/app/tenant/open-request-status-menu";
@@ -140,14 +141,7 @@ export default async function TenantRequestsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Maintenance Requests
-        </h1>
-        <p className="text-slate-600">
-          Submit new issues and track open or past requests.
-        </p>
-      </div>
+      <PageHeading title="Maintenance Requests" />
 
       {params.submitted === "1" ? (
         <RequestSubmittedBanner

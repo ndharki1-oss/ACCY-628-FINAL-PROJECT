@@ -7,6 +7,7 @@ import {
   withPieColors,
 } from "@/components/accounting/breakdown-pie";
 import { MonthlyRentBars } from "@/components/accounting/monthly-rent-bars";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card, Stat } from "@/components/ui";
 import {
   fetchMonthlyRentSummary,
@@ -137,15 +138,10 @@ export default async function AccountingDashboardPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Dashboard
-        </h1>
-        <p className="mt-1 max-w-3xl text-slate-600">
-          Harborline company snapshot and exceptions. Open Statements or
-          Profitability for detail.
-        </p>
-      </div>
+      <PageHeading
+        title="Dashboard"
+        info="Harborline company snapshot and exceptions. Open Statements or Profitability for detail."
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card

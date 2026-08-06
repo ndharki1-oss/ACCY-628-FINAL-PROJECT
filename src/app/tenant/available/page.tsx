@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Badge, Card } from "@/components/ui";
 import Link from "next/link";
 
@@ -30,14 +31,10 @@ export default async function TenantAvailableLeasesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Available leases
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Vacant units in the Harborline network that are not currently leased.
-        </p>
-      </div>
+      <PageHeading
+        title="Available leases"
+        info="Vacant units in the Harborline network that are not currently leased."
+      />
       {available.length === 0 ? (
         <p className="text-sm text-slate-600">
           No vacant units right now. Check back later.

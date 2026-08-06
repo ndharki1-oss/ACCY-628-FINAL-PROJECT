@@ -1,20 +1,17 @@
 "use client";
 
+import { PageHeading } from "@/components/page-heading";
 import { toggleAutoPay } from "@/app/actions/business";
 
 export function AutomatedPaymentsToggle({ enabled }: { enabled: boolean }) {
   return (
     <section className="rounded border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-            Automated payments
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Turn this on if you want payments drafted automatically. Your choice
-            is saved until changed.
-          </p>
-        </div>
+        <PageHeading
+          as="h2"
+          title="Automated payments"
+          info="Turn this on if you want payments drafted automatically. Your choice is saved until changed."
+        />
         <form action={toggleAutoPay} className="flex items-center gap-3">
           <input
             type="hidden"

@@ -10,7 +10,8 @@ export default async function AdminOwnerProfitabilityPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Owner (Customer) Profitability"
-        subtitle={`${ALL_PERIODS_HINT}. Profit generated from each property owner across all managed properties.`}
+        subtitle={ALL_PERIODS_HINT}
+        info="Profit generated from each property owner across all managed properties."
       />
       <OwnerProfitTable rows={rows} />
     </div>

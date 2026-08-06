@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { PageHeading } from "@/components/page-heading";
 import { Card, Stat } from "@/components/ui";
 import {
   AdminPropertiesTable,
@@ -103,16 +104,10 @@ export default async function AdminPropertiesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
-          Properties
-        </h1>
-        <p className="mt-1 text-slate-600">
-          Buildings, addresses, units, and occupancy across the portfolio. Fee %
-          column shows credit-based rates on active leases (4–12%). Agreement avg
-          is a property-level reference only — statements bill by tenant credit.
-        </p>
-      </div>
+      <PageHeading
+        title="Properties"
+        vital="Fee % column shows credit-based rates on active leases (4–12%). Agreement avg is a property-level reference only — statements bill by tenant credit."
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Properties" value={String(propertyCount)} />
