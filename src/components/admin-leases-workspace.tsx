@@ -361,7 +361,8 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
       if (statusFilter !== "all" && lease.dbStatus !== statusFilter) return false;
       if (typeFilter !== "all" && lease.leaseType !== typeFilter) return false;
       if (expiryFilter !== "all") {
-        const days = Number(expiryFilter);
+        const months = Number(expiryFilter);
+        const days = Math.round(months * (365.25 / 12));
         if (!expiresWithinDays(lease.endDate, days)) return false;
       }
       if (!needle) return true;
@@ -473,9 +474,10 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
             className={inputClass}
           >
             <option value="all">Any date</option>
-            <option value="30">Within 30 days</option>
-            <option value="60">Within 60 days</option>
-            <option value="90">Within 90 days</option>
+            <option value="6">Within 6 months</option>
+            <option value="12">Within 12 months</option>
+            <option value="18">Within 18 months</option>
+            <option value="24">Within 24 months</option>
           </select>
         </label>
       </div>
