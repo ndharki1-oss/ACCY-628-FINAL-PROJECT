@@ -25,13 +25,31 @@ export function pathMatchesRole(pathname: string, role: string): boolean {
 
 export type CreditRating = "AAA" | "AA" | "A" | "BBB" | "BB" | "B" | "CCC";
 
-/** Harborline management fee % of collected rent from tenant credit (4–12%).
+export type PropertyRiskTier = "standard" | "elevated" | "high";
+
+/** Harborline management fee % of collected rent from tenant credit (4–12%)
+ * plus property risk uplift (standard +0, elevated +1, high +2), capped at 14%.
  * Canonical for statements, remittance, and GL fee recognition.
  * Do not use management_agreements.fee_percent for billing math — that column is
- * an unweighted average of active-lease credit fees (display / fallback only).
+ * an unweighted average of active-lease fees (display / fallback only).
  */
 export function feePercentFromCredit(
   rating: CreditRating | string | null | undefined
+): number {
+  return feePercentFromCreditAndRisk(rating, "standard");
+}
+
+export function propertyRiskFeeUplift(
+  risk: PropertyRiskTier | string | null | undefined
+): number {
+  if (risk === "elevated") return 1.0;
+  if (risk === "high") return 2.0;
+  return 0;
+}
+
+export function feePercentFromCreditAndRisk(
+  rating: CreditRating | string | null | undefined,
+  risk: PropertyRiskTier | string | null | undefined
 ): number {
   const map: Record<CreditRating, number> = {
     AAA: 4.0,
@@ -42,8 +60,9 @@ export function feePercentFromCredit(
     B: 10.5,
     CCC: 12.0,
   };
-  if (rating && rating in map) return map[rating as CreditRating];
-  return 7.5;
+  const base =
+    rating && rating in map ? map[rating as CreditRating] : 7.5;
+  return Math.min(base + propertyRiskFeeUplift(risk), 14);
 }
 
 export function formatFeePercent(n: number | string | null | undefined) {
@@ -53,9 +72,10 @@ export function formatFeePercent(n: number | string | null | undefined) {
 
 export function managementFeeFromCollection(
   collectedAmount: number,
-  creditRating: CreditRating | string | null | undefined
+  creditRating: CreditRating | string | null | undefined,
+  risk: PropertyRiskTier | string | null | undefined = "standard"
 ) {
-  const pct = feePercentFromCredit(creditRating);
+  const pct = feePercentFromCreditAndRisk(creditRating, risk);
   return Math.round(collectedAmount * (pct / 100) * 100) / 100;
 }
 
