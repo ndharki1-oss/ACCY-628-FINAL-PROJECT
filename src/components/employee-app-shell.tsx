@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout } from "@/app/actions/auth";
 import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
 
 type NavLink = { href: string; label: string };
 
@@ -89,14 +89,6 @@ export function EmployeeAppShell({
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole="vendor" />
             </span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded border border-slate-500 px-3 py-1.5 hover:bg-white/10"
-              >
-                Sign out
-              </button>
-            </form>
           </div>
         </div>
       </header>
@@ -137,6 +129,10 @@ export function EmployeeAppShell({
             );
           })}
         </nav>
+        <PortalSidebarUtilities
+          helpHref="/employee/help"
+          settingsHref="/employee/settings"
+        />
       </aside>
 
       <main

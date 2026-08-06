@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { logout } from "@/app/actions/auth";
 import {
   AdminMessageNotifications,
   type AdminMessageBellItem,
 } from "@/components/admin-message-notifications";
 import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
 
 export type AdminNavChild = { href: string; label: string };
 
@@ -206,14 +206,6 @@ export function AdminAppShell({
             <span className="hidden text-slate-300 sm:inline">
               {name} · <DemoRoleSwitcher currentRole="admin" />
             </span>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded border border-slate-500 px-3 py-1.5 hover:bg-white/10"
-              >
-                Sign out
-              </button>
-            </form>
           </div>
         </div>
       </header>
@@ -266,6 +258,7 @@ export function AdminAppShell({
             );
           })}
         </nav>
+        <PortalSidebarUtilities settingsHref="/admin/settings" />
       </aside>
 
       <main
