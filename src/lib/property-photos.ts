@@ -303,6 +303,44 @@ export function photosForProperty(property: {
   type: string;
 }): PropertyGalleryPhoto[] {
   const normalizedName = property.name.trim().toLowerCase().replace(/\s+/g, " ");
+
+  // Curated Entrance / Floor plan / Interior / Interior sets for selected properties.
+  if (
+    property.id === "20000000-0000-0000-0000-000000000019" ||
+    normalizedName === "andersonville arcade"
+  ) {
+    return [
+      { src: U("photo-1769321790975-ee4f5c76aad2"), label: "Entrance" },
+      { src: U("photo-1721244653769-6001b9b4778f"), label: "Floor plan" },
+      { src: U("photo-1700085664050-43cea0e1c3fd"), label: "Interior" },
+      { src: U("photo-1701374930170-47ea6a246c0b"), label: "Interior" },
+    ];
+  }
+
+  if (
+    property.id === "20000000-0000-0000-0000-000000000018" ||
+    normalizedName === "bridgeport center"
+  ) {
+    return [
+      { src: U("photo-1486406146926-c627a92ad1ab"), label: "Entrance" },
+      { src: U("photo-1721244654195-943615c56ac4"), label: "Floor plan" },
+      { src: U("photo-1524758631624-e2822e304c36"), label: "Interior" },
+      { src: U("photo-1556761175-5973dc0f32e7"), label: "Interior" },
+    ];
+  }
+
+  if (
+    property.id === "20000000-0000-0000-0000-000000000021" ||
+    normalizedName === "canal street works"
+  ) {
+    return [
+      { src: U("photo-1766793110924-98e05b48eadc"), label: "Entrance" },
+      { src: U("photo-1721244653652-268631ec049a"), label: "Floor plan" },
+      { src: U("photo-1586528116493-a029325540fa"), label: "Interior" },
+      { src: U("photo-1565610222536-ef125c59da2e"), label: "Interior" },
+    ];
+  }
+
   if (
     property.id === "20000000-0000-0000-0000-000000000015" ||
     normalizedName === "clybourn commerce"
