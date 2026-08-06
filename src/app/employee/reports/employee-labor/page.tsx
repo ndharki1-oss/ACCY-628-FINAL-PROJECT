@@ -14,7 +14,7 @@ export default async function EmployeeLaborReportPage() {
         title="My Labor Report"
         subtitle="Hours and labor cost for work orders assigned to you (synced to your login)."
       />
-      <LaborTable rows={rows} />
+      <LaborTable rows={rows} hideEmployeeFilter />
     </div>
   );
 }
