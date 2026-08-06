@@ -214,7 +214,7 @@ export async function adminRouteWorkOrder(formData: FormData) {
 
 export async function adminAssignWorkOrder(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
-  const vendorId =
+  let vendorId =
     String(formData.get("vendor_id") ?? "").trim() || DEMO_EMPLOYEE_VENDOR_ID;
   if (!id) throw new Error("Work order id required.");
 
@@ -235,7 +235,9 @@ export async function adminAssignWorkOrder(formData: FormData) {
 
   const { data: wo, error: woError } = await supabase
     .from("work_orders")
-    .select("id, property_id, status, requires_owner_approval, owner_approved_at")
+    .select(
+      "id, property_id, status, estimated_cost, requires_owner_approval, owner_approved_at, properties(management_agreements(approval_threshold))"
+    )
     .eq("id", id)
     .maybeSingle();
   if (woError) throw new Error(woError.message);
@@ -257,6 +259,20 @@ export async function adminAssignWorkOrder(formData: FormData) {
     throw new Error("Owner approval is required before assignment.");
   }
 
+  const property = Array.isArray(wo.properties) ? wo.properties[0] : wo.properties;
+  const agreement = Array.isArray(property?.management_agreements)
+    ? property?.management_agreements[0]
+    : property?.management_agreements;
+  const { requiresOwnerApproval } = estimateRequiresOwnerApproval(
+    wo.estimated_cost,
+    agreement?.approval_threshold
+  );
+
+  // Over-threshold jobs must go to the independent contractor (Victor), never staff.
+  if (requiresOwnerApproval || wo.requires_owner_approval) {
+    vendorId = DEMO_EMPLOYEE_VENDOR_ID;
+  }
+
   const { error } = await supabase
     .from("work_orders")
     .update({
@@ -270,7 +286,11 @@ export async function adminAssignWorkOrder(formData: FormData) {
     p_action: "admin_assign_wo",
     p_entity_type: "work_order",
     p_entity_id: id,
-    p_detail: { vendorId },
+    p_detail: {
+      vendorId,
+      overThresholdForcedContractor:
+        requiresOwnerApproval || Boolean(wo.requires_owner_approval),
+    },
   });
 
   revalidateWorkOrderPaths(wo.property_id);
@@ -296,14 +316,16 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     throw new Error("This work order is not awaiting owner approval.");
   }
 
+  // Approve → assign independent contractor (Victor Chen). Never in-house staff.
   const { error } = await supabase
     .from("work_orders")
     .update({
-      status: decision === "approve" ? "approved" : "rejected",
+      status: decision === "approve" ? "assigned" : "rejected",
       owner_approved_at: decision === "approve" ? new Date().toISOString() : null,
       owner_approved_by: user?.id,
       rejection_reason: decision === "reject" ? reason : null,
-      vendor_id: null,
+      vendor_id:
+        decision === "approve" ? DEMO_EMPLOYEE_VENDOR_ID : null,
     })
     .eq("id", id)
     .eq("status", "pending_owner_approval");
@@ -324,7 +346,10 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     p_action: decision === "approve" ? "owner_approve_wo" : "owner_reject_wo",
     p_entity_type: "work_order",
     p_entity_id: id,
-    p_detail: { reason },
+    p_detail: {
+      reason,
+      vendorId: decision === "approve" ? DEMO_EMPLOYEE_VENDOR_ID : null,
+    },
   });
 
   const propertyRel = Array.isArray(workOrder.properties)

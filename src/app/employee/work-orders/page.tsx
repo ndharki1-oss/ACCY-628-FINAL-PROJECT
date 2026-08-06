@@ -26,8 +26,9 @@ export default async function EmployeeWorkOrdersPage() {
         Assignments
       </h1>
       <p className="text-slate-600">
-        Complete assigned work and enter actual cost. Owner approval is only
-        required when Property Manager routes a job above the property threshold.
+        Complete assigned work and enter actual cost. Jobs above the property
+        approval threshold go to the owner first, then are assigned here (Victor
+        Chen / contractor) — not to in-house staff.
       </p>
       {vendorError ? (
         <p className="text-sm text-rose-700">
