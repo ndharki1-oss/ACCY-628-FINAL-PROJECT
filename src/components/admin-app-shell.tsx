@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import {
@@ -16,27 +16,67 @@ export type AdminNavItem =
   | { href: string; label: string; children?: undefined }
   | { label: string; href?: undefined; children: AdminNavChild[] };
 
-function linkActive(pathname: string, href: string) {
-  return (
-    pathname === href || (href !== "/admin" && pathname.startsWith(href))
-  );
+function splitHref(href: string) {
+  const q = href.indexOf("?");
+  if (q === -1) return { path: href, search: "" };
+  return { path: href.slice(0, q), search: href.slice(q + 1) };
+}
+
+function linkActive(
+  pathname: string,
+  href: string,
+  currentSearch: string
+) {
+  const { path, search } = splitHref(href);
+  if (path === "/admin") return pathname === "/admin";
+
+  const pathMatches =
+    pathname === path || pathname.startsWith(`${path}/`);
+  if (!pathMatches) return false;
+
+  if (path === "/admin/messages") {
+    const wanted = new URLSearchParams(search);
+    const current = new URLSearchParams(currentSearch);
+    const wantedChannel =
+      wanted.get("channel") === "owners" || wanted.get("channel") === "owner"
+        ? "owners"
+        : "tenants";
+    const currentChannel =
+      current.get("channel") === "owners" || current.get("channel") === "owner"
+        ? "owners"
+        : "tenants";
+    return wantedChannel === currentChannel;
+  }
+
+  if (!search) return true;
+
+  const wanted = new URLSearchParams(search);
+  const current = new URLSearchParams(currentSearch);
+  for (const [key, value] of wanted.entries()) {
+    if (current.get(key) !== value) return false;
+  }
+  return true;
 }
 
 function NavGroup({
   label,
   items,
   pathname,
+  search,
 }: {
   label: string;
   items: AdminNavChild[];
   pathname: string;
+  search: string;
 }) {
-  const childActive = items.some((c) => linkActive(pathname, c.href));
+  const childActive = items.some((c) =>
+    linkActive(pathname, c.href, search)
+  );
   const [expanded, setExpanded] = useState(childActive);
 
   useEffect(() => {
     if (childActive) setExpanded(true);
-  }, [childActive, pathname]);
+  }, [childActive, pathname, search]);
 
   return (
     <div className="relative">
@@ -61,7 +101,7 @@ function NavGroup({
       {expanded ? (
         <div className="mt-0.5 ml-3 space-y-0.5 border-l border-white/15 pl-2">
           {items.map((c) => {
-            const active = linkActive(pathname, c.href);
+            const active = linkActive(pathname, c.href, search);
             return (
               <Link
                 key={`nav-child:${c.href}`}
@@ -96,6 +136,8 @@ export function AdminAppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -109,7 +151,7 @@ export function AdminAppShell({
   useEffect(() => {
     if (window.matchMedia("(min-width: 1024px)").matches) return;
     setOpen(false);
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     if (!open) return;
@@ -203,11 +245,12 @@ export function AdminAppShell({
                   label={item.label}
                   items={item.children}
                   pathname={pathname}
+                  search={search}
                 />
               );
             }
 
-            const active = linkActive(pathname, item.href);
+            const active = linkActive(pathname, item.href, search);
             return (
               <Link
                 key={`nav-link:${item.href}`}

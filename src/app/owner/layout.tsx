@@ -20,6 +20,7 @@ export default async function Layout({
     { href: "/owner/items", label: "My Items", badge: attentionCount },
     { href: "/owner/statements", label: "Statements" },
     { href: "/owner/noi", label: "NOI" },
+    { href: "/owner/contact", label: "Contact Management" },
   ];
 
   return (
