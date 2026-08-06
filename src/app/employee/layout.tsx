@@ -5,6 +5,8 @@ const employeeLinks = [
   { href: "/employee", label: "Dashboard" },
   { href: "/employee/work-orders", label: "Assignments" },
   { href: "/employee/reports/employee-labor", label: "My Labor" },
+  { href: "/employee/directory", label: "Employee Directory" },
+  { href: "/employee/independent-contractor", label: "Independent Contractor" },
 ];
 
 export default async function Layout({
