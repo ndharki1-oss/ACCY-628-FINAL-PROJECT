@@ -177,8 +177,11 @@ export default async function AdminPropertyDetailPage({
           </div>
           <div className="flex justify-between gap-4 text-sm sm:col-span-2">
             <dt className="text-slate-500">Approval threshold</dt>
-            <dd className="text-[#0c1f2e]">
+            <dd className="text-right text-[#0c1f2e]">
               {formatMoney(agreement?.approval_threshold ?? 2500)}
+              <span className="mt-0.5 block text-xs font-normal text-slate-500">
+                10% of current monthly base rent (active leases)
+              </span>
             </dd>
           </div>
         </dl>

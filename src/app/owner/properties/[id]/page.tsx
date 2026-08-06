@@ -268,7 +268,12 @@ export default async function OwnerPropertyDetailPage({
                 <dt className="text-xs uppercase tracking-wide text-slate-500">
                   Approval threshold
                 </dt>
-                <dd className="mt-1">{formatMoney(agreement.approval_threshold)}</dd>
+                <dd className="mt-1">
+                  {formatMoney(agreement.approval_threshold)}
+                  <span className="mt-0.5 block text-xs font-normal text-slate-500">
+                    10% of current monthly base rent (active leases)
+                  </span>
+                </dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-500">Term</dt>
