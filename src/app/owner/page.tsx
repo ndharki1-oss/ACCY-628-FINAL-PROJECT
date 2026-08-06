@@ -339,7 +339,7 @@ export default async function OwnerDashboard() {
                         {formatMoney(thresholdByProperty.get(c.property_id) ?? 2500)}
                       </p>
                     </div>
-                    <p className="text-lg font-semibold text-[#0c1f2e]">
+                    <p className="font-[family-name:var(--font-display)] text-xl tabular-nums text-[#0c1f2e]">
                       {formatMoney(c.amount)}
                     </p>
                   </div>
@@ -434,7 +434,7 @@ export default async function OwnerDashboard() {
             <p className="text-xs uppercase tracking-wide text-emerald-800/70">
               This period net to owner
             </p>
-            <p className="mt-1 font-[family-name:var(--font-display)] text-3xl text-[#0c1f2e]">
+            <p className="mt-1 font-[family-name:var(--font-display)] text-3xl tabular-nums text-[#0c1f2e]">
               {formatMoney(remittanceDue)}
             </p>
             <p className="mt-2 text-sm text-slate-600">
@@ -472,7 +472,7 @@ export default async function OwnerDashboard() {
                         {formatPeriodLabel(s.period_start, s.period_end)}
                       </span>
                     </span>
-                    <span className="font-medium tabular-nums">
+                    <span className="font-[family-name:var(--font-display)] text-base tabular-nums text-[#0c1f2e]">
                       {formatMoney(s.remittance_due)}
                     </span>
                   </li>
@@ -482,7 +482,15 @@ export default async function OwnerDashboard() {
           )}
         </DashboardSection>
 
-        <DashboardSection title="NOI over time" accent="teal">
+        <DashboardSection
+          title="NOI over time"
+          accent="teal"
+          action={
+            <Link href="/owner/noi" className="text-sm text-[#c4784a]">
+              Full NOI →
+            </Link>
+          }
+        >
           <NoiTrendChart
             portfolio={portfolioNoi}
             byProperty={noiByPropertySeries}
@@ -495,7 +503,7 @@ export default async function OwnerDashboard() {
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Billed this month
               </p>
-              <p className="mt-1 text-xl font-semibold tabular-nums">
+              <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-[#0c1f2e]">
                 {formatMoney(billed)}
               </p>
             </div>
@@ -503,7 +511,7 @@ export default async function OwnerDashboard() {
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Collected
               </p>
-              <p className="mt-1 text-xl font-semibold tabular-nums">
+              <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-[#0c1f2e]">
                 {formatMoney(collected)}
               </p>
             </div>
@@ -511,7 +519,7 @@ export default async function OwnerDashboard() {
               <p className="text-xs uppercase tracking-wide text-slate-500">
                 Overdue invoices
               </p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-rose-800">
+              <p className="mt-1 font-[family-name:var(--font-display)] text-2xl tabular-nums text-rose-800">
                 {overdueInvoices.length}
               </p>
             </div>
@@ -552,7 +560,7 @@ export default async function OwnerDashboard() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold tabular-nums text-rose-900">
+                        <p className="font-[family-name:var(--font-display)] text-lg tabular-nums text-rose-900">
                           {formatMoney(balance)}
                         </p>
                         <Badge status="overdue" />
@@ -591,7 +599,7 @@ export default async function OwnerDashboard() {
                         {propertyName(r.propertyId)}
                       </PropertyLink>
                     </td>
-                    <td className="py-3 pr-4 tabular-nums">
+                    <td className="py-3 pr-4 font-[family-name:var(--font-sans)] tabular-nums">
                       {formatMoney(r.monthly)}
                     </td>
                     <td className="py-3">
