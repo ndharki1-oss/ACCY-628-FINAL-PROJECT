@@ -64,7 +64,7 @@ function NavGroup({
             const active = linkActive(pathname, c.href);
             return (
               <Link
-                key={c.href}
+                key={`nav-child:${c.href}`}
                 href={c.href}
                 className={`block rounded px-3 py-2 text-sm transition ${
                   active
@@ -199,7 +199,7 @@ export function AdminAppShell({
             if (item.children) {
               return (
                 <NavGroup
-                  key={item.label}
+                  key={`nav-group:${item.label}`}
                   label={item.label}
                   items={item.children}
                   pathname={pathname}
@@ -210,7 +210,7 @@ export function AdminAppShell({
             const active = linkActive(pathname, item.href);
             return (
               <Link
-                key={item.href}
+                key={`nav-link:${item.href}`}
                 href={item.href}
                 className={`rounded px-3 py-2.5 text-sm transition ${
                   active

@@ -124,30 +124,28 @@ export function DemoRoleSwitcher({
   const pending = pendingKey ? accountForKey(pendingKey) : null;
 
   return (
-    <>
-      <span className={`text-slate-300 ${className}`.trim()}>
-        <label className="inline-flex items-center gap-1">
-          <span className="sr-only">Switch demo role</span>
-          <select
-            aria-label="Switch demo role"
-            value={selectValue}
-            disabled={loading || pendingKey != null}
-            onChange={(e) => onSelectChange(e.target.value as DemoRoleKey)}
-            className="max-w-[11rem] cursor-pointer appearance-none border-0 bg-transparent py-0.5 pr-5 text-[#d4a574] outline-none focus:ring-1 focus:ring-[#d4a574]/50"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23d4a574' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 0.15rem center",
-            }}
-          >
-            {DEMO_ACCOUNTS.map((a) => (
-              <option key={a.key} value={a.key} className="bg-[#0c1f2e] text-[#f3efe6]">
-                {a.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </span>
+    <span className={`relative text-slate-300 ${className}`.trim()}>
+      <label className="inline-flex items-center gap-1">
+        <span className="sr-only">Switch demo role</span>
+        <select
+          aria-label="Switch demo role"
+          value={selectValue}
+          disabled={loading || pendingKey != null}
+          onChange={(e) => onSelectChange(e.target.value as DemoRoleKey)}
+          className="max-w-[11rem] cursor-pointer appearance-none border-0 bg-transparent py-0.5 pr-5 text-[#d4a574] outline-none focus:ring-1 focus:ring-[#d4a574]/50"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23d4a574' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 0.15rem center",
+          }}
+        >
+          {DEMO_ACCOUNTS.map((a) => (
+            <option key={a.key} value={a.key} className="bg-[#0c1f2e] text-[#f3efe6]">
+              {a.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {pending ? (
         <div
@@ -215,6 +213,6 @@ export function DemoRoleSwitcher({
           </div>
         </div>
       ) : null}
-    </>
+    </span>
   );
 }
