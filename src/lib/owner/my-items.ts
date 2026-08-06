@@ -20,6 +20,8 @@ export type OwnerMyItemsData = {
     property_name: string;
     wo_number: string;
     title: string;
+    description: string | null;
+    estimated_cost: number;
     actual_cost: number;
     vendor_notes: string | null;
     status: string;
@@ -122,7 +124,7 @@ export async function fetchOwnerMyItems(
     supabase
       .from("work_orders")
       .select(
-        "id, property_id, wo_number, title, vendor_notes, actual_cost, status, properties(name)"
+        "id, property_id, wo_number, title, description, vendor_notes, estimated_cost, actual_cost, status, properties(name)"
       )
       .in("property_id", propFilter)
       .eq("status", "pending_owner_approval"),
@@ -189,6 +191,8 @@ export async function fetchOwnerMyItems(
     property_name: unwrapName(w.properties) ?? propertyName(w.property_id),
     wo_number: w.wo_number,
     title: w.title,
+    description: w.description ?? null,
+    estimated_cost: Number(w.estimated_cost ?? 0),
     actual_cost: Number(w.actual_cost ?? 0),
     vendor_notes: w.vendor_notes,
     status: w.status,

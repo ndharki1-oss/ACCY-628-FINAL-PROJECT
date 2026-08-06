@@ -141,9 +141,11 @@ export default async function OwnerMyItemsPage() {
           )}
         </Card>
 
-        <Card title="Work order completions">
+        <Card title="Work orders over threshold">
           {items.workOrders.length === 0 ? (
-            <p className="text-sm text-slate-600">No vendor completions waiting.</p>
+            <p className="text-sm text-slate-600">
+              No work orders waiting on your approval.
+            </p>
           ) : (
             <ul className="space-y-4">
               {items.workOrders.map((w) => (
@@ -160,11 +162,16 @@ export default async function OwnerMyItemsPage() {
                         >
                           {w.property_name}
                         </PropertyLink>{" "}
-                        · claimed cost {formatMoney(w.actual_cost)}
+                        · estimate {formatMoney(w.estimated_cost || w.actual_cost)}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Vendor notes: {w.vendor_notes || "—"}
-                      </p>
+                      {w.description ? (
+                        <p className="mt-1 text-xs text-slate-500">{w.description}</p>
+                      ) : null}
+                      {w.vendor_notes ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          Notes: {w.vendor_notes}
+                        </p>
+                      ) : null}
                     </div>
                     <Badge status={w.status} />
                   </div>
