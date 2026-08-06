@@ -54,7 +54,7 @@ export default async function AccountingDashboardPage({
     supabase
       .from("invoices")
       .select("property_id, total, status, party_type"),
-    supabase.from("cost_entries").select("property_id, amount"),
+    supabase.from("cost_entries").select("property_id, amount, paid_by"),
     fetchFeeStatements(supabase).catch(() => []),
     listAccountingPeriods(supabase),
   ]);
@@ -116,7 +116,7 @@ export default async function AccountingDashboardPage({
         )
         .reduce((s, i) => s + Number(i.total), 0);
       const expense = (costs ?? [])
-        .filter((c) => c.property_id === p.id)
+        .filter((c) => c.property_id === p.id && c.paid_by !== "company")
         .reduce((s, c) => s + Number(c.amount), 0);
       return { id: p.id, name: p.name, noi: revenue - expense };
     })

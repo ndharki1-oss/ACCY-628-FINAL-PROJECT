@@ -18,6 +18,7 @@ const nav: Record<string, AppShellNavItem[]> = {
         { href: "/admin/properties", label: "Properties" },
         { href: "/admin/owners", label: "Property Owners" },
         { href: "/admin/leases", label: "Leases" },
+        { href: "/admin/deposits", label: "Deposits" },
       ],
     },
     {

@@ -32,7 +32,7 @@ export default async function OwnerStatementsPage({
         .order("period_end", { ascending: false })
     : { data: [], error: ownerError ? { message: ownerError } : null };
 
-  const allCards: OwnerStatementCardData[] = (statements ?? []).map((s) => {
+  const allCards: OwnerStatementCardData[] = (statements ?? []).map((s, idx, arr) => {
     const prop = Array.isArray(s.properties) ? s.properties[0] : s.properties;
     const lines =
       (s.owner_statement_lines as {
@@ -43,6 +43,11 @@ export default async function OwnerStatementsPage({
     const projectFee = lines
       .filter((l) => l.line_type === "project_fee")
       .reduce((sum, l) => sum + Number(l.amount), 0);
+
+    // Statements are ordered period_end desc; prior for same property is the next older one
+    const priorSameProperty = arr
+      .slice(idx + 1)
+      .find((other) => other.property_id === s.property_id);
 
     return {
       id: s.id,
@@ -58,6 +63,9 @@ export default async function OwnerStatementsPage({
       propertyName: prop?.name ?? null,
       projectFee,
       lines,
+      beginningBalance: priorSameProperty
+        ? Number(priorSameProperty.remittance_due)
+        : 0,
     };
   });
 

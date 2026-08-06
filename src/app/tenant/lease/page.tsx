@@ -16,7 +16,23 @@ type LeaseRow = {
   grace_days: number;
   late_fee_percent: number;
   properties: { name: string } | { name: string }[] | null;
-  security_deposits: { amount: number; status: string; notes: string | null }[] | null;
+  security_deposits:
+    | {
+        id: string;
+        amount: number;
+        status: string;
+        notes: string | null;
+        security_deposit_events:
+          | {
+              id: string;
+              event_type: string;
+              amount: number;
+              description: string | null;
+              occurred_on: string;
+            }[]
+          | null;
+      }[]
+    | null;
   lease_amendments:
     | { amendment_type: string; description: string; effective_date: string }[]
     | null;
@@ -50,15 +66,37 @@ function LeaseCard({ lease }: { lease: LeaseRow }) {
       {deps.length > 0 ? (
         <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
           <p className="font-medium">Security deposits (liability / escrow)</p>
-          <ul className="mt-1 space-y-1">
-            {deps.map((d, i) => (
-              <li key={i} className="flex justify-between">
-                <span>
-                  {formatMoney(d.amount)} {d.notes ? `· ${d.notes}` : ""}
-                </span>
-                <Badge status={d.status} />
-              </li>
-            ))}
+          <ul className="mt-2 space-y-3">
+            {deps.map((d) => {
+              const events = [...(d.security_deposit_events ?? [])].sort((a, b) =>
+                String(b.occurred_on).localeCompare(String(a.occurred_on))
+              );
+              return (
+                <li key={d.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+                  <div className="flex justify-between gap-3">
+                    <span>
+                      {formatMoney(d.amount)}
+                      {d.notes ? ` · ${d.notes}` : ""}
+                    </span>
+                    <Badge status={d.status} />
+                  </div>
+                  {events.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                      {events.map((e) => (
+                        <li key={e.id} className="flex justify-between gap-2">
+                          <span className="capitalize">
+                            {e.event_type}
+                            {e.description ? ` · ${e.description}` : ""}
+                            <span className="text-slate-400"> · {e.occurred_on}</span>
+                          </span>
+                          <span className="tabular-nums">{formatMoney(e.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
@@ -122,7 +160,7 @@ export default async function TenantLeasePage() {
   const { data: leases } = await supabase
     .from("leases")
     .select(
-      "*, properties(name), security_deposits(amount, status, notes), lease_amendments(amendment_type, description, effective_date)"
+      "*, properties(name), security_deposits(id, amount, status, notes, security_deposit_events(id, event_type, amount, description, occurred_on)), lease_amendments(amendment_type, description, effective_date)"
     )
     .eq("tenant_id", tenantId)
     .order("start_date", { ascending: false });

@@ -42,7 +42,7 @@ export async function getLinkedTenantId(supabase: ServerClient, user: User) {
 export async function getLinkedVendorId(supabase: ServerClient, user: User) {
   const { data, error } = await supabase
     .from("vendors")
-    .select("id, company_name")
+    .select("id, company_name, worker_type")
     .eq("profile_id", user.id)
     .maybeSingle();
 

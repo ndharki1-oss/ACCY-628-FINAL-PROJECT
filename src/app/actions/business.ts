@@ -7,8 +7,9 @@ import {
   managementFeeFromCollection,
 } from "@/lib/utils";
 import {
-  DEMO_EMPLOYEE_VENDOR_ID,
-  estimateRequiresOwnerApproval,
+  DEMO_CONTRACTOR_VENDOR_ID,
+  DEMO_STAFF_VENDOR_ID,
+  evaluateWorkOrderRouting,
 } from "@/lib/work-order-routing";
 import { notifyManagerOfOwnerWorkOrderDecision } from "@/lib/owner/notify-manager";
 
@@ -16,14 +17,72 @@ function revalidateWorkOrderPaths(propertyId?: string | null) {
   revalidatePath("/admin");
   revalidatePath("/admin/work-orders");
   revalidatePath("/admin/messages");
+  revalidatePath("/admin/reports/employee-labor");
   revalidatePath("/employee");
   revalidatePath("/employee/work-orders");
+  revalidatePath("/employee/reports/employee-labor");
   revalidatePath("/owner");
   revalidatePath("/owner/items");
   revalidatePath("/owner/approvals");
   revalidatePath("/owner/properties");
   revalidatePath("/owner/contact");
+  revalidatePath("/accounting");
+  revalidatePath("/accounting/reports/employee-labor");
   if (propertyId) revalidatePath(`/owner/properties/${propertyId}`);
+}
+
+type CostPayor = "owner" | "company";
+
+async function insertWorkOrderCost(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    workOrderId: string;
+    vendorId: string;
+    actualCost: number;
+    userId: string;
+    paidBy: CostPayor;
+    notes?: string;
+  }
+) {
+  if (input.actualCost <= 0) return;
+
+  const { data: wo } = await supabase
+    .from("work_orders")
+    .select("property_id, lease_id, unit_id, title")
+    .eq("id", input.workOrderId)
+    .single();
+  if (!wo) return;
+
+  const { data: prop } = await supabase
+    .from("properties")
+    .select("owner_id")
+    .eq("id", wo.property_id)
+    .single();
+
+  await supabase.from("cost_entries").insert({
+    property_id: wo.property_id,
+    owner_id: prop?.owner_id,
+    unit_id: wo.unit_id,
+    lease_id: wo.lease_id,
+    work_order_id: input.workOrderId,
+    vendor_id: input.vendorId,
+    category: input.paidBy === "company" ? "payroll" : "vendor",
+    description:
+      input.paidBy === "company"
+        ? `In-house WO (Harborline-paid): ${wo.title}${input.notes ? ` — ${input.notes}` : ""}`
+        : `WO cost (owner-paid): ${wo.title}${input.notes ? ` — ${input.notes}` : ""}`,
+    amount: input.actualCost,
+    incurred_date: new Date().toISOString().slice(0, 10),
+    owner_approved: input.paidBy === "owner",
+    billed_on_statement: false,
+    paid_by: input.paidBy,
+    created_by: input.userId,
+  });
+}
+
+function paidByForWorkOrder(requiresOwnerApproval: boolean): CostPayor {
+  // In-house path → company; escalated/owner-approval path → owner (even if actual > threshold later)
+  return requiresOwnerApproval ? "owner" : "company";
 }
 
 export async function vendorCompleteWorkOrder(formData: FormData) {
@@ -85,40 +144,152 @@ export async function vendorCompleteWorkOrder(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  if (actualCost > 0 && vendor) {
-    const { data: wo } = await supabase
-      .from("work_orders")
-      .select("property_id, lease_id, unit_id, title")
-      .eq("id", id)
-      .single();
-    if (wo) {
-      const { data: prop } = await supabase
-        .from("properties")
-        .select("owner_id")
-        .eq("id", wo.property_id)
-        .single();
-      await supabase.from("cost_entries").insert({
-        property_id: wo.property_id,
-        owner_id: prop?.owner_id,
-        unit_id: wo.unit_id,
-        lease_id: wo.lease_id,
-        work_order_id: id,
-        vendor_id: vendor.id,
-        category: "vendor",
-        description: `WO cost: ${wo.title}`,
-        amount: actualCost,
-        incurred_date: new Date().toISOString().slice(0, 10),
-        owner_approved: false,
-        created_by: user.id,
-      });
-    }
+  if (vendor) {
+    await insertWorkOrderCost(supabase, {
+      workOrderId: id,
+      vendorId: vendor.id,
+      actualCost,
+      userId: user.id,
+      paidBy: paidByForWorkOrder(Boolean(existing.requires_owner_approval)),
+      notes,
+    });
+  }
+
+  if (actualCost > 0) {
+    const hourlyRate = existing.requires_owner_approval ? 75 : 55;
+    const hours = Math.max(1, Math.round((actualCost / hourlyRate) * 100) / 100);
+    await supabase.from("labor_time_entries").insert({
+      profile_id: user.id,
+      property_id: existing.property_id,
+      work_order_id: id,
+      work_date: new Date().toISOString().slice(0, 10),
+      hours,
+      hourly_rate: hourlyRate,
+      notes: notes || "Work order completion labor",
+    });
   }
 
   await supabase.rpc("write_audit", {
     p_action: "vendor_complete_wo",
     p_entity_type: "work_order",
     p_entity_id: id,
-    p_detail: { notes, actualCost },
+    p_detail: {
+      notes,
+      actualCost,
+      paidBy: paidByForWorkOrder(Boolean(existing.requires_owner_approval)),
+    },
+  });
+
+  revalidateWorkOrderPaths(existing.property_id);
+}
+
+/** Property manager confirms in-house (staff) work the same way employees enter costs. */
+export async function adminCompleteWorkOrder(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "");
+  const actualCost = Number(formData.get("actual_cost") ?? 0);
+  if (!id) throw new Error("Work order id required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("work_orders")
+    .select(
+      "id, status, requires_owner_approval, owner_approved_at, property_id, vendor_id"
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (!existing) throw new Error("Work order not found.");
+  if (existing.status === "pending_owner_approval") {
+    throw new Error("Waiting on owner approval.");
+  }
+  if (
+    existing.requires_owner_approval &&
+    !existing.owner_approved_at &&
+    existing.status !== "approved"
+  ) {
+    throw new Error("Owner approval is required before completion.");
+  }
+  if (!["open", "assigned", "in_progress", "approved"].includes(existing.status)) {
+    throw new Error("This work order is not open for completion.");
+  }
+
+  const vendorId = existing.vendor_id ?? DEMO_STAFF_VENDOR_ID;
+
+  const { error } = await supabase
+    .from("work_orders")
+    .update({
+      status: "approved",
+      vendor_id: vendorId,
+      vendor_notes: notes,
+      actual_cost: actualCost,
+      completed_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await insertWorkOrderCost(supabase, {
+    workOrderId: id,
+    vendorId,
+    actualCost,
+    userId: user.id,
+    paidBy: paidByForWorkOrder(Boolean(existing.requires_owner_approval)),
+    notes,
+  });
+
+  if (actualCost > 0) {
+    const { data: assignee } = await supabase
+      .from("vendors")
+      .select("profile_id, worker_type")
+      .eq("id", vendorId)
+      .maybeSingle();
+    const laborProfileId = assignee?.profile_id ?? null;
+    if (laborProfileId) {
+      const hourlyRate =
+        assignee?.worker_type === "contractor" ||
+        existing.requires_owner_approval
+          ? 75
+          : 55;
+      const hours = Math.max(
+        1,
+        Math.round((actualCost / hourlyRate) * 100) / 100
+      );
+      await supabase.from("labor_time_entries").insert({
+        profile_id: laborProfileId,
+        property_id: existing.property_id,
+        work_order_id: id,
+        work_date: new Date().toISOString().slice(0, 10),
+        hours,
+        hourly_rate: hourlyRate,
+        notes: notes || "Work order completion labor",
+      });
+    }
+  }
+
+  await supabase.rpc("write_audit", {
+    p_action: "admin_complete_wo",
+    p_entity_type: "work_order",
+    p_entity_id: id,
+    p_detail: {
+      notes,
+      actualCost,
+      vendorId,
+      paidBy: paidByForWorkOrder(Boolean(existing.requires_owner_approval)),
+    },
   });
 
   revalidateWorkOrderPaths(existing.property_id);
@@ -150,7 +321,7 @@ export async function adminRouteWorkOrder(formData: FormData) {
   const { data: wo, error: woError } = await supabase
     .from("work_orders")
     .select(
-      "id, property_id, status, properties(management_agreements(approval_threshold))"
+      "id, property_id, status, title, description, wo_type, properties(management_agreements(approval_threshold))"
     )
     .eq("id", id)
     .maybeSingle();
@@ -161,28 +332,31 @@ export async function adminRouteWorkOrder(formData: FormData) {
   const agreement = Array.isArray(property?.management_agreements)
     ? property?.management_agreements[0]
     : property?.management_agreements;
-  const { estimate, threshold, requiresOwnerApproval } =
-    estimateRequiresOwnerApproval(
-      estimatedCost,
-      agreement?.approval_threshold
-    );
 
-  const patch = requiresOwnerApproval
+  const routing = evaluateWorkOrderRouting({
+    title: wo.title,
+    description: wo.description,
+    woType: wo.wo_type,
+    estimatedCost,
+    approvalThreshold: agreement?.approval_threshold,
+  });
+
+  const patch = routing.requiresOwnerApproval
     ? {
-        estimated_cost: estimate,
+        estimated_cost: routing.estimatedCost,
         requires_owner_approval: true,
         status: "pending_owner_approval" as const,
-        vendor_id: null,
+        vendor_id: null as string | null,
         owner_approved_at: null,
         owner_approved_by: null,
         rejection_reason: null,
         completed_at: null,
       }
     : {
-        estimated_cost: estimate,
+        estimated_cost: routing.estimatedCost,
         requires_owner_approval: false,
         status: "assigned" as const,
-        vendor_id: DEMO_EMPLOYEE_VENDOR_ID,
+        vendor_id: DEMO_STAFF_VENDOR_ID,
         owner_approved_at: null,
         owner_approved_by: null,
         rejection_reason: null,
@@ -196,16 +370,18 @@ export async function adminRouteWorkOrder(formData: FormData) {
   if (error) throw new Error(error.message);
 
   await supabase.rpc("write_audit", {
-    p_action: requiresOwnerApproval
+    p_action: routing.requiresOwnerApproval
       ? "admin_route_wo_owner"
-      : "admin_route_wo_employee",
+      : "admin_route_wo_staff",
     p_entity_type: "work_order",
     p_entity_id: id,
     p_detail: {
-      estimate,
-      threshold,
-      requiresOwnerApproval,
-      vendorId: requiresOwnerApproval ? null : DEMO_EMPLOYEE_VENDOR_ID,
+      estimate: routing.estimatedCost,
+      threshold: routing.threshold,
+      requiresOwnerApproval: routing.requiresOwnerApproval,
+      reasons: routing.reviewReasons,
+      vendorId: routing.requiresOwnerApproval ? null : DEMO_STAFF_VENDOR_ID,
+      paidBy: routing.paidBy,
     },
   });
 
@@ -215,7 +391,7 @@ export async function adminRouteWorkOrder(formData: FormData) {
 export async function adminAssignWorkOrder(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
   const vendorId =
-    String(formData.get("vendor_id") ?? "").trim() || DEMO_EMPLOYEE_VENDOR_ID;
+    String(formData.get("vendor_id") ?? "").trim() || DEMO_CONTRACTOR_VENDOR_ID;
   if (!id) throw new Error("Work order id required.");
 
   const supabase = await createClient();
@@ -296,35 +472,41 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     throw new Error("This work order is not awaiting owner approval.");
   }
 
+  const approved = decision === "approve";
   const { error } = await supabase
     .from("work_orders")
     .update({
-      status: decision === "approve" ? "approved" : "rejected",
-      owner_approved_at: decision === "approve" ? new Date().toISOString() : null,
+      status: approved ? "assigned" : "rejected",
+      owner_approved_at: approved ? new Date().toISOString() : null,
       owner_approved_by: user?.id,
-      rejection_reason: decision === "reject" ? reason : null,
-      vendor_id: null,
+      rejection_reason: approved ? null : reason,
+      // Post-approval contractor path defaults to Victor Chen
+      vendor_id: approved ? DEMO_CONTRACTOR_VENDOR_ID : null,
     })
     .eq("id", id)
     .eq("status", "pending_owner_approval");
 
   if (error) throw new Error(error.message);
 
-  if (decision === "approve") {
+  if (approved) {
     await supabase
       .from("cost_entries")
       .update({
         owner_approved: true,
         owner_approved_at: new Date().toISOString(),
+        paid_by: "owner",
       })
       .eq("work_order_id", id);
   }
 
   await supabase.rpc("write_audit", {
-    p_action: decision === "approve" ? "owner_approve_wo" : "owner_reject_wo",
+    p_action: approved ? "owner_approve_wo" : "owner_reject_wo",
     p_entity_type: "work_order",
     p_entity_id: id,
-    p_detail: { reason },
+    p_detail: {
+      reason,
+      vendorId: approved ? DEMO_CONTRACTOR_VENDOR_ID : null,
+    },
   });
 
   const propertyRel = Array.isArray(workOrder.properties)
@@ -790,6 +972,108 @@ export async function createTenantRequest(formData: FormData) {
   });
   revalidatePath("/tenant/requests");
   revalidatePath("/owner");
+}
+
+/** Admin demo: apply damages + refund remainder on a held security deposit. */
+export async function adminDisposeSecurityDeposit(formData: FormData) {
+  const depositId = String(formData.get("deposit_id") ?? "").trim();
+  const appliedRaw = Number(formData.get("applied_amount") ?? 0);
+  const notes = String(formData.get("notes") ?? "").trim();
+  if (!depositId) throw new Error("Deposit id required.");
+  if (!Number.isFinite(appliedRaw) || appliedRaw < 0) {
+    throw new Error("Enter a valid applied amount.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: deposit, error: depError } = await supabase
+    .from("security_deposits")
+    .select("id, amount, status, property_id, lease_id")
+    .eq("id", depositId)
+    .maybeSingle();
+  if (depError) throw new Error(depError.message);
+  if (!deposit) throw new Error("Deposit not found.");
+  if (deposit.status !== "held") {
+    throw new Error("Only held deposits can be disposed in this demo action.");
+  }
+
+  const held = Number(deposit.amount);
+  const applied = Math.min(appliedRaw, held);
+  const refunded = Math.round((held - applied) * 100) / 100;
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (applied > 0) {
+    const { error: appliedErr } = await supabase
+      .from("security_deposit_events")
+      .insert({
+        deposit_id: depositId,
+        event_type: "applied",
+        amount: applied,
+        description:
+          notes ||
+          "Move-out disposition: applied to damages / outstanding charges",
+        occurred_on: today,
+        created_by: user.id,
+      });
+    if (appliedErr) throw new Error(appliedErr.message);
+  }
+
+  if (refunded > 0) {
+    const { error: refundErr } = await supabase
+      .from("security_deposit_events")
+      .insert({
+        deposit_id: depositId,
+        event_type: "refunded",
+        amount: refunded,
+        description: "Move-out disposition: refund to tenant",
+        occurred_on: today,
+        created_by: user.id,
+      });
+    if (refundErr) throw new Error(refundErr.message);
+  }
+
+  const newStatus = applied > 0 ? "applied" : "refunded";
+  const { error: updErr } = await supabase
+    .from("security_deposits")
+    .update({
+      status: newStatus,
+      notes: notes
+        ? `${notes} (applied ${applied}; refunded ${refunded})`
+        : `Disposition: applied ${applied}; refunded ${refunded}`,
+    })
+    .eq("id", depositId);
+  if (updErr) throw new Error(updErr.message);
+
+  await supabase.rpc("write_audit", {
+    p_action: "dispose_security_deposit",
+    p_entity_type: "security_deposit",
+    p_entity_id: depositId,
+    p_detail: { applied, refunded, status: newStatus },
+  });
+
+  revalidatePath("/admin/leases");
+  revalidatePath("/admin/deposits");
+  revalidatePath("/admin");
+  revalidatePath("/accounting");
+  revalidatePath("/owner");
+  revalidatePath("/owner/properties");
+  if (deposit.property_id) {
+    revalidatePath(`/owner/properties/${deposit.property_id}`);
+  }
+  revalidatePath("/tenant/lease");
 }
 
 export async function closeAccountingPeriod(formData: FormData) {

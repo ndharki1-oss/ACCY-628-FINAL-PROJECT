@@ -38,7 +38,8 @@ export async function fetchPropertyPnL(
         .in("property_id", propIds),
       supabase
         .from("cost_entries")
-        .select("property_id, amount")
+        .select("property_id, amount, paid_by")
+        .eq("paid_by", "owner")
         .in("property_id", propIds),
       supabase
         .from("labor_time_entries")
@@ -159,8 +160,9 @@ export async function fetchMaintenanceReport(
     supabase
       .from("cost_entries")
       .select(
-        "id, property_id, category, description, amount, work_order_id, work_orders(wo_number), properties(name)"
+        "id, property_id, category, description, amount, paid_by, work_order_id, work_orders(wo_number), properties(name)"
       )
+      .eq("paid_by", "owner")
       .in("property_id", propIds),
     scope.mode === "summary"
       ? Promise.resolve({ data: [] as never[] })
@@ -293,7 +295,8 @@ export async function fetchExpenseBreakdown(
   const [{ data: costs }, { data: labor }] = await Promise.all([
     supabase
       .from("cost_entries")
-      .select("category, amount")
+      .select("category, amount, paid_by")
+      .eq("paid_by", "owner")
       .in("property_id", propIds),
     supabase
       .from("labor_time_entries")

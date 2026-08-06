@@ -1,15 +1,15 @@
 export type UserRole = "admin" | "owner" | "tenant" | "vendor" | "accounting";
 
-/** DB role → portal URL path (vendor portal is labeled Employee). */
+/** DB / demo role → portal URL path (vendor portal is labeled Employee). */
 export function roleHomePath(role: string): string {
-  if (role === "vendor") return "/employee";
+  if (role === "vendor" || role === "staff") return "/employee";
   if (role === "accounting") return "/accounting";
   return `/${role}`;
 }
 
 /** DB role → nav/shell key used in the UI. */
 export function roleShellKey(role: string): string {
-  if (role === "vendor") return "employee";
+  if (role === "vendor" || role === "staff") return "employee";
   return role;
 }
 

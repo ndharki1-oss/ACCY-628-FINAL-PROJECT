@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui";
 import { PropertyLink } from "@/components/property-link";
+import { TrustCashWaterfall } from "@/components/owner/trust-cash-waterfall";
+import { computeTrustCashPosition } from "@/lib/trust-cash";
 import { formatMoney } from "@/lib/utils";
 
 export type OwnerStatementLine = {
@@ -25,6 +27,7 @@ export type OwnerStatementCardData = {
   propertyName: string | null;
   projectFee: number;
   lines: OwnerStatementLine[];
+  beginningBalance?: number;
 };
 
 function SummaryStat({
@@ -175,6 +178,17 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
 
       {open ? (
         <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+          <TrustCashWaterfall
+            position={computeTrustCashPosition({
+              beginning: Number(s.beginningBalance) || 0,
+              collections: Number(s.total_collections),
+              ownerExpenses: Number(s.total_expenses),
+              managementFee: Number(s.management_fee),
+              periodStart: s.period_start,
+              periodEnd: s.period_end,
+              statementNumber: s.statement_number,
+            })}
+          />
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
             Statement breakdown
           </p>

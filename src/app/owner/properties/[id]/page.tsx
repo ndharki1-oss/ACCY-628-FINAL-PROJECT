@@ -4,7 +4,9 @@ import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card, Stat } from "@/components/ui";
 import { StatWithDetail } from "@/components/owner/stat-with-detail";
+import { TrustCashWaterfall } from "@/components/owner/trust-cash-waterfall";
 import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
+import { computeTrustCashPosition } from "@/lib/trust-cash";
 import { formatMoney } from "@/lib/utils";
 import {
   ownerApproveCost,
@@ -81,6 +83,7 @@ export default async function OwnerPropertyDetailPage({
     { data: workOrders },
     { data: requests },
     { data: deniedApprovals },
+    { data: statements },
   ] = await Promise.all([
     supabase
       .from("units")
@@ -101,7 +104,9 @@ export default async function OwnerPropertyDetailPage({
       .eq("property_id", property.id),
     supabase
       .from("security_deposits")
-      .select("id, lease_id, amount, status")
+      .select(
+        "id, lease_id, amount, status, notes, received_date, security_deposit_events(id, event_type, amount, description, occurred_on)"
+      )
       .eq("property_id", property.id),
     supabase
       .from("cost_entries")
@@ -129,6 +134,15 @@ export default async function OwnerPropertyDetailPage({
       .select("entity_id")
       .eq("entity_type", "cost_entry")
       .eq("status", "rejected"),
+    supabase
+      .from("owner_statements")
+      .select(
+        "id, statement_number, period_start, period_end, total_collections, total_expenses, management_fee, remittance_due, status"
+      )
+      .eq("property_id", property.id)
+      .eq("owner_id", ownerId)
+      .order("period_end", { ascending: false })
+      .limit(6),
   ]);
 
   const tenantInvoices = (invoices ?? []).filter((i) => i.status !== "void");
@@ -168,6 +182,21 @@ export default async function OwnerPropertyDetailPage({
   const depositByLease = new Map(
     heldDeposits.map((d) => [d.lease_id, Number(d.amount)])
   );
+
+  const sortedStatements = statements ?? [];
+  const latest = sortedStatements[0] ?? null;
+  const prior = sortedStatements[1] ?? null;
+  const trustPosition = latest
+    ? computeTrustCashPosition({
+        beginning: prior ? Number(prior.remittance_due) : 0,
+        collections: Number(latest.total_collections),
+        ownerExpenses: Number(latest.total_expenses),
+        managementFee: Number(latest.management_fee),
+        periodStart: latest.period_start,
+        periodEnd: latest.period_end,
+        statementNumber: latest.statement_number,
+      })
+    : null;
 
   return (
     <div className="space-y-8">
@@ -212,6 +241,10 @@ export default async function OwnerPropertyDetailPage({
         />
       </div>
 
+      <Card title="Owner funds held by Harborline">
+        <TrustCashWaterfall position={trustPosition} title="Trust cash rollforward" />
+      </Card>
+
       <Card title="Maintenance cost report">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3">
@@ -228,7 +261,8 @@ export default async function OwnerPropertyDetailPage({
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          Property operating costs recorded for this asset (same basis as the Maintenance report).
+          Owner-paid property operating costs (Harborline in-house WO costs are
+          excluded).
         </p>
       </Card>
 
@@ -302,6 +336,45 @@ export default async function OwnerPropertyDetailPage({
           )}
         </Card>
       </div>
+
+      <Card title="Deposit ledger">
+        {(deposits ?? []).length === 0 ? (
+          <p className="text-sm text-slate-600">No security deposits on this property.</p>
+        ) : (
+          <ul className="space-y-4 text-sm">
+            {(deposits ?? []).map((d) => {
+              const events = [...(d.security_deposit_events ?? [])].sort((a, b) =>
+                String(b.occurred_on).localeCompare(String(a.occurred_on))
+              );
+              return (
+                <li key={d.id} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium">{formatMoney(d.amount)}</p>
+                    <Badge status={d.status} />
+                  </div>
+                  {d.notes ? (
+                    <p className="mt-1 text-xs text-slate-500">{d.notes}</p>
+                  ) : null}
+                  {events.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                      {events.map((e) => (
+                        <li key={e.id} className="flex justify-between gap-2">
+                          <span className="capitalize">
+                            {e.event_type}
+                            {e.description ? ` · ${e.description}` : ""}
+                            <span className="text-slate-400"> · {e.occurred_on}</span>
+                          </span>
+                          <span className="tabular-nums">{formatMoney(e.amount)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
 
       <Card title="Units">
         {(units ?? []).length === 0 ? (
@@ -494,7 +567,8 @@ export default async function OwnerPropertyDetailPage({
                           Estimate {formatMoney(w.estimated_cost || w.actual_cost)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          {w.vendor_notes || "Awaiting your approval before work proceeds."}
+                          {w.vendor_notes ||
+                            "After approval → Victor Chen (contractor); owner pays."}
                         </p>
                       </div>
                       <Badge status={w.status} />
