@@ -157,7 +157,7 @@ export default async function AccountingExpenseBreakdownPage({
   return (
     <div className="space-y-6">
       <ReportHeading
-        title="Expense allocation"
+        title="Expense Allocation"
         subtitle={ALL_PERIODS_HINT}
         info="Light overview first: Owner vs Company. Click a hyperlink for the full line-item breakdown. Tax labels are advisory demo tags only."
       />
