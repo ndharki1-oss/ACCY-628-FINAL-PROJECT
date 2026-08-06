@@ -8,7 +8,7 @@ export function AutomatedPaymentsToggle({ enabled }: { enabled: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-xl text-[#0c1f2e]">
-            Automated payments
+            Automated Payments
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             Turn this on if you want payments drafted automatically. Your choice
