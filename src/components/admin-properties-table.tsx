@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui";
+import { photosForProperty } from "@/lib/property-photos";
 import { formatOccupancyPercent } from "@/lib/property-portfolio";
 import { formatMoney } from "@/lib/utils";
 
@@ -21,111 +22,6 @@ export type AdminPropertyRow = {
 };
 
 type SortKey = "name" | "occupancy" | "unitCount";
-
-type GalleryPhoto = { src: string; label: string };
-type PhotoPools = { exterior: string[]; interior: string[] };
-
-const PROPERTY_TYPE_PHOTOS: Record<string, PhotoPools> = {
-  office: {
-    exterior: [
-      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80",
-    ],
-    interior: [
-      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1604328698692-f76ea9498e76?auto=format&fit=crop&w=1200&q=80",
-    ],
-  },
-  retail: {
-    exterior: [
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1555636222-cae831e670b3?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1567449303078-57ad995bd329?auto=format&fit=crop&w=1200&q=80",
-    ],
-    interior: [
-      "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1601924994987-69e26d50dc26?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?auto=format&fit=crop&w=1200&q=80",
-    ],
-  },
-  warehouse: {
-    exterior: [
-      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1565891741441-64926e441838?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
-    ],
-    interior: [
-      "https://images.unsplash.com/photo-1586528116493-a029325540fa?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1605745341112-85968b19335b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80",
-    ],
-  },
-  industrial: {
-    exterior: [
-      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1200&q=80",
-    ],
-    interior: [
-      "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1586528116493-a029325540fa?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1605745341112-85968b19335b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1200&q=80",
-    ],
-  },
-};
-
-function normalizePropertyType(type: string) {
-  const key = type.trim().toLowerCase().replaceAll(" ", "_");
-  if (key === "warehouses") return "warehouse";
-  if (key in PROPERTY_TYPE_PHOTOS) return key;
-  return "office";
-}
-
-function hashSeed(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-function pickDistinct(pool: string[], seed: number, offset: number) {
-  const first = pool[seed % pool.length];
-  let second = pool[(seed + offset) % pool.length];
-  if (second === first && pool.length > 1) {
-    second = pool[(seed + offset + 1) % pool.length];
-  }
-  return [first, second] as const;
-}
-
-function photosForProperty(property: AdminPropertyRow): GalleryPhoto[] {
-  const typeKey = normalizePropertyType(property.type);
-  const pools = PROPERTY_TYPE_PHOTOS[typeKey] ?? PROPERTY_TYPE_PHOTOS.office;
-  const seed = hashSeed(`${property.id}:${typeKey}`);
-  const [exteriorA, exteriorB] = pickDistinct(pools.exterior, seed, 2);
-  const [interiorA, interiorB] = pickDistinct(pools.interior, seed, 3);
-
-  return [
-    { src: exteriorA, label: "Exterior" },
-    { src: exteriorB, label: "Exterior" },
-    { src: interiorA, label: "Interior" },
-    { src: interiorB, label: "Interior" },
-  ];
-}
 
 function PropertyPreviewDialog({
   property,
