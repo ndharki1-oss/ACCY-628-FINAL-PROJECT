@@ -156,3 +156,34 @@ export async function sendTenantManagerMessage(formData: FormData) {
 
   revalidatePath("/tenant/contact");
 }
+
+export async function deleteTenantManagerMessages(formData: FormData) {
+  const messageIds = formData
+    .getAll("message_id")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  if (messageIds.length === 0) throw new Error("No messages selected.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be signed in.");
+
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!tenant) throw new Error("Tenant profile not found.");
+
+  const { error } = await supabase
+    .from("tenant_manager_messages")
+    .delete()
+    .in("id", messageIds)
+    .eq("tenant_id", tenant.id)
+    .eq("sender_role", "tenant");
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/tenant/contact");
+}
