@@ -93,13 +93,13 @@ export default async function OwnerPropertiesPage() {
             .eq("status", "rejected"),
         ])
       : [
-          { data: [] },
-          { data: [] },
-          { data: [] },
-          { data: [] },
-          { data: [] },
-          { data: [] },
-          { data: [] },
+          { data: null },
+          { data: null },
+          { data: null },
+          { data: null },
+          { data: null },
+          { data: null },
+          { data: null },
         ];
 
   const deniedCostIds = new Set((deniedApprovals ?? []).map((a) => a.entity_id));
