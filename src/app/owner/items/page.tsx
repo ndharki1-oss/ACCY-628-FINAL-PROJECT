@@ -10,11 +10,7 @@ import {
   ownerApproveWorkOrder,
   ownerReviewTenantRequest,
 } from "@/app/actions/business";
-
-const approveBtn =
-  "rounded bg-emerald-700 px-3 py-2 text-sm text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:translate-y-0 active:scale-[0.98]";
-const denyBtn =
-  "rounded bg-rose-700 px-3 py-2 text-sm text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:translate-y-0 active:scale-[0.98]";
+import { OwnerDecisionActions } from "@/components/owner/owner-decision-actions";
 
 export default async function OwnerMyItemsPage() {
   const { supabase, user } = await requireRole(["owner"]);
@@ -113,28 +109,17 @@ export default async function OwnerMyItemsPage() {
                       {formatMoney(c.amount)}
                     </p>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <form action={ownerApproveCost}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="decision" value="approve" />
-                      <button type="submit" className={approveBtn}>
-                        Approve
-                      </button>
-                    </form>
-                    <form action={ownerApproveCost} className="flex flex-wrap gap-2">
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="decision" value="deny" />
-                      <input
-                        name="reason"
-                        placeholder="Denial reason"
-                        className="rounded border border-slate-300 px-3 py-2 text-sm"
-                        required
-                      />
-                      <button type="submit" className={denyBtn}>
-                        Deny
-                      </button>
-                    </form>
-                  </div>
+                  <OwnerDecisionActions
+                    id={c.id}
+                    action={ownerApproveCost}
+                    denyDecision="deny"
+                    denyOpenLabel="Deny…"
+                    denyConfirmLabel="Confirm deny"
+                    reasonName="reason"
+                    reasonRequired
+                    reasonLabel="Why are you denying this cost?"
+                    reasonPlaceholder="Note for Harborline management…"
+                  />
                 </li>
               ))}
             </ul>
@@ -175,28 +160,17 @@ export default async function OwnerMyItemsPage() {
                     </div>
                     <Badge status={w.status} />
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <form action={ownerApproveWorkOrder}>
-                      <input type="hidden" name="id" value={w.id} />
-                      <input type="hidden" name="decision" value="approve" />
-                      <button type="submit" className={approveBtn}>
-                        Approve
-                      </button>
-                    </form>
-                    <form action={ownerApproveWorkOrder} className="flex gap-2">
-                      <input type="hidden" name="id" value={w.id} />
-                      <input type="hidden" name="decision" value="reject" />
-                      <input
-                        name="reason"
-                        placeholder="Rejection reason"
-                        className="rounded border px-2 py-1 text-sm"
-                        required
-                      />
-                      <button type="submit" className={denyBtn}>
-                        Reject
-                      </button>
-                    </form>
-                  </div>
+                  <OwnerDecisionActions
+                    id={w.id}
+                    action={ownerApproveWorkOrder}
+                    denyDecision="reject"
+                    denyOpenLabel="Decline…"
+                    denyConfirmLabel="Confirm decline"
+                    reasonName="reason"
+                    reasonRequired
+                    reasonLabel="Why are you declining?"
+                    reasonPlaceholder="Note for Harborline management…"
+                  />
                 </li>
               ))}
             </ul>
@@ -238,30 +212,17 @@ export default async function OwnerMyItemsPage() {
                     </div>
                     <Badge status={r.status} />
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <form action={ownerReviewTenantRequest}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <input type="hidden" name="decision" value="approve" />
-                      <button type="submit" className={approveBtn}>
-                        Approve
-                      </button>
-                    </form>
-                    <form
-                      action={ownerReviewTenantRequest}
-                      className="flex flex-wrap gap-2"
-                    >
-                      <input type="hidden" name="id" value={r.id} />
-                      <input type="hidden" name="decision" value="decline" />
-                      <input
-                        name="notes"
-                        placeholder="Notes (optional)"
-                        className="rounded border border-slate-300 px-3 py-2 text-sm"
-                      />
-                      <button type="submit" className={denyBtn}>
-                        Decline
-                      </button>
-                    </form>
-                  </div>
+                  <OwnerDecisionActions
+                    id={r.id}
+                    action={ownerReviewTenantRequest}
+                    denyDecision="decline"
+                    denyOpenLabel="Decline…"
+                    denyConfirmLabel="Confirm decline"
+                    reasonName="notes"
+                    reasonRequired={false}
+                    reasonLabel="Why are you declining?"
+                    reasonPlaceholder="Optional note for Harborline…"
+                  />
                 </li>
               ))}
             </ul>
