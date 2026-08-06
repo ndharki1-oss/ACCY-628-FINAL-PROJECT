@@ -476,9 +476,11 @@ export default async function OwnerPropertyDetailPage({
             )}
           </Card>
 
-          <Card title="Work order completions">
+          <Card title="Work orders over threshold">
             {(workOrders ?? []).length === 0 ? (
-              <p className="text-sm text-slate-600">No vendor completions waiting.</p>
+              <p className="text-sm text-slate-600">
+                No work orders waiting on your approval.
+              </p>
             ) : (
               <ul className="space-y-4">
                 {(workOrders ?? []).map((w) => (
@@ -489,10 +491,10 @@ export default async function OwnerPropertyDetailPage({
                           {w.wo_number}: {w.title}
                         </p>
                         <p className="text-slate-600">
-                          Claimed cost {formatMoney(w.actual_cost || w.estimated_cost)}
+                          Estimate {formatMoney(w.estimated_cost || w.actual_cost)}
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Vendor notes: {w.vendor_notes || "—"}
+                          {w.vendor_notes || "Awaiting your approval before work proceeds."}
                         </p>
                       </div>
                       <Badge status={w.status} />

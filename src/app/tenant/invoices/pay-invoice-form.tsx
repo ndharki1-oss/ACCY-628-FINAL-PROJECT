@@ -330,7 +330,7 @@ export function PayInvoiceForm({
         <button
           type="button"
           onClick={() => setFlow("pay")}
-          className="rounded bg-[#c4784a] px-4 py-2 text-sm text-white"
+          className="harborline-live-tile rounded bg-[#c4784a] px-4 py-2 text-sm text-white"
         >
           Pay {amountLabel}
         </button>

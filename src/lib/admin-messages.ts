@@ -1,5 +1,7 @@
 export type AdminInboxFilter = "all" | "unread" | "read" | "urgent";
 
+export type AdminMessageChannel = "tenant" | "owner";
+
 export type AdminThreadMessage = {
   id: string;
   senderRole: "tenant" | "admin" | "owner" | string;
@@ -12,11 +14,13 @@ export type AdminThreadMessage = {
 };
 
 export type AdminConversationThread = {
-  tenantId: string;
-  tenantName: string;
-  tenantContact: string | null;
-  tenantEmail: string | null;
-  tenantPhone: string | null;
+  channel: AdminMessageChannel;
+  /** Tenant id or owner id depending on channel. */
+  partyId: string;
+  partyName: string;
+  partyContact: string | null;
+  partyEmail: string | null;
+  partyPhone: string | null;
   propertyId: string | null;
   propertyName: string | null;
   unitCode: string | null;
@@ -84,8 +88,8 @@ export function filterAdminConversationThreads(
     if (filter === "urgent" && !thread.isUrgent) return false;
     if (!q) return true;
     const haystack = [
-      thread.tenantName,
-      thread.tenantContact,
+      thread.partyName,
+      thread.partyContact,
       thread.propertyName,
       thread.unitCode,
       thread.subject,
@@ -117,4 +121,8 @@ export function roleLabel(role: string) {
   if (role === "owner") return "Property owner";
   if (role === "tenant") return "Tenant";
   return role;
+}
+
+export function partyRoleForChannel(channel: AdminMessageChannel) {
+  return channel === "owner" ? "owner" : "tenant";
 }

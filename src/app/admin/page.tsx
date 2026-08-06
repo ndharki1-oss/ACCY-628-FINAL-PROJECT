@@ -353,10 +353,10 @@ export default async function AdminDashboard() {
                   },
                   {
                     key: "vendor-approvals",
-                    label: "Vendor approvals awaiting action",
+                    label: "Work orders awaiting owner approval",
                     count: pendingDetails.length,
                     tone: "amber" as const,
-                    href: "/admin/work-orders",
+                    href: "/admin/work-orders?filter=owner",
                   },
                   {
                     key: "expiring-leases",
@@ -403,26 +403,17 @@ export default async function AdminDashboard() {
                 No WOs awaiting owner approval.
               </p>
             ) : (
-              <ul className="space-y-3 text-[15px]">
+              <ul className="divide-y divide-slate-100 text-[15px]">
                 {pendingDetails.map((w) => (
-                  <li
-                    key={w.id}
-                    className="flex flex-col gap-2 border-b border-slate-100 py-3 last:border-b-0 last:pb-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-base font-medium text-[#0c1f2e]">
-                        {w.woNumber}: {w.title}
-                      </p>
-                      {w.description ? (
-                        <p className="mt-1 text-sm text-slate-600">
-                          {w.description}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-sm text-slate-500">
-                        {w.propertyName}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <li key={w.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+                    <p className="text-base font-medium text-[#0c1f2e]">
+                      {w.woNumber}: {w.title}
+                    </p>
+                    {w.description ? (
+                      <p className="text-sm text-slate-600">{w.description}</p>
+                    ) : null}
+                    <p className="text-sm text-slate-500">{w.propertyName}</p>
+                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       <PriorityBadge priority={w.priority} />
                       <span className="text-[#0c1f2e]">
                         {formatMoney(w.displayAmount)}

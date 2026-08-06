@@ -1,40 +1,25 @@
 import { requireExactRole } from "@/lib/auth";
-import { NoiByPropertyFilters } from "@/components/accounting/noi-by-property-filters";
-import { Card, Stat } from "@/components/ui";
 import {
-  listOwnersForFilter,
-  resolveSelectedOwnerId,
-} from "@/lib/accounting/owner-filter";
+  AccountingByOwnerTable,
+  AccountingNoiByPropertyTable,
+} from "@/components/accounting/filterable-mgmt-pnl-tables";
+import { Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
-const BASE_PATH = "/accounting/profitability";
-
-export default async function AccountingProfitabilityPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ owner?: string; property?: string }>;
-}) {
+export default async function AccountingProfitabilityPage() {
   const { supabase } = await requireExactRole(["accounting"]);
-  const params = await searchParams;
 
   const { data: properties } = await supabase
     .from("properties")
     .select("id, name, owner_id, owners(company_name)")
     .order("name");
-  const { data: leases } = await supabase
-    .from("leases")
-    .select(
-      "id, property_id, tenant_id, base_rent_monthly, cam_monthly, status, tenants(company_name)"
-    );
   const { data: costs } = await supabase
     .from("cost_entries")
-    .select("property_id, lease_id, owner_id, amount");
+    .select("property_id, amount");
   const { data: invoices } = await supabase
     .from("invoices")
-    .select(
-      "property_id, lease_id, owner_id, total, amount_paid, status, party_type"
-    );
+    .select("property_id, total, status, party_type");
   const { data: companyExp } = await supabase
     .from("company_expenses")
     .select("amount");
@@ -42,9 +27,6 @@ export default async function AccountingProfitabilityPage({
     .from("journal_lines")
     .select("credit, gl_accounts!inner(code)")
     .eq("gl_accounts.code", "4000");
-
-  const owners = await listOwnersForFilter(supabase);
-  const selectedOwnerId = resolveSelectedOwnerId(params.owner, owners);
 
   const feeRevenue = (feeLines ?? []).reduce((s, r) => s + Number(r.credit), 0);
   const companyCosts = (companyExp ?? []).reduce(
@@ -67,29 +49,11 @@ export default async function AccountingProfitabilityPage({
     return {
       id: p.id,
       name: p.name,
-      ownerId: p.owner_id as string,
       owner: (Array.isArray(p.owners) ? p.owners[0] : p.owners)?.company_name,
       revenue,
       expense,
       noi: revenue - expense,
     };
-  });
-
-  const propertyOptions = byProperty
-    .filter((p) => !selectedOwnerId || p.ownerId === selectedOwnerId)
-    .map((p) => ({ id: p.id, name: p.name }));
-
-  const selectedPropertyId =
-    params.property &&
-    params.property !== "all" &&
-    propertyOptions.some((p) => p.id === params.property)
-      ? params.property
-      : null;
-
-  const noiByPropertyFiltered = byProperty.filter((p) => {
-    if (selectedOwnerId && p.ownerId !== selectedOwnerId) return false;
-    if (selectedPropertyId && p.id !== selectedPropertyId) return false;
-    return true;
   });
 
   const ownerMap = new Map<
@@ -104,25 +68,9 @@ export default async function AccountingProfitabilityPage({
     ownerMap.set(key, cur);
   }
 
-  const byLease = (leases ?? [])
-    .filter((l) => l.status === "active")
-    .map((l) => {
-      const revenue = (invoices ?? [])
-        .filter((i) => i.lease_id === l.id && i.status !== "void")
-        .reduce((s, i) => s + Number(i.total), 0);
-      const expense = (costs ?? [])
-        .filter((c) => c.lease_id === l.id)
-        .reduce((s, c) => s + Number(c.amount), 0);
-      const tenant = Array.isArray(l.tenants) ? l.tenants[0] : l.tenants;
-      return {
-        id: l.id,
-        tenant: tenant?.company_name ?? "Tenant",
-        contracted: Number(l.base_rent_monthly) + Number(l.cam_monthly),
-        revenue,
-        expense,
-        margin: revenue - expense,
-      };
-    });
+  const byOwner = [...ownerMap.values()].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   const weak = byProperty.filter((p) => p.noi < 0);
 
@@ -162,94 +110,15 @@ export default async function AccountingProfitabilityPage({
         </Card>
       ) : null}
 
-      <Card title={`NOI By Property · ${ALL_PERIODS_HINT}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b text-xs uppercase text-slate-500">
-              <tr>
-                <NoiByPropertyFilters
-                  owners={owners}
-                  properties={propertyOptions}
-                  selectedOwnerId={selectedOwnerId}
-                  selectedPropertyId={selectedPropertyId}
-                  basePath={BASE_PATH}
-                />
-                <th className="py-2">Tenant charges</th>
-                <th className="py-2">OpEx</th>
-                <th className="py-2">NOI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {noiByPropertyFiltered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-4 text-slate-500">
-                    No properties match these filters.
-                  </td>
-                </tr>
-              ) : (
-                noiByPropertyFiltered.map((p) => (
-                  <tr key={p.id} className="border-b border-slate-100">
-                    <td className="py-2">{p.name}</td>
-                    <td className="py-2">{p.owner}</td>
-                    <td className="py-2">{formatMoney(p.revenue)}</td>
-                    <td className="py-2">{formatMoney(p.expense)}</td>
-                    <td
-                      className={`py-2 font-medium ${p.noi < 0 ? "text-rose-700" : ""}`}
-                    >
-                      {formatMoney(p.noi)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <AccountingNoiByPropertyTable
+        title={`NOI By Property · ${ALL_PERIODS_HINT}`}
+        rows={byProperty}
+      />
 
-      <Card title={`By owner · ${ALL_PERIODS_HINT}`}>
-        <ul className="space-y-2 text-sm">
-          {[...ownerMap.values()].map((o) => (
-            <li
-              key={o.name}
-              className="flex justify-between border-b border-slate-50 py-2"
-            >
-              <span>{o.name}</span>
-              <span>NOI {formatMoney(o.revenue - o.expense)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-
-      <Card title={`By lease / tenant (active) · ${ALL_PERIODS_HINT}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b text-xs uppercase text-slate-500">
-              <tr>
-                <th className="py-2">Tenant</th>
-                <th className="py-2">Monthly contract</th>
-                <th className="py-2">Billed</th>
-                <th className="py-2">Direct costs</th>
-                <th className="py-2">Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {byLease.map((l) => (
-                <tr key={l.id} className="border-b border-slate-100">
-                  <td className="py-2">{l.tenant}</td>
-                  <td className="py-2">{formatMoney(l.contracted)}</td>
-                  <td className="py-2">{formatMoney(l.revenue)}</td>
-                  <td className="py-2">{formatMoney(l.expense)}</td>
-                  <td
-                    className={`py-2 ${l.margin < 0 ? "text-rose-700" : ""}`}
-                  >
-                    {formatMoney(l.margin)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <AccountingByOwnerTable
+        title={`By owner · ${ALL_PERIODS_HINT}`}
+        rows={byOwner}
+      />
     </div>
   );
 }

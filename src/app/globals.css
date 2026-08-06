@@ -45,3 +45,29 @@ body {
   background: #0c1f2e;
   box-shadow: 0 0 0 2px rgb(196 120 74 / 0.55);
 }
+
+@keyframes harborline-tile-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.harborline-live-tile {
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.harborline-live-tile:hover {
+  animation: harborline-tile-bob 0.55s ease-in-out infinite;
+  box-shadow: 0 4px 12px rgb(12 31 46 / 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .harborline-live-tile:hover {
+    animation: none;
+    transform: translateY(-1px);
+  }
+}

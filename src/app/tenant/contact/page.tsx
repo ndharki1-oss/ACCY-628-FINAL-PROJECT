@@ -3,7 +3,12 @@ import { Card } from "@/components/ui";
 import { sendTenantManagerMessage } from "@/app/tenant/actions";
 import { ContactConversation } from "./contact-conversation";
 
-export default async function TenantContactPage() {
+export default async function TenantContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ property?: string }>;
+}) {
+  const params = await searchParams;
   const { supabase, user, profile } = await requireRole(["tenant"]);
 
   const { data: tenantRow } = await supabase
@@ -20,6 +25,11 @@ export default async function TenantContactPage() {
     .select("id, sender_role, sender_name, body, created_at")
     .eq("tenant_id", tenantId!)
     .order("created_at", { ascending: true });
+
+  const propertyName = params.property?.trim();
+  const draftMessage = propertyName
+    ? `I am interested in ${propertyName}.`
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -44,6 +54,7 @@ export default async function TenantContactPage() {
             name="body"
             required
             rows={4}
+            defaultValue={draftMessage}
             placeholder={`Write to Harborline management${profile.full_name ? ` as ${profile.full_name}` : ""}…`}
             className="w-full rounded border border-slate-300 px-3 py-2"
           />

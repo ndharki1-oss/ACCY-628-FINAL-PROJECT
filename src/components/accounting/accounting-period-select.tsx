@@ -15,12 +15,12 @@ export function AccountingPeriodSelect({
   const router = useRouter();
 
   return (
-    <label className="block max-w-xs">
-      <span className="text-xs uppercase tracking-wider text-slate-500">
+    <label className="block w-[11.5rem] shrink-0 text-right sm:text-left">
+      <span className="text-[10px] uppercase tracking-wider text-slate-500">
         Accounting period
       </span>
       <select
-        className="mt-2 w-full rounded border border-slate-300 bg-white/90 px-3 py-2 text-sm text-slate-800"
+        className="mt-1 w-full rounded border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800"
         value={selectedPeriod ?? "all"}
         onChange={(e) => {
           const value = e.target.value;

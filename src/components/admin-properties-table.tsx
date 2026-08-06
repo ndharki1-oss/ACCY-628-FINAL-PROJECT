@@ -72,7 +72,11 @@ function PropertyPreviewDialog({
           <img
             src={current.src}
             alt={`${current.label} photo of ${property.name}`}
-            className="h-full w-full object-cover"
+            className={
+              current.label === "Floor plan"
+                ? "h-full w-full bg-white object-contain"
+                : "h-full w-full object-cover"
+            }
           />
           <button
             type="button"

@@ -22,8 +22,9 @@ export default async function EmployeeDashboard() {
   const upcoming = (wos ?? []).filter((w) =>
     ["assigned", "in_progress", "open"].includes(w.status)
   );
-  const pending = (wos ?? []).filter((w) => w.status === "pending_owner_approval");
-  const rejected = (wos ?? []).filter((w) => w.status === "rejected");
+  const completed = (wos ?? []).filter(
+    (w) => w.status === "approved" && w.completed_at
+  );
 
   return (
     <div className="space-y-6">
@@ -38,10 +39,9 @@ export default async function EmployeeDashboard() {
           This login is not linked to an employee work record.
         </p>
       ) : null}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Stat label="Upcoming / active" value={String(upcoming.length)} />
-        <Stat label="Awaiting owner approval" value={String(pending.length)} />
-        <Stat label="Rejected / rework" value={String(rejected.length)} />
+        <Stat label="Completed" value={String(completed.length)} />
       </div>
       <Card
         title="Today & upcoming"
@@ -69,21 +69,10 @@ export default async function EmployeeDashboard() {
           </ul>
         )}
       </Card>
-      {rejected.length > 0 ? (
-        <Card title="Needs rework">
-          <ul className="space-y-2 text-sm">
-            {rejected.map((w) => (
-              <li key={w.id}>
-                {w.wo_number}: {w.title} — {w.rejection_reason}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
       <p className="text-xs text-slate-500">
         Estimated pipeline value{" "}
         {formatMoney(
-          (wos ?? []).reduce((s, w) => s + Number(w.estimated_cost || 0), 0)
+          upcoming.reduce((s, w) => s + Number(w.estimated_cost || 0), 0)
         )}
       </p>
     </div>

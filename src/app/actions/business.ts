@@ -6,6 +6,25 @@ import {
   feePercentFromCredit,
   managementFeeFromCollection,
 } from "@/lib/utils";
+import {
+  DEMO_EMPLOYEE_VENDOR_ID,
+  estimateRequiresOwnerApproval,
+} from "@/lib/work-order-routing";
+import { notifyManagerOfOwnerWorkOrderDecision } from "@/lib/owner/notify-manager";
+
+function revalidateWorkOrderPaths(propertyId?: string | null) {
+  revalidatePath("/admin");
+  revalidatePath("/admin/work-orders");
+  revalidatePath("/admin/messages");
+  revalidatePath("/employee");
+  revalidatePath("/employee/work-orders");
+  revalidatePath("/owner");
+  revalidatePath("/owner/items");
+  revalidatePath("/owner/approvals");
+  revalidatePath("/owner/properties");
+  revalidatePath("/owner/contact");
+  if (propertyId) revalidatePath(`/owner/properties/${propertyId}`);
+}
 
 export async function vendorCompleteWorkOrder(formData: FormData) {
   const id = String(formData.get("id"));
@@ -23,10 +42,40 @@ export async function vendorCompleteWorkOrder(formData: FormData) {
     .eq("profile_id", user.id)
     .single();
 
+  const { data: existing, error: existingError } = await supabase
+    .from("work_orders")
+    .select(
+      "id, status, requires_owner_approval, owner_approved_at, property_id, vendor_id"
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (!existing) throw new Error("Work order not found.");
+  if (existing.vendor_id !== vendor?.id) {
+    throw new Error("This work order is not assigned to your account.");
+  }
+  if (existing.status === "pending_owner_approval") {
+    throw new Error(
+      "This work order is waiting on owner approval and cannot be completed yet."
+    );
+  }
+  if (
+    existing.requires_owner_approval &&
+    !existing.owner_approved_at &&
+    existing.status !== "approved"
+  ) {
+    throw new Error(
+      "Owner approval is required before this work order can be completed."
+    );
+  }
+  if (!["open", "assigned", "in_progress"].includes(existing.status)) {
+    throw new Error("This work order is not open for completion.");
+  }
+
   const { error } = await supabase
     .from("work_orders")
     .update({
-      status: "pending_owner_approval",
+      status: "approved",
       vendor_notes: notes,
       actual_cost: actualCost,
       completed_at: new Date().toISOString(),
@@ -72,8 +121,159 @@ export async function vendorCompleteWorkOrder(formData: FormData) {
     p_detail: { notes, actualCost },
   });
 
-  revalidatePath("/vendor");
-  revalidatePath("/owner/approvals");
+  revalidateWorkOrderPaths(existing.property_id);
+}
+
+export async function adminRouteWorkOrder(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const estimatedCost = Number(formData.get("estimated_cost") ?? 0);
+  if (!id) throw new Error("Work order id required.");
+  if (!Number.isFinite(estimatedCost) || estimatedCost < 0) {
+    throw new Error("Enter a valid estimated cost.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: wo, error: woError } = await supabase
+    .from("work_orders")
+    .select(
+      "id, property_id, status, properties(management_agreements(approval_threshold))"
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (woError) throw new Error(woError.message);
+  if (!wo) throw new Error("Work order not found.");
+
+  const property = Array.isArray(wo.properties) ? wo.properties[0] : wo.properties;
+  const agreement = Array.isArray(property?.management_agreements)
+    ? property?.management_agreements[0]
+    : property?.management_agreements;
+  const { estimate, threshold, requiresOwnerApproval } =
+    estimateRequiresOwnerApproval(
+      estimatedCost,
+      agreement?.approval_threshold
+    );
+
+  const patch = requiresOwnerApproval
+    ? {
+        estimated_cost: estimate,
+        requires_owner_approval: true,
+        status: "pending_owner_approval" as const,
+        vendor_id: null,
+        owner_approved_at: null,
+        owner_approved_by: null,
+        rejection_reason: null,
+        completed_at: null,
+      }
+    : {
+        estimated_cost: estimate,
+        requires_owner_approval: false,
+        status: "assigned" as const,
+        vendor_id: DEMO_EMPLOYEE_VENDOR_ID,
+        owner_approved_at: null,
+        owner_approved_by: null,
+        rejection_reason: null,
+        completed_at: null,
+      };
+
+  const { error } = await supabase
+    .from("work_orders")
+    .update(patch)
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await supabase.rpc("write_audit", {
+    p_action: requiresOwnerApproval
+      ? "admin_route_wo_owner"
+      : "admin_route_wo_employee",
+    p_entity_type: "work_order",
+    p_entity_id: id,
+    p_detail: {
+      estimate,
+      threshold,
+      requiresOwnerApproval,
+      vendorId: requiresOwnerApproval ? null : DEMO_EMPLOYEE_VENDOR_ID,
+    },
+  });
+
+  revalidateWorkOrderPaths(wo.property_id);
+}
+
+export async function adminAssignWorkOrder(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  const vendorId =
+    String(formData.get("vendor_id") ?? "").trim() || DEMO_EMPLOYEE_VENDOR_ID;
+  if (!id) throw new Error("Work order id required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: wo, error: woError } = await supabase
+    .from("work_orders")
+    .select("id, property_id, status, requires_owner_approval, owner_approved_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (woError) throw new Error(woError.message);
+  if (!wo) throw new Error("Work order not found.");
+
+  if (wo.status === "pending_owner_approval") {
+    throw new Error("Owner approval is still pending.");
+  }
+  if (wo.status === "rejected") {
+    throw new Error(
+      "Re-route with a new estimate after rejection before assigning."
+    );
+  }
+  if (
+    wo.requires_owner_approval &&
+    !wo.owner_approved_at &&
+    wo.status !== "approved"
+  ) {
+    throw new Error("Owner approval is required before assignment.");
+  }
+
+  const { error } = await supabase
+    .from("work_orders")
+    .update({
+      vendor_id: vendorId,
+      status: "assigned",
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await supabase.rpc("write_audit", {
+    p_action: "admin_assign_wo",
+    p_entity_type: "work_order",
+    p_entity_id: id,
+    p_detail: { vendorId },
+  });
+
+  revalidateWorkOrderPaths(wo.property_id);
 }
 
 export async function ownerApproveWorkOrder(formData: FormData) {
@@ -87,10 +287,14 @@ export async function ownerApproveWorkOrder(formData: FormData) {
 
   const { data: workOrder, error: woLookupError } = await supabase
     .from("work_orders")
-    .select("id, property_id")
+    .select("id, property_id, status, wo_number, title, properties(name)")
     .eq("id", id)
     .maybeSingle();
   if (woLookupError) throw new Error(woLookupError.message);
+  if (!workOrder) throw new Error("Work order not found.");
+  if (workOrder.status !== "pending_owner_approval") {
+    throw new Error("This work order is not awaiting owner approval.");
+  }
 
   const { error } = await supabase
     .from("work_orders")
@@ -99,8 +303,10 @@ export async function ownerApproveWorkOrder(formData: FormData) {
       owner_approved_at: decision === "approve" ? new Date().toISOString() : null,
       owner_approved_by: user?.id,
       rejection_reason: decision === "reject" ? reason : null,
+      vendor_id: null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "pending_owner_approval");
 
   if (error) throw new Error(error.message);
 
@@ -121,13 +327,22 @@ export async function ownerApproveWorkOrder(formData: FormData) {
     p_detail: { reason },
   });
 
-  revalidatePath("/owner");
-  revalidatePath("/owner/approvals");
-  revalidatePath("/owner/properties");
-  if (workOrder?.property_id) {
-    revalidatePath(`/owner/properties/${workOrder.property_id}`);
+  const propertyRel = Array.isArray(workOrder.properties)
+    ? workOrder.properties[0]
+    : workOrder.properties;
+  if (user?.id && workOrder.property_id) {
+    await notifyManagerOfOwnerWorkOrderDecision(supabase, {
+      userId: user.id,
+      propertyId: workOrder.property_id,
+      decision: decision === "approve" ? "approve" : "reject",
+      woNumber: workOrder.wo_number,
+      title: workOrder.title,
+      propertyName: propertyRel?.name ?? "Property",
+      reason: decision === "reject" ? reason : undefined,
+    });
   }
-  revalidatePath("/admin/work-orders");
+
+  revalidateWorkOrderPaths(workOrder.property_id);
 }
 
 export async function ownerApproveCost(formData: FormData) {
