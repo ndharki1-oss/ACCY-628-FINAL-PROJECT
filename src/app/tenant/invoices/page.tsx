@@ -96,7 +96,7 @@ export default async function TenantPaymentsPage() {
       <div className="space-y-6">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-3xl">
-            Payments
+            View & Pay Invoices
           </h1>
           <p className="text-sm text-rose-700">
             {tenantError ?? "This login is not linked to a tenant record."}
@@ -190,7 +190,7 @@ export default async function TenantPaymentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">
-          Payments
+          View & Pay Invoices
         </h1>
       </div>
 
