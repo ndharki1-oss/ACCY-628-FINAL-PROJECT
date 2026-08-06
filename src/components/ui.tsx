@@ -7,21 +7,6 @@ import {
 import { statusClass } from "@/lib/utils";
 
 const nav: Record<string, { href: string; label: string }[]> = {
-  admin: [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/properties", label: "Properties" },
-    { href: "/admin/owners", label: "Property Owners" },
-    { href: "/admin/leases", label: "Leases" },
-    { href: "/admin/billing", label: "Billing" },
-    { href: "/admin/statements", label: "Statements" },
-    { href: "/admin/work-orders", label: "Work Orders" },
-    { href: "/admin/profitability", label: "Mgmt P&L" },
-    { href: "/admin/reports/property-pnl", label: "Property P&L" },
-    { href: "/admin/reports/owner-profitability", label: "Owner Profit" },
-    { href: "/admin/reports/maintenance", label: "Maintenance" },
-    { href: "/admin/reports/employee-labor", label: "Labor" },
-    { href: "/admin/reports/expense-breakdown", label: "Expenses" },
-  ],
   owner: [
     { href: "/owner", label: "Dashboard" },
     { href: "/owner/properties", label: "Properties" },
