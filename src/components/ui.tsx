@@ -162,11 +162,16 @@ export function Stat({
 }
 
 export function Badge({ status }: { status: string }) {
+  const label =
+    status === "pending_owner_approval"
+      ? "Needs your approval"
+      : status.replaceAll("_", " ");
+
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${statusClass(status)}`}
+      className={`inline-flex h-fit shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-[11px] font-medium leading-none capitalize tracking-wide whitespace-nowrap ${statusClass(status)}`}
     >
-      {status.replaceAll("_", " ")}
+      {label}
     </span>
   );
 }
