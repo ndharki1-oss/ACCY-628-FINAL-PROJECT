@@ -1,0 +1,11 @@
+---
+description: Canonical Harborline management fee is tenant credit-based on collections, not management_agreements.fee_percent.
+alwaysApply: true
+---
+
+# Management fees (canonical)
+
+- **Billing / statements / GL:** Base management fee = tenant **credit rating** × **collected** amount (4–12%). SQL: `management_fee_percent(credit_rating)`. App: `feePercentFromCredit` / `managementFeeFromCollection`. Statement lines and remittance use these amounts.
+- **`management_agreements.fee_percent`:** Unweighted average of active-lease credit fees on that property — **display / fallback only**. It is **not** the rate used to compute statement fees. Do not “fix” statements to equal MA% × collections.
+- **UI:** When showing the agreement field, label it as an average / reference, not “the fee on remittance.”
+- **No silent data regeneration** of statement fees to match MA% unless the product owner explicitly chooses that path.

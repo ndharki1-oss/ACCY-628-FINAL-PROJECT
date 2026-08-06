@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { ReportHeading, PropertyPnLTable } from "@/components/reports/report-tables";
 import { fetchPropertyPnL } from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { ownerPropertyIds } from "@/lib/reports/scope";
 
 export default async function OwnerPropertyPnLPage() {
@@ -14,7 +15,7 @@ export default async function OwnerPropertyPnLPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Property Profit & Loss"
-        subtitle="Summary revenue and expenses for your properties only."
+        subtitle={`${ALL_PERIODS_HINT}. NOI = tenant revenue − cost_entries (Harborline labor excluded from NOI).`}
       />
       <PropertyPnLTable rows={rows} mode="summary" />
     </div>

@@ -10,6 +10,7 @@ import {
 } from "@/components/owner/noi-trend-chart";
 import { formatMoney } from "@/lib/utils";
 import { fetchOwnerMyItems } from "@/lib/owner/my-items";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import Link from "next/link";
 
 const emptyId = "00000000-0000-0000-0000-000000000000";
@@ -268,7 +269,7 @@ export default async function OwnerDashboard() {
           <Stat
             label="Portfolio NOI"
             value={formatMoney(portfolioIncome - portfolioExpense)}
-            hint={`This month ${formatMoney(monthIncome - monthExpense)}`}
+            hint={`${ALL_PERIODS_HINT} · This month ${formatMoney(monthIncome - monthExpense)}`}
           />
           <Stat
             label="Occupancy"

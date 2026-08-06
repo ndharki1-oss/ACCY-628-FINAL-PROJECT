@@ -71,8 +71,11 @@ export function FeeComponentsView({
           basePath={basePath}
         />
         <p className="text-sm text-slate-600">
-          Header <span className="font-medium">mgmt fee</span> = sum of agency
-          fee components below. Remittance = collections − expenses − fee.
+          Base management fee is a <span className="font-medium">tenant
+          credit-based</span> % of collections (not the property agreement
+          average). Header <span className="font-medium">mgmt fee</span> = sum
+          of agency fee components below. Remittance = collections − expenses −
+          fee.
         </p>
       </div>
 

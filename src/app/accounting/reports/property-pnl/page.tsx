@@ -9,6 +9,7 @@ import {
 } from "@/lib/accounting/owner-filter";
 import { fetchPropertyPnL } from "@/lib/reports/data";
 import { formatMoney } from "@/lib/utils";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 const BASE_PATH = "/accounting/reports/property-pnl";
 
@@ -63,9 +64,9 @@ export default async function AccountingPropertyPnLPage({
     <div className="space-y-6">
       <ReportHeading
         title="Property Profit & Loss"
-        subtitle="Revenue and expenses for each managed property, including labor time costs."
+        subtitle={`${ALL_PERIODS_HINT}. NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI.`}
       />
-      <Card title="Property Profit & Loss">
+      <Card title={`Property Profit & Loss · ${ALL_PERIODS_HINT}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b text-xs uppercase text-slate-500">
@@ -78,8 +79,8 @@ export default async function AccountingPropertyPnLPage({
                   basePath={BASE_PATH}
                 />
                 <th className="py-2">Revenue</th>
-                <th className="py-2">Expenses</th>
-                <th className="py-2">Labor</th>
+                <th className="py-2">OpEx (in NOI)</th>
+                <th className="py-2">Harborline labor — not in NOI</th>
                 <th className="py-2">NOI</th>
               </tr>
             </thead>

@@ -12,6 +12,7 @@ import {
   type ExpenseLine,
 } from "@/lib/expense-allocation";
 import { firstRelation } from "@/lib/work-order-routing";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 const BASE_PATH = "/accounting/reports/expense-breakdown";
 
@@ -156,7 +157,7 @@ export default async function AccountingExpenseBreakdownPage({
     <div className="space-y-6">
       <ReportHeading
         title="Expense allocation"
-        subtitle="Light overview first: Owner vs Company. Click a hyperlink for the full line-item breakdown. Tax labels are advisory demo tags only."
+        subtitle={`${ALL_PERIODS_HINT}. Light overview first: Owner vs Company. Click a hyperlink for the full line-item breakdown. Tax labels are advisory demo tags only.`}
       />
       <OwnerFilterSelect
         owners={owners}

@@ -168,9 +168,11 @@ export default async function AdminPropertyDetailPage({
             </dd>
           </div>
           <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Fee %</dt>
-            <dd className="text-[#0c1f2e]">
-              {agreement?.fee_percent != null ? `${agreement.fee_percent}%` : "—"}
+            <dt className="text-slate-500">Agreement fee avg</dt>
+            <dd className="text-right text-[#0c1f2e]">
+              {agreement?.fee_percent != null
+                ? `${agreement.fee_percent}% (reference; billing uses tenant credit)`
+                : "—"}
             </dd>
           </div>
           <div className="flex justify-between gap-4 text-sm sm:col-span-2">

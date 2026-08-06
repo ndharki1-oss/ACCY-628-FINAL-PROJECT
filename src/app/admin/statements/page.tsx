@@ -34,7 +34,7 @@ export default async function AdminStatementsPage({
     <div className="space-y-6">
       <ReportHeading
         title="Owner statements · fee components"
-        subtitle="Agency take broken into base management fee, leasing commission, project/CM fee, renewal fee, and late-fee retained — sourced from owner_statement_lines."
+        subtitle="Agency take from owner_statement_lines. Base management fee is tenant credit-based % of collections (not management_agreements.fee_percent)."
       />
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}
       {!error ? (

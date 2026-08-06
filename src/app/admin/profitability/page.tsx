@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { Card, Stat } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
 export default async function AdminProfitabilityPage() {
   const { supabase } = await requireRole(["admin"]);
@@ -81,26 +82,27 @@ export default async function AdminProfitabilityPage() {
       <h1 className="font-[family-name:var(--font-display)] text-3xl">
         Profitability
       </h1>
+      <p className="text-sm text-slate-600">{ALL_PERIODS_HINT}</p>
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat
           label="Company fee revenue"
           value={formatMoney(feeRevenue)}
-          hint="GL 4000 = credit-based base management fees on collections"
+          hint={`${ALL_PERIODS_HINT} · GL 4000 = credit-based base management fees on collections`}
         />
         <Stat
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint="Harborline company_expenses (not owner property OpEx)"
+          hint={`${ALL_PERIODS_HINT} · Harborline company_expenses (not owner property OpEx)`}
         />
         <Stat
           label="Company contribution"
           value={formatMoney(feeRevenue - companyCosts)}
-          hint="Fees − Harborline OpEx (not property NOI)"
+          hint={`${ALL_PERIODS_HINT} · Fees − Harborline OpEx (not property NOI)`}
         />
       </div>
 
       {weak.length > 0 ? (
-        <Card title="Alerts: unprofitable / weak NOI properties">
+        <Card title={`Alerts: unprofitable / weak NOI properties · ${ALL_PERIODS_HINT}`}>
           <ul className="space-y-1 text-sm text-rose-800">
             {weak.map((p) => (
               <li key={p.id}>
@@ -111,7 +113,7 @@ export default async function AdminProfitabilityPage() {
         </Card>
       ) : null}
 
-      <Card title="NOI by property">
+      <Card title={`NOI by property · ${ALL_PERIODS_HINT}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b text-xs uppercase text-slate-500">
@@ -140,7 +142,7 @@ export default async function AdminProfitabilityPage() {
         </div>
       </Card>
 
-      <Card title="By owner">
+      <Card title={`By owner · ${ALL_PERIODS_HINT}`}>
         <ul className="space-y-2 text-sm">
           {[...ownerMap.values()].map((o) => (
             <li key={o.name} className="flex justify-between border-b border-slate-50 py-2">
@@ -151,7 +153,7 @@ export default async function AdminProfitabilityPage() {
         </ul>
       </Card>
 
-      <Card title="By lease / tenant (active)">
+      <Card title={`By lease / tenant (active) · ${ALL_PERIODS_HINT}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b text-xs uppercase text-slate-500">

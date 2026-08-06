@@ -256,8 +256,13 @@ export default async function OwnerPropertyDetailPage({
           {agreement ? (
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-500">Fee</dt>
-                <dd className="mt-1">{agreement.fee_percent}% of collected rent</dd>
+                <dt className="text-xs uppercase tracking-wide text-slate-500">
+                  Agreement fee avg
+                </dt>
+                <dd className="mt-1">
+                  {agreement.fee_percent}% (unweighted active-lease average —
+                  remittance uses each tenant&apos;s credit-based % of collections)
+                </dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-slate-500">

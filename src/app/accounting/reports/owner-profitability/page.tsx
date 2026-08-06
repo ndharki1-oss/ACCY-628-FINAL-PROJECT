@@ -8,6 +8,7 @@ import {
   resolveSelectedOwnerId,
 } from "@/lib/accounting/owner-filter";
 import { fetchOwnerProfitability } from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { formatMoney } from "@/lib/utils";
 
 const BASE_PATH = "/accounting/reports/owner-profitability";
@@ -39,9 +40,9 @@ export default async function AccountingOwnerProfitabilityPage({
     <div className="space-y-6">
       <ReportHeading
         title="Owner Profitability"
-        subtitle="Profit generated from each property owner across all managed properties."
+        subtitle={`${ALL_PERIODS_HINT}. Profit generated from each property owner across all managed properties.`}
       />
-      <Card title="Owner Profitability">
+      <Card title={`Owner Profitability · ${ALL_PERIODS_HINT}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="border-b text-xs uppercase text-slate-500">
@@ -53,7 +54,7 @@ export default async function AccountingOwnerProfitabilityPage({
                 />
                 <th className="py-2">Properties</th>
                 <th className="py-2">Revenue</th>
-                <th className="py-2">Expenses</th>
+                <th className="py-2">OpEx (in NOI)</th>
                 <th className="py-2">NOI</th>
               </tr>
             </thead>

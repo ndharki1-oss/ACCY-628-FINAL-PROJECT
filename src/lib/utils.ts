@@ -25,7 +25,11 @@ export function pathMatchesRole(pathname: string, role: string): boolean {
 
 export type CreditRating = "AAA" | "AA" | "A" | "BBB" | "BB" | "B" | "CCC";
 
-/** Harborline management fee % of collected rent from tenant credit (4–12%). */
+/** Harborline management fee % of collected rent from tenant credit (4–12%).
+ * Canonical for statements, remittance, and GL fee recognition.
+ * Do not use management_agreements.fee_percent for billing math — that column is
+ * an unweighted average of active-lease credit fees (display / fallback only).
+ */
 export function feePercentFromCredit(
   rating: CreditRating | string | null | undefined
 ): number {

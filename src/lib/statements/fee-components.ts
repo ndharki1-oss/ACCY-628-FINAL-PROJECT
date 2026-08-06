@@ -11,6 +11,7 @@ export const FEE_LINE_TYPES = [
 export type FeeLineType = (typeof FEE_LINE_TYPES)[number];
 
 export const FEE_LINE_LABELS: Record<FeeLineType, string> = {
+  // Base fee amounts are tenant credit-based % of collections (not MA.fee_percent).
   management_fee: "Base management fee",
   leasing_commission: "Leasing commission",
   project_fee: "Project / CM fee",
