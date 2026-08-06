@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DemoRoleSwitcher } from "@/components/demo-role-switcher";
+import { DemoRoleSwitcher, type DemoRoleKey } from "@/components/demo-role-switcher";
 import { PortalSidebarUtilities } from "@/components/portal-sidebar-utilities";
 
 type NavLink = { href: string; label: string };
@@ -18,10 +18,12 @@ function linkActive(pathname: string, href: string) {
 export function EmployeeAppShell({
   name,
   links,
+  demoRole = "vendor",
   children,
 }: {
   name: string;
   links: NavLink[];
+  demoRole?: DemoRoleKey;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -87,7 +89,7 @@ export function EmployeeAppShell({
           </div>
           <div className="flex items-center gap-3 text-sm sm:gap-4">
             <span className="hidden text-slate-300 sm:inline">
-              {name} · <DemoRoleSwitcher currentRole="vendor" />
+              {name} · <DemoRoleSwitcher currentRole={demoRole} />
             </span>
           </div>
         </div>

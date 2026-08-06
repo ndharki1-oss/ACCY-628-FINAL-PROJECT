@@ -41,7 +41,7 @@ export default async function AdminProfitabilityPage({
       .order("name"),
     supabase
       .from("cost_entries")
-      .select("property_id, amount, incurred_date"),
+      .select("property_id, amount, incurred_date, paid_by"),
     supabase
       .from("invoices")
       .select(
@@ -101,10 +101,17 @@ export default async function AdminProfitabilityPage({
     return sum + Number(row.credit);
   }, 0);
 
-  const companyCosts = (companyExp ?? []).reduce((sum, row) => {
+  const companyCostsFromEntries = (costs ?? []).reduce((sum, row) => {
+    if (row.paid_by !== "company") return sum;
     if (!inSelectedPeriod(row.incurred_date, selectedPeriod)) return sum;
     return sum + Number(row.amount);
   }, 0);
+
+  const companyCosts =
+    (companyExp ?? []).reduce((sum, row) => {
+      if (!inSelectedPeriod(row.incurred_date, selectedPeriod)) return sum;
+      return sum + Number(row.amount);
+    }, 0) + companyCostsFromEntries;
 
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
@@ -122,6 +129,7 @@ export default async function AdminProfitabilityPage({
       .filter(
         (c) =>
           c.property_id === p.id &&
+          c.paid_by !== "company" &&
           inSelectedPeriod(c.incurred_date, selectedPeriod)
       )
       .reduce((s, c) => s + Number(c.amount), 0);

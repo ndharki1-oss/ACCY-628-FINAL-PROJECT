@@ -40,7 +40,7 @@ export default async function AccountingExpenseBreakdownPage({
           let q = supabase
             .from("cost_entries")
             .select(
-              "id, category, description, amount, incurred_date, property_id, properties(name), owners(company_name), work_orders(wo_number)"
+              "id, category, description, amount, incurred_date, paid_by, property_id, properties(name), owners(company_name), work_orders(wo_number)"
             )
             .order("incurred_date", { ascending: false });
           if (propertyIds?.length) {
@@ -70,7 +70,8 @@ export default async function AccountingExpenseBreakdownPage({
     const property = firstRelation(c.properties);
     const owner = firstRelation(c.owners);
     const wo = firstRelation(c.work_orders);
-    const allocation = "owner" as const;
+    const allocation =
+      c.paid_by === "company" ? ("company" as const) : ("owner" as const);
     const category = String(c.category);
     const description = c.description;
     const amount = Number(c.amount);
@@ -97,11 +98,11 @@ export default async function AccountingExpenseBreakdownPage({
     const property = firstRelation(l.properties);
     const wo = firstRelation(l.work_orders);
     const emp = firstRelation(l.profiles);
-    const allocation = "owner" as const;
+    const allocation = "company" as const;
     const category = "labor";
     const description = emp?.full_name
-      ? `Labor · ${emp.full_name}`
-      : "Property labor";
+      ? `Harborline labor · ${emp.full_name}`
+      : "Harborline labor";
     const amount = Number(l.labor_cost);
     return {
       id: `labor-${l.id}`,

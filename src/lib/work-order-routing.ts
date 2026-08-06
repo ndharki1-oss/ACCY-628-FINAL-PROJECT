@@ -1,8 +1,15 @@
 export const DEFAULT_APPROVAL_THRESHOLD = 2500;
 
-/** Demo employee login (employee@example.com) → Chen Building Services */
-export const DEMO_EMPLOYEE_VENDOR_ID =
+/** Retained independent contractor — Victor Chen / Chen Building Services */
+export const DEMO_CONTRACTOR_VENDOR_ID =
   "50000000-0000-0000-0000-000000000001";
+
+/** Default in-house staff when specialty does not match — Jordan Blake */
+export const DEMO_STAFF_VENDOR_ID =
+  "50000000-0000-0000-0000-000000000008";
+
+/** @deprecated Use DEMO_CONTRACTOR_VENDOR_ID or DEMO_STAFF_VENDOR_ID */
+export const DEMO_EMPLOYEE_VENDOR_ID = DEMO_CONTRACTOR_VENDOR_ID;
 
 export type Priority = "Emergency" | "High" | "Medium" | "Low";
 
@@ -18,10 +25,15 @@ export type WorkOrderRouting = {
   displayAmount: number;
   threshold: number;
   managementReviewRequired: boolean;
+  requiresOwnerApproval: boolean;
   reviewReasons: string[];
   routingLabel:
     | "Sent Directly to Worker"
     | "Escalated to Property Management";
+  /** Who performs after routing */
+  performer: "staff" | "contractor" | "pending";
+  /** Who pays when completed */
+  paidBy: "company" | "owner" | "pending";
 };
 
 export function firstRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -99,12 +111,15 @@ export function evaluateWorkOrderRouting(input: {
     displayAmount,
     threshold,
     managementReviewRequired,
+    requiresOwnerApproval: managementReviewRequired,
     reviewReasons: managementReviewRequired
       ? Array.from(new Set(reviewReasons))
       : [],
     routingLabel: managementReviewRequired
       ? "Escalated to Property Management"
       : "Sent Directly to Worker",
+    performer: managementReviewRequired ? "contractor" : "staff",
+    paidBy: managementReviewRequired ? "owner" : "company",
   };
 }
 
@@ -117,7 +132,7 @@ export function requiresImmediateManagementAttention(routing: WorkOrderRouting) 
   );
 }
 
-/** Cost-based owner approval gate used for real routing. */
+/** Cost-based owner approval gate (dollar threshold only). Prefer evaluateWorkOrderRouting for full rules. */
 export function estimateRequiresOwnerApproval(
   estimatedCost: unknown,
   approvalThreshold: unknown
@@ -140,38 +155,71 @@ export function formatMoneyPlain(amount: number) {
   }).format(amount);
 }
 
+export function payorLabel(paidBy: "company" | "owner" | "pending") {
+  switch (paidBy) {
+    case "company":
+      return "Harborline (in-house)";
+    case "owner":
+      return "Property owner";
+    default:
+      return "Pending estimate";
+  }
+}
+
+export function performerLabel(performer: "staff" | "contractor" | "pending") {
+  switch (performer) {
+    case "staff":
+      return "In-house staff";
+    case "contractor":
+      return "Victor Chen (contractor)";
+    default:
+      return "Pending assignment";
+  }
+}
+
 export function routingExplanation(input: {
   estimatedCost: unknown;
   approvalThreshold: unknown;
   status: string;
   requiresOwnerApproval: boolean;
   vendorName?: string | null;
+  title?: string | null;
+  description?: string | null;
+  woType?: string | null;
 }) {
-  const { estimate, threshold, requiresOwnerApproval } =
-    estimateRequiresOwnerApproval(
-      input.estimatedCost,
-      input.approvalThreshold
-    );
+  const routing = evaluateWorkOrderRouting({
+    title: input.title,
+    description: input.description,
+    woType: input.woType,
+    estimatedCost: input.estimatedCost,
+    approvalThreshold: input.approvalThreshold,
+  });
+  const { estimate, threshold, requiresOwnerApproval } = {
+    estimate: routing.estimatedCost,
+    threshold: routing.threshold,
+    requiresOwnerApproval:
+      input.requiresOwnerApproval || routing.requiresOwnerApproval,
+  };
 
   if (input.status === "rejected") {
-    return "Owner rejected; returned to Property Manager. Not routed to an employee.";
+    return "Owner rejected; returned to Property Manager. Not routed to a worker.";
   }
 
   if (input.status === "pending_owner_approval" || requiresOwnerApproval) {
     if (input.status === "approved") {
-      return `Owner approved; assign to independent contractor (Victor Chen) — not in-house staff (${formatMoneyPlain(estimate)} exceeded ${formatMoneyPlain(threshold)}).`;
+      return `Owner approved; assign to Victor Chen (contractor). Paid by owner (${formatMoneyPlain(estimate)} · threshold ${formatMoneyPlain(threshold)}).`;
     }
     if (input.status === "assigned" || input.status === "in_progress") {
-      return `Owner approved and assigned to independent contractor${input.vendorName ? ` (${input.vendorName})` : ""} — over-threshold jobs are not routed to in-house staff.`;
+      return `Owner approved and assigned${input.vendorName ? ` to ${input.vendorName}` : " to contractor"}. Owner pays — not in-house staff.`;
     }
     if (estimate <= 0) {
       return "Awaiting Property Manager estimate before threshold routing.";
     }
-    return `Sent to owner approval because ${formatMoneyPlain(estimate)} exceeds the ${formatMoneyPlain(threshold)} approval threshold. On approval, assigned to Victor Chen (contractor), not in-house staff.`;
+    return `Owner approval required (${routing.reviewReasons.join("; ") || "above threshold"}). After approval → Victor Chen; owner pays.`;
   }
 
   if (input.status === "approved" && !input.vendorName) {
-    return "Approved and ready for Property Manager assignment.";
+    return "Ready for assignment.";
   }
 
   if (
@@ -179,9 +227,9 @@ export function routingExplanation(input: {
     !requiresOwnerApproval
   ) {
     if (estimate <= 0) {
-      return "With Property Manager for estimate and routing.";
+      return "With Property Manager for estimate and routing. In-house until estimate exceeds threshold.";
     }
-    return `Automatically routed to employee because ${formatMoneyPlain(estimate)} is at or below the ${formatMoneyPlain(threshold)} approval threshold${input.vendorName ? ` (${input.vendorName})` : ""}.`;
+    return `In-house staff${input.vendorName ? ` (${input.vendorName})` : ""} · Harborline pays · estimate ${formatMoneyPlain(estimate)} ≤ threshold ${formatMoneyPlain(threshold)}.`;
   }
 
   if (estimate <= 0) {
@@ -216,13 +264,13 @@ export function workOrderDestination(input: {
 export function destinationLabel(destination: WorkOrderDestination) {
   switch (destination) {
     case "property_owner":
-      return "Property Owner";
+      return "Property owner";
     case "employee":
-      return "Employee";
+      return "Assigned worker";
     case "completed":
       return "Completed";
     default:
-      return "Property Manager";
+      return "Property manager";
   }
 }
 
@@ -231,11 +279,11 @@ export function destinationBadgeClass(destination: WorkOrderDestination) {
     case "property_owner":
       return "bg-amber-100 text-amber-900";
     case "employee":
-      return "bg-sky-100 text-sky-800";
+      return "bg-sky-100 text-sky-900";
     case "completed":
-      return "bg-emerald-100 text-emerald-800";
+      return "bg-emerald-100 text-emerald-900";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-slate-100 text-slate-800";
   }
 }
 

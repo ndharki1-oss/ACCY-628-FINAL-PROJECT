@@ -3,14 +3,19 @@ import { Badge, Card } from "@/components/ui";
 import { formatMoney, statusClass } from "@/lib/utils";
 import {
   adminAssignWorkOrder,
+  adminCompleteWorkOrder,
   adminRouteWorkOrder,
 } from "@/app/actions/business";
 import {
-  DEMO_EMPLOYEE_VENDOR_ID,
+  DEMO_CONTRACTOR_VENDOR_ID,
+  DEMO_STAFF_VENDOR_ID,
   destinationBadgeClass,
   destinationLabel,
+  evaluateWorkOrderRouting,
   firstRelation,
   formatMoneyPlain,
+  payorLabel,
+  performerLabel,
   routingExplanation,
   workOrderDestination,
 } from "@/lib/work-order-routing";
@@ -60,6 +65,14 @@ export default async function AdminWorkOrdersPage({
     const linkedRequest = firstRelation(w.tenant_requests);
     const linkedTenant = firstRelation(linkedRequest?.tenants);
     const threshold = Number(agreement?.approval_threshold) || 2500;
+    const routing = evaluateWorkOrderRouting({
+      title: w.title,
+      description: w.description,
+      woType: w.wo_type,
+      estimatedCost: w.estimated_cost,
+      actualCost: w.actual_cost,
+      approvalThreshold: threshold,
+    });
     const destination = workOrderDestination({
       status: w.status,
       requiresOwnerApproval: Boolean(w.requires_owner_approval),
@@ -73,9 +86,40 @@ export default async function AdminWorkOrdersPage({
       ["open", "assigned"].includes(w.status) &&
       !w.requires_owner_approval;
 
+    const isStaffJob =
+      vendor?.worker_type === "staff" ||
+      w.vendor_id === DEMO_STAFF_VENDOR_ID ||
+      (!w.requires_owner_approval && Boolean(w.vendor_id));
+    const canAdminComplete =
+      !w.completed_at &&
+      ["open", "assigned", "in_progress"].includes(w.status) &&
+      Boolean(w.vendor_id) &&
+      isStaffJob &&
+      !w.requires_owner_approval;
+
     const assigneeLabel = vendor?.contact_name
       ? `Assigned to ${vendor.contact_name}`
       : "Unassigned";
+
+    const paidBy =
+      w.completed_at || estimate > 0 || w.requires_owner_approval
+        ? w.requires_owner_approval
+          ? "owner"
+          : routing.paidBy === "pending"
+            ? "company"
+            : routing.paidBy
+        : "pending";
+
+    const performer =
+      w.requires_owner_approval || routing.performer === "contractor"
+        ? vendor?.worker_type === "staff"
+          ? "staff"
+          : "contractor"
+        : vendor?.worker_type === "contractor"
+          ? "contractor"
+          : estimate > 0
+            ? "staff"
+            : "pending";
 
     return {
       ...w,
@@ -87,14 +131,24 @@ export default async function AdminWorkOrdersPage({
       destination,
       needsEstimate,
       assigneeLabel,
+      canAdminComplete,
+      paidBy: paidBy as "owner" | "company" | "pending",
+      performer: performer as "staff" | "contractor" | "pending",
       needsAssign:
-        w.status === "approved" && !w.vendor_id && !w.completed_at,
+        (w.status === "approved" && !w.vendor_id && !w.completed_at) ||
+        (w.requires_owner_approval &&
+          Boolean(w.owner_approved_at) &&
+          !w.vendor_id &&
+          !w.completed_at),
       explanation: routingExplanation({
         estimatedCost: w.estimated_cost,
         approvalThreshold: threshold,
         status: w.status,
         requiresOwnerApproval: Boolean(w.requires_owner_approval),
         vendorName: vendor?.contact_name ?? vendor?.company_name,
+        title: w.title,
+        description: w.description,
+        woType: w.wo_type,
       }),
     };
   });
@@ -130,7 +184,7 @@ export default async function AdminWorkOrdersPage({
     { key: "needs_estimate", label: "Needs estimate" },
     { key: "owner", label: "With owner" },
     { key: "assign", label: "Ready to assign" },
-    { key: "employee", label: "With employee" },
+    { key: "employee", label: "With worker" },
     { key: "completed", label: "Completed" },
   ];
 
@@ -142,9 +196,9 @@ export default async function AdminWorkOrdersPage({
         </h1>
         <p className="mt-1 text-slate-600">
           Tenant requests auto-assign Harborline staff by specialty when
-          possible. Set an estimate to route: at or below the property approval
-          threshold → Victor Chen; above threshold → owner approval, then
-          auto-assigned to Victor Chen (contractor only — not in-house staff).
+          possible. At or below threshold (routine): Jordan Blake / in-house staff —
+          Harborline pays. Above threshold, Emergency/High, or CapEx: owner approval →
+          Victor Chen (contractor) — owner pays.
         </p>
       </div>
 
@@ -207,6 +261,10 @@ export default async function AdminWorkOrdersPage({
                       </p>
                     ) : null}
                     <p className="mt-2 text-xs text-slate-500">{w.explanation}</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      Performer: {performerLabel(w.performer)} · Payer:{" "}
+                      {payorLabel(w.paidBy)}
+                    </p>
                     {w.rejection_reason ? (
                       <p className="mt-1 text-xs text-rose-700">
                         Rejection: {w.rejection_reason}
@@ -275,24 +333,63 @@ export default async function AdminWorkOrdersPage({
                         type="submit"
                         className="rounded bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-white"
                       >
-                        Route by threshold
+                        Route by rules
                       </button>
                     </form>
 
-                    {w.needsAssign ||
-                    (w.status === "open" && !w.vendor_id && !w.needsEstimate) ? (
+                    {w.needsAssign ? (
                       <form action={adminAssignWorkOrder}>
                         <input type="hidden" name="id" value={w.id} />
                         <input
                           type="hidden"
                           name="vendor_id"
-                          value={DEMO_EMPLOYEE_VENDOR_ID}
+                          value={DEMO_CONTRACTOR_VENDOR_ID}
                         />
                         <button
                           type="submit"
                           className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800"
                         >
-                          Assign to demo employee
+                          Assign Victor Chen (contractor)
+                        </button>
+                      </form>
+                    ) : null}
+
+                    {w.canAdminComplete ? (
+                      <form
+                        action={adminCompleteWorkOrder}
+                        className="flex flex-wrap items-end gap-2 border-l border-slate-200 pl-3"
+                      >
+                        <input type="hidden" name="id" value={w.id} />
+                        <label className="text-xs text-slate-600">
+                          Actual cost
+                          <input
+                            name="actual_cost"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            required
+                            defaultValue={
+                              Number(w.estimated_cost) > 0
+                                ? Number(w.estimated_cost)
+                                : 0
+                            }
+                            className="mt-1 block w-28 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                          />
+                        </label>
+                        <label className="text-xs text-slate-600">
+                          Notes
+                          <input
+                            name="notes"
+                            required
+                            placeholder="Work confirmed"
+                            className="mt-1 block w-40 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          className="rounded bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white"
+                        >
+                          Confirm staff complete
                         </button>
                       </form>
                     ) : null}

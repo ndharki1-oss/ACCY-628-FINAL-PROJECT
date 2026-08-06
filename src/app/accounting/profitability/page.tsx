@@ -16,7 +16,7 @@ export default async function AccountingProfitabilityPage() {
     .order("name");
   const { data: costs } = await supabase
     .from("cost_entries")
-    .select("property_id, amount");
+    .select("property_id, amount, paid_by");
   const { data: invoices } = await supabase
     .from("invoices")
     .select("property_id, total, status, party_type");
@@ -29,10 +29,11 @@ export default async function AccountingProfitabilityPage() {
     .eq("gl_accounts.code", "4000");
 
   const feeRevenue = (feeLines ?? []).reduce((s, r) => s + Number(r.credit), 0);
-  const companyCosts = (companyExp ?? []).reduce(
-    (s, r) => s + Number(r.amount),
-    0
-  );
+  const companyPaidWo = (costs ?? [])
+    .filter((c) => c.paid_by === "company")
+    .reduce((s, c) => s + Number(c.amount), 0);
+  const companyCosts =
+    (companyExp ?? []).reduce((s, r) => s + Number(r.amount), 0) + companyPaidWo;
 
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
@@ -44,7 +45,7 @@ export default async function AccountingProfitabilityPage() {
       )
       .reduce((s, i) => s + Number(i.total), 0);
     const expense = (costs ?? [])
-      .filter((c) => c.property_id === p.id)
+      .filter((c) => c.property_id === p.id && c.paid_by !== "company")
       .reduce((s, c) => s + Number(c.amount), 0);
     return {
       id: p.id,

@@ -20,7 +20,16 @@ type EmployeeJob = {
 
 const EMPLOYEE_JOBS: EmployeeJob[] = [
   { id: "admin", label: "Property Manager", email: "admin@example.com" },
-  { id: "employee", label: "Employee", email: "employee@example.com" },
+  {
+    id: "staff",
+    label: "Staff (Jordan Blake)",
+    email: "staff@example.com",
+  },
+  {
+    id: "contractor",
+    label: "Contractor (Victor Chen)",
+    email: "employee@example.com",
+  },
   { id: "accounting", label: "Accounting", email: "accounting@example.com" },
 ];
 

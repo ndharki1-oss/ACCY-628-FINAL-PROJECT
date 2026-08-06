@@ -10,6 +10,7 @@ export type DemoRoleKey =
   | "owner"
   | "tenant"
   | "vendor"
+  | "staff"
   | "accounting";
 
 const DEMO_ACCOUNTS: {
@@ -33,8 +34,13 @@ const DEMO_ACCOUNTS: {
     email: "tenant@example.com",
   },
   {
+    key: "staff",
+    label: "Staff (Jordan)",
+    email: "staff@example.com",
+  },
+  {
     key: "vendor",
-    label: "Employee",
+    label: "Contractor (Victor)",
     email: "employee@example.com",
   },
   {

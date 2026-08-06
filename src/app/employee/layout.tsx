@@ -1,5 +1,6 @@
 import { EmployeeAppShell } from "@/components/employee-app-shell";
 import { requireRole } from "@/lib/auth";
+import { getLinkedVendorId } from "@/lib/portal";
 
 const employeeLinks = [
   { href: "/employee", label: "Dashboard" },
@@ -14,10 +15,20 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const { profile } = await requireRole(["vendor"]);
+  const { supabase, user, profile } = await requireRole(["vendor"]);
+  const { vendor } = await getLinkedVendorId(supabase, user);
+  const demoRole =
+    vendor?.worker_type === "staff" ||
+    profile.email === "staff@example.com"
+      ? ("staff" as const)
+      : ("vendor" as const);
 
   return (
-    <EmployeeAppShell name={profile.full_name} links={employeeLinks}>
+    <EmployeeAppShell
+      name={profile.full_name}
+      links={employeeLinks}
+      demoRole={demoRole}
+    >
       {children}
     </EmployeeAppShell>
   );
