@@ -8,6 +8,10 @@ import type {
   PropertyPnLRow,
   ReportScope,
 } from "./types";
+import {
+  invoiceActivityDate,
+  type PropertyPnLChartActivity,
+} from "./property-pnl-chart";
 
 type AnyClient = SupabaseClient;
 
@@ -76,6 +80,83 @@ export async function fetchPropertyPnL(
       noi: revenue - expenses,
     };
   });
+}
+
+/**
+ * Dated invoice/cost activity for the Admin Property P&L chart only.
+ * Table aggregates remain in {@link fetchPropertyPnL}.
+ */
+export async function fetchPropertyPnLChartActivity(
+  supabase: AnyClient,
+  scope: ReportScope
+): Promise<PropertyPnLChartActivity[]> {
+  const properties = await loadProperties(supabase, scope.propertyIds);
+  const propIds = properties.map((p) => p.id);
+  if (!propIds.length) return [];
+
+  const meta = new Map(
+    properties.map((p) => {
+      const owner = Array.isArray(p.owners) ? p.owners[0] : p.owners;
+      return [
+        p.id,
+        {
+          propertyName: p.name as string,
+          ownerName: (owner?.company_name as string | undefined) ?? "Unknown",
+        },
+      ] as const;
+    })
+  );
+
+  const [{ data: invoices }, { data: costs }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select(
+        "property_id, total, status, party_type, period_start, period_end, issue_date"
+      )
+      .in("property_id", propIds),
+    supabase
+      .from("cost_entries")
+      .select("property_id, amount, paid_by, incurred_date")
+      .eq("paid_by", "owner")
+      .in("property_id", propIds),
+  ]);
+
+  const rows: PropertyPnLChartActivity[] = [];
+
+  for (const inv of invoices ?? []) {
+    if (inv.party_type !== "tenant" || inv.status === "void") continue;
+    const date = invoiceActivityDate(inv);
+    if (!date) continue;
+    const info = meta.get(inv.property_id);
+    if (!info) continue;
+    rows.push({
+      propertyId: inv.property_id,
+      propertyName: info.propertyName,
+      ownerName: info.ownerName,
+      date,
+      revenue: Number(inv.total) || 0,
+      expenses: 0,
+    });
+  }
+
+  for (const cost of costs ?? []) {
+    const date = invoiceActivityDate({
+      issue_date: cost.incurred_date,
+    });
+    if (!date) continue;
+    const info = meta.get(cost.property_id);
+    if (!info) continue;
+    rows.push({
+      propertyId: cost.property_id,
+      propertyName: info.propertyName,
+      ownerName: info.ownerName,
+      date,
+      revenue: 0,
+      expenses: Number(cost.amount) || 0,
+    });
+  }
+
+  return rows;
 }
 
 export async function fetchOwnerProfitability(
