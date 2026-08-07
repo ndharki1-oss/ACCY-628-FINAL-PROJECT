@@ -839,6 +839,7 @@ export async function tenantPayInvoice(formData: FormData) {
   if (aErr) throw new Error(aErr.message);
 
   // Agency GAAP: rent collection is Due to Owner; fee % from credit + property risk.
+  // Journal insert is via SECURITY DEFINER RPC — tenants cannot write journal_* under RLS.
   const credit = tenant?.credit_rating as string | undefined;
   const invoiceProperty = Array.isArray(invoice?.properties)
     ? invoice.properties[0]
@@ -849,55 +850,23 @@ export async function tenantPayInvoice(formData: FormData) {
   const feePct = feePercentFromCreditAndRisk(credit, riskTier);
   const feeAmount = managementFeeFromCollection(amount, credit, riskTier);
 
-  const { data: accounts } = await supabase
-    .from("gl_accounts")
-    .select("id, code")
-    .in("code", ["2000", "4000"]);
-  const ownerPayable = accounts?.find((a) => a.code === "2000")?.id;
-  const feeRevenue = accounts?.find((a) => a.code === "4000")?.id;
-
-  if (ownerPayable && feeRevenue && feeAmount > 0) {
-    const entryNumber = `JE-FEE-${Date.now()}`;
-    const { data: period } = await supabase
-      .from("accounting_periods")
-      .select("id")
-      .eq("year", new Date().getFullYear())
-      .eq("month", new Date().getMonth() + 1)
-      .maybeSingle();
-
-    const { data: je } = await supabase
-      .from("journal_entries")
-      .insert({
-        entry_number: entryNumber,
-        entry_date: new Date().toISOString().slice(0, 10),
-        memo: `Management fee ${feePct}% of collection (credit ${credit ?? "BBB"}, risk ${riskTier})`,
-        source_type: "payment",
-        source_id: payment.id,
-        period_id: period?.id,
-        created_by: user!.id,
-      })
-      .select("id")
-      .single();
-
-    if (je) {
-      await supabase.from("journal_lines").insert([
-        {
-          journal_entry_id: je.id,
-          gl_account_id: ownerPayable,
-          debit: feeAmount,
-          credit: 0,
-          property_id: invoice?.property_id,
-          owner_id: invoice?.owner_id,
-        },
-        {
-          journal_entry_id: je.id,
-          gl_account_id: feeRevenue,
-          debit: 0,
-          credit: feeAmount,
-          property_id: invoice?.property_id,
-          owner_id: invoice?.owner_id,
-        },
-      ]);
+  if (feeAmount > 0) {
+    const { error: feeJeErr } = await supabase.rpc(
+      "post_management_fee_on_payment",
+      {
+        p_payment_id: payment.id,
+        p_fee_amount: feeAmount,
+        p_fee_percent: feePct,
+        p_credit_rating: credit ?? null,
+        p_risk_tier: riskTier,
+        p_property_id: invoice?.property_id ?? null,
+        p_owner_id: invoice?.owner_id ?? null,
+      }
+    );
+    if (feeJeErr) {
+      throw new Error(
+        `Payment recorded but fee journal failed: ${feeJeErr.message}`
+      );
     }
   }
 
@@ -927,6 +896,9 @@ export async function tenantPayInvoice(formData: FormData) {
   revalidatePath("/tenant");
   revalidatePath("/accounting");
   revalidatePath("/admin/accounting");
+  revalidatePath("/admin");
+  revalidatePath("/admin/profitability");
+  revalidatePath("/accounting/profitability");
 }
 
 export async function toggleAutoPay(formData: FormData) {
