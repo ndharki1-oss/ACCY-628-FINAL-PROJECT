@@ -44,7 +44,10 @@ export async function GET(
 
   const projectFee = lines
     .filter((l) => l.line_type === "project_fee")
-    .reduce((sum, l) => sum + Number(l.amount), 0);
+    .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
+  const baseManagementFee = lines
+    .filter((l) => l.line_type === "management_fee")
+    .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
 
   const address =
     property &&
@@ -63,9 +66,9 @@ export async function GET(
     ownerName:
       owner?.company_name ?? owner?.contact_name ?? "Owner",
     totalCollections: Number(statement.total_collections),
-    totalExpenses: Number(statement.total_expenses),
+    totalExpenses: Math.abs(Number(statement.total_expenses)),
     projectFee,
-    managementFee: Number(statement.management_fee),
+    managementFee: baseManagementFee,
     remittanceDue: Number(statement.remittance_due),
     lines: lines.map((line) => ({
       lineType: line.line_type,

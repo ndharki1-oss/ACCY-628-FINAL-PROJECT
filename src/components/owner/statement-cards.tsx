@@ -26,6 +26,8 @@ export type OwnerStatementCardData = {
   remittance_due: number | string;
   propertyName: string | null;
   projectFee: number;
+  /** Base management fee only (excludes project/other agency fees in the header total). */
+  baseManagementFee: number;
   lines: OwnerStatementLine[];
   beginningBalance?: number;
 };
@@ -168,8 +170,14 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
           label="Collections"
           value={formatMoney(s.total_collections)}
         />
-        <SummaryStat label="Expenses" value={formatMoney(s.total_expenses)} />
-        <SummaryStat label="Mgmt fee" value={formatMoney(s.management_fee)} />
+        <SummaryStat
+          label="Expenses"
+          value={formatMoney(Math.abs(Number(s.total_expenses)))}
+        />
+        <SummaryStat
+          label="Mgmt fee"
+          value={formatMoney(Math.abs(Number(s.management_fee)))}
+        />
         <SummaryStat
           label="Remittance"
           value={formatMoney(s.remittance_due)}
@@ -200,7 +208,7 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
             />
             <DetailTile
               label="Expenses"
-              value={formatMoney(s.total_expenses)}
+              value={formatMoney(Math.abs(Number(s.total_expenses)))}
               tone="expense"
             />
             <DetailTile
@@ -210,7 +218,7 @@ function StatementCard({ statement: s }: { statement: OwnerStatementCardData }) 
             />
             <DetailTile
               label="Management fee"
-              value={formatMoney(s.management_fee)}
+              value={formatMoney(s.baseManagementFee)}
               tone="fee"
             />
             <DetailTile

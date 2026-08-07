@@ -42,7 +42,10 @@ export default async function OwnerStatementsPage({
       }[]) ?? [];
     const projectFee = lines
       .filter((l) => l.line_type === "project_fee")
-      .reduce((sum, l) => sum + Number(l.amount), 0);
+      .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
+    const baseManagementFee = lines
+      .filter((l) => l.line_type === "management_fee")
+      .reduce((sum, l) => sum + Math.abs(Number(l.amount)), 0);
 
     // Statements are ordered period_end desc; prior for same property is the next older one
     const priorSameProperty = arr
@@ -62,6 +65,7 @@ export default async function OwnerStatementsPage({
       remittance_due: s.remittance_due,
       propertyName: prop?.name ?? null,
       projectFee,
+      baseManagementFee,
       lines,
       beginningBalance: priorSameProperty
         ? Number(priorSameProperty.remittance_due)

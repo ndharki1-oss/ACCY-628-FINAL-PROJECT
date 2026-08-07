@@ -20,6 +20,11 @@ export function demoOperatingReserve(remittanceBeforeReserve: number) {
   return Math.round(base * 0.1 * 100) / 100;
 }
 
+/** Treat statement header magnitudes as non-negative (lines may be signed). */
+function magnitude(n: number) {
+  return Math.abs(Number(n) || 0);
+}
+
 export function computeTrustCashPosition(input: {
   beginning?: number;
   collections: number;
@@ -31,9 +36,9 @@ export function computeTrustCashPosition(input: {
   statementNumber?: string | null;
 }): TrustCashPosition {
   const beginning = Number(input.beginning) || 0;
-  const collected = Number(input.collections) || 0;
-  const paidForOwner = Number(input.ownerExpenses) || 0;
-  const managementFee = Number(input.managementFee) || 0;
+  const collected = magnitude(input.collections);
+  const paidForOwner = magnitude(input.ownerExpenses);
+  const managementFee = magnitude(input.managementFee);
   const remittanceBeforeReserve =
     beginning + collected - paidForOwner - managementFee;
   const reserve =
