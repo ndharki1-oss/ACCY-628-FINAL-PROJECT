@@ -192,7 +192,6 @@ export function MaintenanceDetailTable({
   enableExcelExport?: boolean;
 }) {
   const [propertyFilter, setPropertyFilter] = useState("all");
-  const [workOrderFilter, setWorkOrderFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [descriptionFilter, setDescriptionFilter] = useState("all");
   const [sortKey, setSortKey] = useState<DetailSortKey | null>(null);
@@ -201,14 +200,6 @@ export function MaintenanceDetailTable({
   const properties = useMemo(
     () =>
       [...new Set(rows.map((r) => r.propertyName))].sort((a, b) =>
-        a.localeCompare(b)
-      ),
-    [rows]
-  );
-
-  const workOrders = useMemo(
-    () =>
-      [...new Set(rows.map((r) => r.workOrderNumber ?? "—"))].sort((a, b) =>
         a.localeCompare(b)
       ),
     [rows]
@@ -249,12 +240,6 @@ export function MaintenanceDetailTable({
       if (propertyFilter !== "all" && row.propertyName !== propertyFilter) {
         return false;
       }
-      if (
-        workOrderFilter !== "all" &&
-        (row.workOrderNumber ?? "—") !== workOrderFilter
-      ) {
-        return false;
-      }
       if (categoryFilter !== "all" && row.category !== categoryFilter) {
         return false;
       }
@@ -278,7 +263,6 @@ export function MaintenanceDetailTable({
   }, [
     rows,
     propertyFilter,
-    workOrderFilter,
     categoryFilter,
     descriptionFilter,
     sortKey,
@@ -298,7 +282,6 @@ export function MaintenanceDetailTable({
                 filename: `maintenance-detail-${excelStamp()}.csv`,
                 headers: [
                   "Property",
-                  "Work order",
                   "Category",
                   "Description",
                   "Employee",
@@ -307,7 +290,6 @@ export function MaintenanceDetailTable({
                 ],
                 rows: displayed.map((r) => [
                   r.propertyName,
-                  r.workOrderNumber ?? "",
                   r.category,
                   r.description,
                   r.employeeName ?? "",
@@ -321,7 +303,7 @@ export function MaintenanceDetailTable({
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
             <tr>
               <th className="py-2 pr-2 align-bottom">
@@ -331,15 +313,6 @@ export function MaintenanceDetailTable({
                   value={propertyFilter}
                   onChange={setPropertyFilter}
                   options={properties}
-                />
-              </th>
-              <th className="py-2 pr-2 align-bottom">
-                <span className="block">Work order</span>
-                <ValueFilterSelect
-                  label="Filter by work order"
-                  value={workOrderFilter}
-                  onChange={setWorkOrderFilter}
-                  options={workOrders}
                 />
               </th>
               <th className="py-2 pr-2 align-bottom">
@@ -381,7 +354,7 @@ export function MaintenanceDetailTable({
           <tbody>
             {displayed.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-6 text-slate-500">
+                <td colSpan={5} className="py-6 text-slate-500">
                   No rows match the current filters.
                 </td>
               </tr>
@@ -392,7 +365,6 @@ export function MaintenanceDetailTable({
                   className="border-b border-slate-100"
                 >
                   <td className="py-2 pr-2">{r.propertyName}</td>
-                  <td className="py-2 pr-2">{r.workOrderNumber ?? "—"}</td>
                   <td className="py-2 pr-2 capitalize">{r.category}</td>
                   <td className="py-2 pr-2">
                     {r.description}
