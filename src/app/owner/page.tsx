@@ -3,13 +3,7 @@ import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge } from "@/components/ui";
 import { PropertyLink } from "@/components/property-link";
 import { DashboardSection } from "@/components/owner/dashboard-section";
-import { SinceLastVisitBanner } from "@/components/owner/since-last-visit-banner";
 import { StatWithDetail } from "@/components/owner/stat-with-detail";
-import {
-  NoiTrendChart,
-  type NoiMonthPoint,
-  type NoiPropertySeries,
-} from "@/components/owner/noi-trend-chart";
 import { formatMoney } from "@/lib/utils";
 import { fetchOwnerMyItems, monthsUntilLeaseEnd } from "@/lib/owner/my-items";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
@@ -162,52 +156,8 @@ export default async function OwnerDashboard() {
     (units ?? []).length > 0
       ? Math.round((leasedUnitIds.size / (units ?? []).length) * 100)
       : 0;
-  const vacantUnits = (units ?? []).filter((u) => !leasedUnitIds.has(u.id));
-
-  const monthKeys: string[] = [];
-  for (let i = 23; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthKeys.push(
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-    );
-  }
-
-  const buildMonths = (propertyId?: string): NoiMonthPoint[] =>
-    monthKeys.map((key) => {
-      const [year, month] = key.split("-").map(Number);
-      const start = `${key}-01`;
-      const end = new Date(year, month, 0).toISOString().slice(0, 10);
-      const income = tenantInvoices
-        .filter((i) => {
-          if (propertyId && i.property_id !== propertyId) return false;
-          const period = i.period_end ?? i.due_date ?? i.issue_date;
-          return period >= start && period <= end;
-        })
-        .reduce((s, i) => s + Number(i.total), 0);
-      const expense = (costs ?? [])
-        .filter((c) => {
-          if (propertyId && c.property_id !== propertyId) return false;
-          return c.incurred_date >= start && c.incurred_date <= end;
-        })
-        .reduce((s, c) => s + Number(c.amount), 0);
-      return {
-        key,
-        label: new Date(year, month - 1, 1).toLocaleString("en-US", {
-          month: "short",
-          year: "2-digit",
-        }),
-        income,
-        expense,
-        noi: income - expense,
-      };
-    });
-
-  const portfolioNoi: NoiMonthPoint[] = buildMonths();
-  const noiByPropertySeries: NoiPropertySeries[] = (properties ?? []).map((p) => ({
-    id: p.id,
-    name: p.name,
-    months: buildMonths(p.id),
-  }));
+  const vacantUnitCount = (units ?? []).filter((u) => !leasedUnitIds.has(u.id))
+    .length;
 
   const expiringLeases = activeLeases
     .concat((leases ?? []).filter((l) => l.status === "renewal_pending"))
@@ -275,7 +225,7 @@ export default async function OwnerDashboard() {
           <StatWithDetail
             label="Occupancy"
             value={`${occupancyPct}%`}
-            detail={`${METRIC_EXPLAINERS.occupancy} Currently ${leasedUnitIds.size} leased · ${vacantUnits.length} vacant.`}
+            detail={`${METRIC_EXPLAINERS.occupancy} Currently ${leasedUnitIds.size} leased · ${vacantUnitCount} vacant.`}
           />
           <StatWithDetail
             label="Invoice collection %"
@@ -284,16 +234,6 @@ export default async function OwnerDashboard() {
           />
         </div>
       </section>
-
-      <SinceLastVisitBanner
-        ownerId={ownerId}
-        snapshot={{
-          costApprovals: myItems.costs.filter((c) => c.overThreshold).length,
-          workOrders: myItems.workOrders.length,
-          requests: myItems.requests.length,
-          overdue: myItems.overdueInvoices.length,
-        }}
-      />
 
       <div className="space-y-4">
         <DashboardSection
@@ -490,21 +430,6 @@ export default async function OwnerDashboard() {
           )}
         </DashboardSection>
 
-        <DashboardSection
-          title="NOI over time"
-          accent="teal"
-          action={
-            <Link href="/owner/noi" className="text-sm text-[#c4784a]">
-              Full NOI →
-            </Link>
-          }
-        >
-          <NoiTrendChart
-            portfolio={portfolioNoi}
-            byProperty={noiByPropertySeries}
-          />
-        </DashboardSection>
-
         <DashboardSection title="Rent & collections" accent="rose">
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-rose-100 bg-white/80 p-4">
@@ -618,36 +543,6 @@ export default async function OwnerDashboard() {
               </tbody>
             </table>
           </div>
-        </DashboardSection>
-
-        <DashboardSection title="Vacancies" accent="vacant">
-          <p className="mb-4 text-sm text-slate-600">
-            Informational only. Vacant units move into Action needed once leasing
-            interest is tracked (coming later).
-          </p>
-          {vacantUnits.length === 0 ? (
-            <p className="text-sm text-slate-600">No vacant units in your portfolio.</p>
-          ) : (
-            <ul className="space-y-3 text-sm">
-              {vacantUnits.map((u) => (
-                <li
-                  key={u.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 bg-white/80 px-4 py-3"
-                >
-                  <span>
-                    <PropertyLink
-                      id={u.property_id}
-                      className="text-slate-700 hover:text-[#c4784a] hover:underline"
-                    >
-                      {propertyName(u.property_id)}
-                    </PropertyLink>{" "}
-                    · {u.unit_code}
-                  </span>
-                  <span className="text-slate-500">Vacant</span>
-                </li>
-              ))}
-            </ul>
-          )}
         </DashboardSection>
       </div>
     </div>
