@@ -324,6 +324,7 @@ export function MgmtPnlView({
   companyCosts,
   byProperty,
   byOwner,
+  showRollupTables = true,
 }: {
   periods: string[];
   selectedPeriod: string | null;
@@ -332,6 +333,8 @@ export function MgmtPnlView({
   companyCosts: number;
   byProperty: MgmtPnlPropertyRow[];
   byOwner: MgmtPnlOwnerRow[];
+  /** NOI-by-property / by-owner rollups (omit when those sections render below) */
+  showRollupTables?: boolean;
 }) {
   const periodLabel = selectedPeriod
     ? formatPeriodLabel(selectedPeriod)
@@ -343,7 +346,7 @@ export function MgmtPnlView({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-[family-name:var(--font-display)] text-3xl">
-            Profitability
+            Management Profitability
           </h1>
           <p className="mt-1 text-sm text-slate-600">{periodLabel}</p>
         </div>
@@ -384,25 +387,29 @@ export function MgmtPnlView({
         </Card>
       ) : null}
 
-      <CollapsibleCard title={`NOI by property · ${periodLabel}`}>
-        {byProperty.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No property activity for this period.
-          </p>
-        ) : (
-          <PropertyNoiTable rows={byProperty} />
-        )}
-      </CollapsibleCard>
+      {showRollupTables ? (
+        <>
+          <CollapsibleCard title={`NOI by property · ${periodLabel}`}>
+            {byProperty.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No property activity for this period.
+              </p>
+            ) : (
+              <PropertyNoiTable rows={byProperty} />
+            )}
+          </CollapsibleCard>
 
-      <CollapsibleCard title={`By owner · ${periodLabel}`}>
-        {byOwner.length === 0 ? (
-          <p className="text-sm text-slate-500">
-            No owner activity for this period.
-          </p>
-        ) : (
-          <OwnerNoiTable rows={byOwner} />
-        )}
-      </CollapsibleCard>
+          <CollapsibleCard title={`By owner · ${periodLabel}`}>
+            {byOwner.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No owner activity for this period.
+              </p>
+            ) : (
+              <OwnerNoiTable rows={byOwner} />
+            )}
+          </CollapsibleCard>
+        </>
+      ) : null}
     </div>
   );
 }

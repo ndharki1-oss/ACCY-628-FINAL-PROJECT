@@ -29,17 +29,7 @@ const nav: Record<string, AppShellNavItem[]> = {
       ],
     },
     { href: "/admin/work-orders", label: "Work Orders" },
-    {
-      label: "Profitability",
-      children: [
-        { href: "/admin/profitability", label: "Mgmt P&L" },
-        { href: "/admin/reports/property-pnl", label: "Property P&L" },
-        {
-          href: "/admin/reports/owner-profitability",
-          label: "Owner Profit",
-        },
-      ],
-    },
+    { href: "/admin/profitability", label: "Profitability" },
     {
       label: "Expenses",
       children: [

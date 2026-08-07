@@ -272,15 +272,7 @@ export default async function AccountingDashboardPage({
                 href="/accounting/profitability"
                 className="text-[#c4784a] hover:underline"
               >
-                Profitability · Management
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/accounting/reports/property-pnl"
-                className="text-[#c4784a] hover:underline"
-              >
-                Profitability · Property
+                Profitability
               </Link>
             </li>
             <li>
@@ -305,7 +297,7 @@ export default async function AccountingDashboardPage({
             href="/accounting/profitability"
             className="text-sm text-[#c4784a] hover:underline"
           >
-            View Management
+            View Profitability
           </Link>
         }
       >
