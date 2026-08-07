@@ -9,14 +9,17 @@ import {
   seedExampleOwnerNotifications,
   syncDerivedOwnerNotifications,
   OWNER_NOTIFICATIONS_EVENT,
+  type OwnerContactMessageHint,
   type OwnerItemHint,
   type OwnerNotification,
 } from "@/lib/owner-notifications-store";
 
 export function OwnerNotifications({
   itemHints = [],
+  contactMessages = [],
 }: {
   itemHints?: OwnerItemHint[];
+  contactMessages?: OwnerContactMessageHint[];
 }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<OwnerNotification[]>([]);
@@ -26,11 +29,11 @@ export function OwnerNotifications({
 
   useEffect(() => {
     seedExampleOwnerNotifications();
-    syncDerivedOwnerNotifications(itemHints);
+    syncDerivedOwnerNotifications({ itemHints, contactMessages });
     setNotifications(loadOwnerNotifications());
     // Serialize so stable server payloads don't thrash on new array identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
-  }, [JSON.stringify(itemHints)]);
+  }, [JSON.stringify(itemHints), JSON.stringify(contactMessages)]);
 
   useEffect(() => {
     const sync = () => setNotifications(loadOwnerNotifications());
@@ -111,7 +114,9 @@ export function OwnerNotifications({
             <p className="font-[family-name:var(--font-display)] text-base text-[#0c1f2e]">
               Notifications
             </p>
-            <p className="text-xs text-slate-500">Updates from My Items</p>
+            <p className="text-xs text-slate-500">
+              My Items and Contact Management
+            </p>
           </div>
 
           {notifications.length === 0 ? (

@@ -12,9 +12,17 @@ export type OwnerNotification = {
 
 export type OwnerItemHint = {
   id: string;
-  kind: "cost" | "work-order" | "request" | "overdue" | "expiration";
+  kind: "cost" | "work-order" | "request" | "overdue" | "expiration" | "message";
   title: string;
   preview: string;
+};
+
+export type OwnerContactMessageHint = {
+  messageId: string;
+  senderName: string;
+  senderRole: "admin" | "system";
+  preview: string;
+  sentAt: string;
 };
 
 export const OWNER_NOTIFICATIONS_KEY = "harborline.owner.notifications";
@@ -23,6 +31,7 @@ const DISMISSED_IDS_KEY = "harborline.owner.dismissed-notifications";
 const EXAMPLE_SEEDED_KEY = "harborline.owner.example-notifications-seeded";
 
 const DERIVED_PREFIX = "item-";
+const MAX_STORED = 50;
 
 function loadDismissedNotificationIds(): string[] {
   if (typeof window === "undefined") return [];
@@ -95,7 +104,7 @@ export function pushOwnerNotification(
     href: input.href,
   };
   const existing = loadOwnerNotifications().filter((n) => n.id !== next.id);
-  saveOwnerNotifications([next, ...existing].slice(0, 20));
+  saveOwnerNotifications([next, ...existing].slice(0, MAX_STORED));
   return next;
 }
 
@@ -111,6 +120,8 @@ function hrefForItemKind(kind: OwnerItemHint["kind"]) {
       return "/owner/items#my-items-overdue";
     case "expiration":
       return "/owner/items#my-items-expirations";
+    case "message":
+      return "/owner/contact";
   }
 }
 
@@ -126,6 +137,10 @@ function nameForKind(kind: OwnerItemHint["kind"]) {
   if (kind === "request") return "Tenant";
   if (kind === "overdue" || kind === "expiration") return "Harborline";
   return "Harborline Management";
+}
+
+function isDerivedId(id: string) {
+  return id.startsWith(DERIVED_PREFIX) || id.startsWith("msg-waiting-");
 }
 
 /** Demo notifications for the owner portal (stable ids; seeded once per session). */
@@ -179,20 +194,23 @@ export function seedExampleOwnerNotifications() {
   }));
 
   if (examples.length > 0) {
-    saveOwnerNotifications([...examples, ...existing].slice(0, 20));
+    saveOwnerNotifications([...examples, ...existing].slice(0, MAX_STORED));
   }
   window.sessionStorage.setItem(EXAMPLE_SEEDED_KEY, "1");
 }
 
-/** Sync My Items–based notifications from server hints. */
-export function syncDerivedOwnerNotifications(hints: OwnerItemHint[]) {
+/** Sync My Items + Contact Management notifications from server hints. */
+export function syncDerivedOwnerNotifications(input: {
+  itemHints: OwnerItemHint[];
+  contactMessages?: OwnerContactMessageHint[];
+}) {
   if (typeof window === "undefined") return;
 
   const existing = loadOwnerNotifications();
-  const keep = existing.filter((n) => !n.id.startsWith(DERIVED_PREFIX));
+  const keep = existing.filter((n) => !isDerivedId(n.id));
   const dismissed = new Set(loadDismissedNotificationIds());
 
-  const derived: OwnerNotification[] = hints
+  const derived: OwnerNotification[] = input.itemHints
     .map((hint): OwnerNotification | null => {
       const id = `${DERIVED_PREFIX}${hint.kind}-${hint.id}`;
       if (dismissed.has(id)) return null;
@@ -210,7 +228,23 @@ export function syncDerivedOwnerNotifications(hints: OwnerItemHint[]) {
     })
     .filter((n): n is OwnerNotification => n != null);
 
-  saveOwnerNotifications([...derived, ...keep].slice(0, 20));
+  for (const msg of input.contactMessages ?? []) {
+    const id = `msg-waiting-${msg.messageId}`;
+    if (dismissed.has(id)) continue;
+    const prev = existing.find((n) => n.id === id);
+    derived.push({
+      id,
+      fromRole: msg.senderRole === "admin" ? "admin" : "system",
+      fromName: msg.senderName,
+      subject: "Message waiting for you",
+      preview: `You have a new message on Contact Management: ${msg.preview}`,
+      sentAt: prev?.sentAt ?? msg.sentAt,
+      read: prev?.read ?? false,
+      href: "/owner/contact",
+    });
+  }
+
+  saveOwnerNotifications([...derived, ...keep].slice(0, MAX_STORED));
 }
 
 /** Resolve a portal path for a notification (including older items without href). */
@@ -223,6 +257,10 @@ export function hrefForOwnerNotification(n: OwnerNotification): string | null {
   if (n.id.includes("request")) return "/owner/items#my-items-requests";
   if (n.id.includes("overdue")) return "/owner/items#my-items-overdue";
   if (n.id.includes("expiration")) return "/owner/items#my-items-expirations";
+  if (n.id.startsWith("msg-waiting-") || n.id.includes("message")) {
+    return "/owner/contact";
+  }
+  if (n.subject.toLowerCase().includes("message")) return "/owner/contact";
   if (n.subject.toLowerCase().includes("cost")) {
     return "/owner/items#my-items-costs";
   }
