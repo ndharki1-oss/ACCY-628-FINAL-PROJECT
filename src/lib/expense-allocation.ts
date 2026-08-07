@@ -52,13 +52,13 @@ export function taxTreatmentClass(t: TaxTreatment) {
 
 /** Demo-only heuristic — not stored, does not affect owner tax/books. */
 export function inferTaxTreatment(input: {
+  /** Kept for call-site compatibility; tax rules no longer differ by payer. */
   allocation: ExpenseAllocation;
   category: string;
   description: string;
   amount: number;
 }): TaxTreatment {
-  if (input.allocation === "company") return "company_opex";
-
+  // Same advisory rules for owner- and company-allocated lines.
   const text = `${input.category} ${input.description}`.toLowerCase();
   if (
     /modernization|replacement|renovate|capital|hvac replacement|roof|elevator|build[- ]?out/.test(
