@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isOwnerVisibleWorkOrder } from "@/lib/owner/wo-visibility";
 
 const emptyId = "00000000-0000-0000-0000-000000000000";
 
@@ -142,7 +143,6 @@ export async function fetchOwnerMyItems(
     { data: agreements },
     { data: costs },
     { data: wos },
-    { data: requests },
     { data: invoices },
     { data: leases },
     { data: deniedApprovals },
@@ -161,18 +161,10 @@ export async function fetchOwnerMyItems(
     supabase
       .from("work_orders")
       .select(
-        "id, property_id, wo_number, title, description, vendor_notes, estimated_cost, actual_cost, status, properties(name)"
+        "id, property_id, wo_number, title, description, vendor_notes, estimated_cost, actual_cost, status, vendor_id, properties(name)"
       )
       .in("property_id", propFilter)
       .eq("status", "pending_owner_approval"),
-    supabase
-      .from("tenant_requests")
-      .select(
-        "id, property_id, title, description, status, created_at, tenants(company_name), properties(name)"
-      )
-      .in("property_id", propFilter)
-      .eq("status", "open")
-      .order("created_at", { ascending: false }),
     supabase
       .from("invoices")
       .select(
@@ -222,29 +214,27 @@ export async function fetchOwnerMyItems(
       return b.amount - a.amount;
     });
 
-  const workOrders = (wos ?? []).map((w) => ({
-    id: w.id,
-    property_id: w.property_id,
-    property_name: unwrapName(w.properties) ?? propertyName(w.property_id),
-    wo_number: w.wo_number,
-    title: w.title,
-    description: w.description ?? null,
-    estimated_cost: Number(w.estimated_cost ?? 0),
-    actual_cost: Number(w.actual_cost ?? 0),
-    vendor_notes: w.vendor_notes,
-    status: w.status,
-  }));
-
-  const requestRows = (requests ?? []).map((r) => ({
-    id: r.id,
-    property_id: r.property_id,
-    property_name: unwrapName(r.properties) ?? propertyName(r.property_id),
-    title: r.title,
-    description: r.description,
-    status: r.status,
-    created_at: r.created_at,
-    tenant_name: unwrapName(r.tenants) ?? "Tenant",
-  }));
+  const workOrders = (wos ?? [])
+    .filter((w) =>
+      isOwnerVisibleWorkOrder({
+        vendorId: w.vendor_id,
+        estimatedCost: w.estimated_cost,
+        actualCost: w.actual_cost,
+        approvalThreshold: thresholdByProperty.get(w.property_id),
+      })
+    )
+    .map((w) => ({
+      id: w.id,
+      property_id: w.property_id,
+      property_name: unwrapName(w.properties) ?? propertyName(w.property_id),
+      wo_number: w.wo_number,
+      title: w.title,
+      description: w.description ?? null,
+      estimated_cost: Number(w.estimated_cost ?? 0),
+      actual_cost: Number(w.actual_cost ?? 0),
+      vendor_notes: w.vendor_notes,
+      status: w.status,
+    }));
 
   const overdueInvoices = (invoices ?? []).map((inv) => ({
     id: inv.id,
@@ -276,9 +266,9 @@ export async function fetchOwnerMyItems(
     .sort((a, b) => a.end_date.localeCompare(b.end_date));
 
   // Match property "actions": only costs over the approval threshold need a decision.
+  // Open tenant/maintenance requests (pre-estimate) stay on the admin screen.
   const costsNeedingDecision = costRows.filter((c) => c.overThreshold).length;
-  const decisionCount =
-    costsNeedingDecision + workOrders.length + requestRows.length;
+  const decisionCount = costsNeedingDecision + workOrders.length;
   const urgentExpirations = expirations.filter((e) => e.window === "12 months")
     .length;
   const attentionCount =
@@ -287,7 +277,7 @@ export async function fetchOwnerMyItems(
   return {
     costs: costRows,
     workOrders,
-    requests: requestRows,
+    requests: [] as OwnerMyItemsData["requests"],
     overdueInvoices,
     expirations,
     attentionCount,

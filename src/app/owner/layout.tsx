@@ -36,14 +36,6 @@ export default async function Layout({
         preview: `${w.wo_number}: ${w.title} · ${w.property_name}`,
       });
     }
-    for (const r of items.requests) {
-      itemHints.push({
-        id: r.id,
-        kind: "request",
-        title: "Open tenant request",
-        preview: `${r.title} · ${r.tenant_name} at ${r.property_name}`,
-      });
-    }
     for (const inv of items.overdueInvoices) {
       itemHints.push({
         id: inv.id,

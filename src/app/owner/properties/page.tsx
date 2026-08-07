@@ -3,7 +3,9 @@ import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
 import { MetricInfoTip } from "@/components/owner/metric-info-tip";
+import { OwnerActionPill } from "@/components/owner/owner-action-pill";
 import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
+import { isOwnerVisibleWorkOrder } from "@/lib/owner/wo-visibility";
 import { formatMoney } from "@/lib/utils";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -50,8 +52,6 @@ export default async function OwnerPropertiesPage() {
     { data: invoices },
     { data: costs },
     { data: workOrders },
-    { data: requests },
-    { data: deniedApprovals },
   ] =
     propertyIds.length > 0
       ? await Promise.all([
@@ -80,19 +80,11 @@ export default async function OwnerPropertiesPage() {
             .in("property_id", propertyIds),
           supabase
             .from("work_orders")
-            .select("id, property_id")
+            .select(
+              "id, property_id, vendor_id, estimated_cost, actual_cost"
+            )
             .in("property_id", propertyIds)
             .eq("status", "pending_owner_approval"),
-          supabase
-            .from("tenant_requests")
-            .select("id, property_id")
-            .in("property_id", propertyIds)
-            .eq("status", "open"),
-          supabase
-            .from("approvals")
-            .select("entity_id")
-            .eq("entity_type", "cost_entry")
-            .eq("status", "rejected"),
         ])
       : [
           { data: null },
@@ -100,11 +92,7 @@ export default async function OwnerPropertiesPage() {
           { data: null },
           { data: null },
           { data: null },
-          { data: null },
-          { data: null },
         ];
-
-  const deniedCostIds = new Set((deniedApprovals ?? []).map((a) => a.entity_id));
   const unitsByProperty = new Map<string, NonNullable<typeof units>>();
   for (const u of units ?? []) {
     const list = unitsByProperty.get(u.property_id) ?? [];
@@ -157,19 +145,24 @@ export default async function OwnerPropertiesPage() {
 
     const ma = firstRel(p.management_agreements);
     const threshold = Number(ma?.approval_threshold ?? 2500);
-    const awaitingCosts = propCosts.filter((c) => {
-      if (c.owner_approved || deniedCostIds.has(c.id)) return false;
-      return Number(c.amount) > threshold;
-    }).length;
-    const woCount = (workOrders ?? []).filter((w) => w.property_id === p.id).length;
-    const reqCount = (requests ?? []).filter((r) => r.property_id === p.id).length;
+    const woCount = (workOrders ?? []).filter(
+      (w) =>
+        w.property_id === p.id &&
+        isOwnerVisibleWorkOrder({
+          vendorId: w.vendor_id,
+          estimatedCost: w.estimated_cost,
+          actualCost: w.actual_cost,
+          approvalThreshold: threshold,
+        })
+    ).length;
 
     metricsByProperty.set(p.id, {
       occupancyPct,
       monthlyRent,
       overdueAmount,
       noiYtd: revenue - expenseAll,
-      actionCount: awaitingCosts + woCount + reqCount,
+      // Over-threshold WOs only; pre-estimate tenant requests stay on admin.
+      actionCount: woCount,
     });
   }
 
@@ -194,22 +187,16 @@ export default async function OwnerPropertiesPage() {
                 title={p.name}
                 className="h-full"
                 action={
-                  m.actionCount > 0 ? (
-                    <Link
-                      href={`/owner/properties/${p.id}#actions`}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-rose-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700"
-                      title="Open pending actions for this property"
-                    >
-                      <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-white/20 px-1 tabular-nums">
-                        {m.actionCount}
-                      </span>
-                      {m.actionCount === 1 ? "action" : "actions"}
-                    </Link>
-                  ) : (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
-                      No actions
-                    </span>
-                  )
+                  <OwnerActionPill
+                    count={m.actionCount}
+                    href={
+                      m.actionCount > 0
+                        ? `/owner/properties/${p.id}#actions`
+                        : undefined
+                    }
+                    singular="action"
+                    plural="actions"
+                  />
                 }
               >
                 <p className="text-sm text-slate-600">
