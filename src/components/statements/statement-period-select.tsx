@@ -7,10 +7,14 @@ export function StatementPeriodSelect({
   periods,
   selectedPeriod,
   basePath,
+  onPeriodChange,
 }: {
   periods: string[];
+  /** `null` means All periods */
   selectedPeriod: string | null;
   basePath: string;
+  /** Optional local handler — when set, called immediately so UI can update before navigation */
+  onPeriodChange?: (period: string | null) => void;
 }) {
   const router = useRouter();
 
@@ -24,8 +28,12 @@ export function StatementPeriodSelect({
         value={selectedPeriod ?? "all"}
         onChange={(e) => {
           const value = e.target.value;
+          const next = value === "all" ? null : value;
+          onPeriodChange?.(next);
           router.push(
-            value === "all" ? basePath : `${basePath}?period=${encodeURIComponent(value)}`
+            next === null
+              ? `${basePath}?period=all`
+              : `${basePath}?period=${encodeURIComponent(next)}`
           );
         }}
         aria-label="Statement period"
