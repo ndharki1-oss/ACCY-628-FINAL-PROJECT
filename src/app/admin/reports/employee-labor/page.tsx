@@ -9,7 +9,7 @@ export default async function AdminEmployeeLaborPage() {
     <div className="space-y-6">
       <ReportHeading
         title="Employee Labor Report"
-        info="Labor hours and costs by employee, property, and work order."
+        info="Labor on open / assigned / in-progress work orders, plus completed in-house (staff) jobs. Contractor labor is excluded from completed work."
       />
       <LaborTable rows={rows} />
     </div>

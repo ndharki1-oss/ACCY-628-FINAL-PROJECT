@@ -145,7 +145,6 @@ export function FeeComponentsView({
   /** Accounting portal only — export filtered statements to Excel/CSV */
   enableExcelExport?: boolean;
 }) {
-  const [query, setQuery] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -197,24 +196,15 @@ export function FeeComponentsView({
   );
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     return periodRows.filter((row) => {
       if (ownerFilter !== "all" && row.owner_name !== ownerFilter) return false;
       if (propertyFilter !== "all" && row.property_id !== propertyFilter) {
         return false;
       }
       if (statusFilter !== "all" && row.status !== statusFilter) return false;
-      if (!needle) return true;
-      return [
-        row.statement_number,
-        row.property_name,
-        row.owner_name,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
+      return true;
     });
-  }, [periodRows, query, ownerFilter, propertyFilter, statusFilter]);
+  }, [periodRows, ownerFilter, propertyFilter, statusFilter]);
 
   const totals = sumFeeTotals(filtered);
   const remittanceTotal = filtered.reduce(
@@ -235,7 +225,6 @@ export function FeeComponentsView({
 
   const filterNote = useMemo(() => {
     const parts: string[] = [];
-    if (query.trim()) parts.push(`search “${query.trim()}”`);
     if (ownerFilter !== "all") parts.push(`owner ${ownerFilter}`);
     if (propertyFilter !== "all") {
       const name =
@@ -246,7 +235,7 @@ export function FeeComponentsView({
       parts.push(`status ${statusFilter.replaceAll("_", " ")}`);
     }
     return parts.length > 0 ? parts.join(" · ") : null;
-  }, [query, ownerFilter, propertyFilter, statusFilter, properties]);
+  }, [ownerFilter, propertyFilter, statusFilter, properties]);
 
   const exportRows = useCallback(
     async (rowsToExport: FeeStatementRow[]) => {
@@ -401,19 +390,7 @@ export function FeeComponentsView({
         </Card>
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <label className="block text-sm md:col-span-2 xl:col-span-1">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
-            Search
-          </span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Statement, property, or owner"
-            className={inputClass}
-          />
-        </label>
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
             Owner

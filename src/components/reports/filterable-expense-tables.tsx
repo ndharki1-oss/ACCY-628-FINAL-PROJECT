@@ -393,22 +393,22 @@ export function LaborTable({
   rows: LaborRow[];
   enableExcelExport?: boolean;
 }) {
+  const [employeeFilter, setEmployeeFilter] = useState("all");
   const [propertyFilter, setPropertyFilter] = useState("all");
-  const [workOrderFilter, setWorkOrderFilter] = useState("all");
   const [sortKey, setSortKey] = useState<LaborSortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>("none");
 
-  const properties = useMemo(
+  const employees = useMemo(
     () =>
-      [...new Set(rows.map((r) => r.propertyName))].sort((a, b) =>
+      [...new Set(rows.map((r) => r.employeeName))].sort((a, b) =>
         a.localeCompare(b)
       ),
     [rows]
   );
 
-  const workOrders = useMemo(
+  const properties = useMemo(
     () =>
-      [...new Set(rows.map((r) => r.workOrderNumber ?? "—"))].sort((a, b) =>
+      [...new Set(rows.map((r) => r.propertyName))].sort((a, b) =>
         a.localeCompare(b)
       ),
     [rows]
@@ -426,13 +426,10 @@ export function LaborTable({
 
   const displayed = useMemo(() => {
     const filtered = rows.filter((row) => {
-      if (propertyFilter !== "all" && row.propertyName !== propertyFilter) {
+      if (employeeFilter !== "all" && row.employeeName !== employeeFilter) {
         return false;
       }
-      if (
-        workOrderFilter !== "all" &&
-        (row.workOrderNumber ?? "—") !== workOrderFilter
-      ) {
+      if (propertyFilter !== "all" && row.propertyName !== propertyFilter) {
         return false;
       }
       return true;
@@ -447,7 +444,7 @@ export function LaborTable({
       }
       return (a[sortKey] - b[sortKey]) * factor;
     });
-  }, [rows, propertyFilter, workOrderFilter, sortKey, sortDir]);
+  }, [rows, employeeFilter, propertyFilter, sortKey, sortDir]);
 
   return (
     <Card
@@ -485,9 +482,18 @@ export function LaborTable({
       }
     >
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-left text-sm">
+        <table className="w-full min-w-[880px] text-left text-sm">
           <thead className="border-b text-xs uppercase text-slate-500">
             <tr>
+              <th className="py-2 pr-2 align-bottom">
+                <span className="block">Employee</span>
+                <ValueFilterSelect
+                  label="Filter by employee"
+                  value={employeeFilter}
+                  onChange={setEmployeeFilter}
+                  options={employees}
+                />
+              </th>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Date</span>
                 <SortSelect
@@ -507,12 +513,6 @@ export function LaborTable({
               </th>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Work order</span>
-                <ValueFilterSelect
-                  label="Filter by work order"
-                  value={workOrderFilter}
-                  onChange={setWorkOrderFilter}
-                  options={workOrders}
-                />
               </th>
               <th className="py-2 pr-2 align-bottom">
                 <span className="block">Hours</span>
@@ -543,13 +543,14 @@ export function LaborTable({
           <tbody>
             {displayed.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-6 text-slate-500">
-                  No rows match the current filters.
+                <td colSpan={7} className="py-6 text-slate-500">
+                  No labor on open / in-progress or completed staff work orders.
                 </td>
               </tr>
             ) : (
               displayed.map((r) => (
                 <tr key={r.entryId} className="border-b border-slate-100">
+                  <td className="py-2 pr-2">{r.employeeName}</td>
                   <td className="py-2 pr-2">{r.workDate}</td>
                   <td className="py-2 pr-2">{r.propertyName}</td>
                   <td className="py-2 pr-2">{r.workOrderNumber ?? "—"}</td>

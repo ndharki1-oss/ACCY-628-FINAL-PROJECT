@@ -54,7 +54,7 @@ export default async function AdminDepositsPage() {
     <div className="space-y-6">
       <PageHeading
         title="Security Deposits"
-        vital="Use disposition on a held deposit to demo applied damages + refund (writes ledger events; does not delete seed)."
+        vital="Use disposition on a held deposit to demo applied damages + refund (writes ledger events; does not delete seed). Undo disposition on ledger rows to restore a deposit to held."
         info="Escrow ledger for tenant deposits."
       />
 

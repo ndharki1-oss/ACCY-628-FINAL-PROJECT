@@ -52,7 +52,7 @@ export default async function AdminLeasesPage() {
       .eq("party_type", "tenant"),
     supabase.from("payment_applications").select("payment_id, invoice_id, amount"),
     supabase.from("work_orders").select("id, lease_id, unit_id, wo_number, status, title"),
-    supabase.from("security_deposits").select("lease_id, amount, status"),
+    supabase.from("security_deposits").select("id, lease_id, amount, status"),
     supabase
       .from("management_agreements")
       .select("id, property_id, owner_id, status")
@@ -218,6 +218,7 @@ export default async function AdminLeasesPage() {
       nextRentDue: nextRentDueDate(lease.billing_day),
       securityDeposit: Number(deposit?.amount ?? lease.security_deposit_required ?? 0),
       securityDepositStatus: deposit?.status ?? null,
+      securityDepositId: deposit?.id ?? null,
       renewalStatus: renewalStatusLabel({
         status: lease.status,
         endDate: lease.end_date,

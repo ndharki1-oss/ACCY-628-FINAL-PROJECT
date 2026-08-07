@@ -472,6 +472,97 @@ export async function adminAssignWorkOrder(formData: FormData) {
   revalidateWorkOrderPaths(wo.property_id);
 }
 
+/** After owner rejection: re-open WO onto the assigned (or default staff) employee. */
+export async function adminSendRejectedWorkOrderToEmployee(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) throw new Error("Work order id required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: wo, error: woError } = await supabase
+    .from("work_orders")
+    .select("id, property_id, status, vendor_id, title, wo_number")
+    .eq("id", id)
+    .maybeSingle();
+  if (woError) throw new Error(woError.message);
+  if (!wo) throw new Error("Work order not found.");
+  if (wo.status !== "rejected") {
+    throw new Error("Only rejected work orders can be sent to an employee.");
+  }
+
+  const vendorId = wo.vendor_id ?? DEMO_STAFF_VENDOR_ID;
+  const { error } = await supabase
+    .from("work_orders")
+    .update({
+      vendor_id: vendorId,
+      status: "assigned",
+      rejection_reason: null,
+      requires_owner_approval: false,
+      owner_approved_at: null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  await supabase.rpc("write_audit", {
+    p_action: "admin_send_rejected_wo_to_employee",
+    p_entity_type: "work_order",
+    p_entity_id: id,
+    p_detail: { vendorId },
+  });
+
+  revalidateWorkOrderPaths(wo.property_id);
+}
+
+/** Notify linked tenant via Contact Management about a rejected work order. */
+export async function adminNotifyTenantRejectedWorkOrder(formData: FormData) {
+  const tenantId = String(formData.get("tenant_id") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!tenantId) throw new Error("Tenant id required.");
+  if (!body) throw new Error("Message body required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, full_name")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const senderName = profile.full_name || "Harborline Management";
+  const { error } = await supabase.from("tenant_manager_messages").insert({
+    tenant_id: tenantId,
+    sender_role: "admin",
+    sender_name: senderName,
+    body,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/messages");
+  revalidatePath("/admin/messages?channel=tenants");
+  revalidatePath("/tenant/contact");
+  revalidatePath("/admin/work-orders");
+}
+
 export async function ownerApproveWorkOrder(formData: FormData) {
   const id = String(formData.get("id"));
   const decision = String(formData.get("decision"));
@@ -1054,6 +1145,88 @@ export async function adminDisposeSecurityDeposit(formData: FormData) {
     p_entity_type: "security_deposit",
     p_entity_id: depositId,
     p_detail: { applied, refunded, status: newStatus },
+  });
+
+  revalidatePath("/admin/leases");
+  revalidatePath("/admin/deposits");
+  revalidatePath("/admin");
+  revalidatePath("/accounting");
+  revalidatePath("/owner");
+  revalidatePath("/owner/properties");
+  if (deposit.property_id) {
+    revalidatePath(`/owner/properties/${deposit.property_id}`);
+  }
+  revalidatePath("/tenant/lease");
+}
+
+export async function adminUndoSecurityDepositDisposition(formData: FormData) {
+  const depositId = String(formData.get("deposit_id") ?? "").trim();
+  if (!depositId) throw new Error("Deposit id required.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    throw new Error("Admin access required.");
+  }
+
+  const { data: deposit, error: depError } = await supabase
+    .from("security_deposits")
+    .select("id, status, property_id, notes")
+    .eq("id", depositId)
+    .maybeSingle();
+  if (depError) throw new Error(depError.message);
+  if (!deposit) throw new Error("Deposit not found.");
+  if (deposit.status !== "applied" && deposit.status !== "refunded") {
+    throw new Error("Only disposed deposits can be undone.");
+  }
+
+  const { data: dispositionEvents, error: eventsError } = await supabase
+    .from("security_deposit_events")
+    .select("id, event_type, amount")
+    .eq("deposit_id", depositId)
+    .in("event_type", ["applied", "refunded"]);
+  if (eventsError) throw new Error(eventsError.message);
+  if (!dispositionEvents?.length) {
+    throw new Error("No disposition events found to undo.");
+  }
+
+  const eventIds = dispositionEvents.map((e) => e.id);
+  const { error: deleteError } = await supabase
+    .from("security_deposit_events")
+    .delete()
+    .in("id", eventIds);
+  if (deleteError) throw new Error(deleteError.message);
+
+  const { error: updErr } = await supabase
+    .from("security_deposits")
+    .update({
+      status: "held",
+      notes: null,
+    })
+    .eq("id", depositId);
+  if (updErr) throw new Error(updErr.message);
+
+  await supabase.rpc("write_audit", {
+    p_action: "undo_dispose_security_deposit",
+    p_entity_type: "security_deposit",
+    p_entity_id: depositId,
+    p_detail: {
+      removed_events: dispositionEvents.map((e) => ({
+        id: e.id,
+        event_type: e.event_type,
+        amount: Number(e.amount),
+      })),
+      prior_status: deposit.status,
+    },
   });
 
   revalidatePath("/admin/leases");

@@ -317,7 +317,7 @@ export async function fetchMaintenanceReport(
     const cur = summaryMap.get(c.property_id);
     if (!cur) continue;
     const amt = Number(c.amount);
-    const cat = String(c.category);
+    const cat = String(c.category).toLowerCase();
     if (cat === "materials" || cat === "parts") cur.materialsCost += amt;
     else if (cat === "vendor" || cat === "equipment") cur.vendorCost += amt;
     else if (cat === "labor" || cat === "payroll") cur.laborCost += amt;
@@ -345,8 +345,9 @@ export async function fetchEmployeeLabor(
   let q = supabase
     .from("labor_time_entries")
     .select(
-      "id, profile_id, work_date, hours, hourly_rate, labor_cost, notes, properties(name), work_orders(wo_number), profiles(full_name)"
+      "id, profile_id, work_date, hours, hourly_rate, labor_cost, notes, properties(name), work_orders(wo_number, status, completed_at, vendors(worker_type)), profiles(full_name)"
     )
+    .not("work_order_id", "is", null)
     .order("work_date", { ascending: false });
 
   if (scope.profileId) {
@@ -356,24 +357,39 @@ export async function fetchEmployeeLabor(
     q = q.in("property_id", scope.propertyIds);
   }
 
+  const currentStatuses = new Set(["open", "assigned", "in_progress"]);
+
   const { data } = await q;
-  return (data ?? []).map((l) => {
-    const prop = Array.isArray(l.properties) ? l.properties[0] : l.properties;
-    const wo = Array.isArray(l.work_orders) ? l.work_orders[0] : l.work_orders;
-    const emp = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
-    return {
-      entryId: l.id,
-      employeeName: emp?.full_name ?? "Employee",
-      profileId: l.profile_id,
-      propertyName: prop?.name ?? "Property",
-      workOrderNumber: wo?.wo_number ?? null,
-      workDate: l.work_date,
-      hours: Number(l.hours),
-      hourlyRate: Number(l.hourly_rate),
-      laborCost: Number(l.labor_cost),
-      notes: l.notes,
-    };
-  });
+  return (data ?? [])
+    .map((l) => {
+      const prop = Array.isArray(l.properties) ? l.properties[0] : l.properties;
+      const wo = Array.isArray(l.work_orders) ? l.work_orders[0] : l.work_orders;
+      const emp = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
+      const vendor = Array.isArray(wo?.vendors) ? wo?.vendors[0] : wo?.vendors;
+      const status = wo?.status ? String(wo.status) : "";
+      const workerType = vendor?.worker_type
+        ? String(vendor.worker_type)
+        : "";
+      const isCurrent = currentStatuses.has(status);
+      const isCompletedStaff =
+        status === "approved" &&
+        Boolean(wo?.completed_at) &&
+        workerType === "staff";
+      if (!isCurrent && !isCompletedStaff) return null;
+      return {
+        entryId: l.id,
+        employeeName: emp?.full_name ?? "Employee",
+        profileId: l.profile_id,
+        propertyName: prop?.name ?? "Property",
+        workOrderNumber: wo?.wo_number ?? null,
+        workDate: l.work_date,
+        hours: Number(l.hours),
+        hourlyRate: Number(l.hourly_rate),
+        laborCost: Number(l.labor_cost),
+        notes: l.notes,
+      };
+    })
+    .filter((row): row is LaborRow => row != null);
 }
 
 export async function fetchExpenseBreakdown(

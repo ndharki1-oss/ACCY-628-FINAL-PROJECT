@@ -51,28 +51,28 @@ export default async function AdminPropertyOwnersPage() {
                         </div>
                       ) : null}
                     </td>
-                    <td className="py-3 pr-3 text-[#0c1f2e]">
-                      <span className="inline-flex items-center gap-1.5">
+                    <td className="min-w-[11rem] py-3 pr-5 text-[#0c1f2e]">
+                      <span className="inline-flex max-w-[14rem] flex-wrap items-center gap-2">
                         <svg
                           viewBox="0 0 20 20"
-                          className="h-3.5 w-3.5 fill-current text-slate-400"
+                          className="h-3.5 w-3.5 shrink-0 fill-current text-slate-400"
                           aria-hidden="true"
                         >
                           <path d="M3.5 3.5h3l1 3-1.7 1.7a12 12 0 0 0 5 5L12.5 11.5l3 1v3a1 1 0 0 1-1 1A13.5 13.5 0 0 1 2.5 4.5a1 1 0 0 1 1-1Z" />
                         </svg>
-                        {phone}
+                        <span className="break-all">{phone}</span>
                       </span>
                     </td>
-                    <td className="py-3 pr-3 text-[#0c1f2e]">
-                      <span className="inline-flex items-center gap-1.5">
+                    <td className="min-w-[14rem] py-3 pr-5 text-[#0c1f2e]">
+                      <span className="inline-flex max-w-[18rem] flex-wrap items-center gap-2">
                         <svg
                           viewBox="0 0 20 20"
-                          className="h-3.5 w-3.5 fill-current text-slate-400"
+                          className="h-3.5 w-3.5 shrink-0 fill-current text-slate-400"
                           aria-hidden="true"
                         >
                           <path d="M3 4.5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Zm0 1.3 7 4.4 7-4.4V5.5L10 9.7 3 5.8v0Z" />
                         </svg>
-                        {owner.email ?? "—"}
+                        <span className="break-all">{owner.email ?? "—"}</span>
                       </span>
                     </td>
                     <td className="py-3 pr-3">

@@ -202,10 +202,12 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
   const [selected, setSelected] = useState<BillingInvoiceRow | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [partyFilter, setPartyFilter] = useState("all");
-  const [datesQuery, setDatesQuery] = useState("");
+  const [issuedFrom, setIssuedFrom] = useState("");
+  const [issuedTo, setIssuedTo] = useState("");
+  const [dueFrom, setDueFrom] = useState("");
+  const [dueTo, setDueTo] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [balanceFilter, setBalanceFilter] = useState("all");
-  const [pdfFilter, setPdfFilter] = useState("all");
 
   const parties = useMemo(
     () =>
@@ -225,7 +227,6 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
 
   const rows = useMemo(() => {
     const invoiceNeedle = invoiceQuery.trim().toLowerCase();
-    const datesNeedle = datesQuery.trim().toLowerCase();
 
     return invoices.filter((invoice) => {
       if (
@@ -237,10 +238,10 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
       if (partyFilter !== "all" && invoice.partyName !== partyFilter) {
         return false;
       }
-      if (datesNeedle) {
-        const haystack = `${invoice.issueDate} ${invoice.dueDate}`.toLowerCase();
-        if (!haystack.includes(datesNeedle)) return false;
-      }
+      if (issuedFrom && invoice.issueDate < issuedFrom) return false;
+      if (issuedTo && invoice.issueDate > issuedTo) return false;
+      if (dueFrom && invoice.dueDate < dueFrom) return false;
+      if (dueTo && invoice.dueDate > dueTo) return false;
       if (statusFilter !== "all" && invoice.status !== statusFilter) {
         return false;
       }
@@ -249,23 +250,18 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
       if (balanceFilter === "open" && balance <= 0.009) return false;
       if (balanceFilter === "paid" && balance > 0.009) return false;
 
-      if (pdfFilter === "available" && invoice.partyType !== "tenant") {
-        return false;
-      }
-      if (pdfFilter === "none" && invoice.partyType === "tenant") {
-        return false;
-      }
-
       return true;
     });
   }, [
     invoices,
     invoiceQuery,
     partyFilter,
-    datesQuery,
+    issuedFrom,
+    issuedTo,
+    dueFrom,
+    dueTo,
     statusFilter,
     balanceFilter,
-    pdfFilter,
   ]);
 
   return (
@@ -277,7 +273,7 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
         />
       ) : null}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
             Invoice
@@ -307,18 +303,56 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
             ))}
           </select>
         </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
-            Dates
-          </span>
-          <input
-            type="search"
-            value={datesQuery}
-            onChange={(event) => setDatesQuery(event.target.value)}
-            placeholder="Issued or due date"
-            className={inputClass}
-          />
-        </label>
+        <div className="rounded-md border border-slate-300 bg-white p-3 shadow-sm">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            Issued (YYYY/MM/DD)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-xs text-slate-600">
+              From
+              <input
+                type="date"
+                value={issuedFrom}
+                onChange={(event) => setIssuedFrom(event.target.value)}
+                className={`${inputClass} mt-1`}
+              />
+            </label>
+            <label className="block text-xs text-slate-600">
+              To
+              <input
+                type="date"
+                value={issuedTo}
+                onChange={(event) => setIssuedTo(event.target.value)}
+                className={`${inputClass} mt-1`}
+              />
+            </label>
+          </div>
+        </div>
+        <div className="rounded-md border border-slate-300 bg-white p-3 shadow-sm">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            Due (YYYY/MM/DD)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block text-xs text-slate-600">
+              From
+              <input
+                type="date"
+                value={dueFrom}
+                onChange={(event) => setDueFrom(event.target.value)}
+                className={`${inputClass} mt-1`}
+              />
+            </label>
+            <label className="block text-xs text-slate-600">
+              To
+              <input
+                type="date"
+                value={dueTo}
+                onChange={(event) => setDueTo(event.target.value)}
+                className={`${inputClass} mt-1`}
+              />
+            </label>
+          </div>
+        </div>
         <label className="block text-sm">
           <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
             Status
@@ -348,20 +382,6 @@ export function AdminBillingTable({ invoices }: { invoices: BillingInvoiceRow[] 
             <option value="all">Any balance</option>
             <option value="open">Has balance</option>
             <option value="paid">Paid in full</option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs uppercase tracking-wide text-slate-500">
-            PDF
-          </span>
-          <select
-            value={pdfFilter}
-            onChange={(event) => setPdfFilter(event.target.value)}
-            className={inputClass}
-          >
-            <option value="all">Any</option>
-            <option value="available">PDF available</option>
-            <option value="none">No PDF</option>
           </select>
         </label>
       </div>
