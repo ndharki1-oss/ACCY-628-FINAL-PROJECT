@@ -1,9 +1,7 @@
 import { requireExactRole } from "@/lib/auth";
-import {
-  AccountingByOwnerTable,
-  AccountingNoiByPropertyTable,
-} from "@/components/accounting/filterable-mgmt-pnl-tables";
-import { Card, Stat } from "@/components/ui";
+import { AccountingNoiByPropertyTable } from "@/components/accounting/filterable-mgmt-pnl-tables";
+import { Card } from "@/components/ui";
+import { StatWithDetail } from "@/components/owner/stat-with-detail";
 import { formatMoney } from "@/lib/utils";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 
@@ -66,22 +64,6 @@ export default async function AccountingProfitabilityPage() {
     };
   });
 
-  const ownerMap = new Map<
-    string,
-    { name: string; revenue: number; expense: number }
-  >();
-  for (const row of byProperty) {
-    const key = row.owner ?? "Unknown";
-    const cur = ownerMap.get(key) ?? { name: key, revenue: 0, expense: 0 };
-    cur.revenue += row.revenue;
-    cur.expense += row.expense;
-    ownerMap.set(key, cur);
-  }
-
-  const byOwner = [...ownerMap.values()].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
-
   const weak = byProperty.filter((p) => p.noi < 0);
 
   return (
@@ -91,20 +73,20 @@ export default async function AccountingProfitabilityPage() {
       </h1>
       <p className="text-sm text-slate-600">{ALL_PERIODS_HINT}</p>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat
+        <StatWithDetail
           label="Company fee revenue"
           value={formatMoney(feeRevenue)}
-          hint={`${ALL_PERIODS_HINT} · GL 4000 = credit-based base management fees on collections`}
+          detail={`${ALL_PERIODS_HINT} · GL 4000 = credit-based base management fees on collections`}
         />
-        <Stat
+        <StatWithDetail
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint={`${ALL_PERIODS_HINT} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
+          detail={`${ALL_PERIODS_HINT} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
         />
-        <Stat
+        <StatWithDetail
           label="Company contribution"
           value={formatMoney(feeRevenue - companyCosts)}
-          hint={`${ALL_PERIODS_HINT} · Fees − Harborline OpEx (not property NOI)`}
+          detail={`${ALL_PERIODS_HINT} · Fees − Harborline OpEx (not property NOI)`}
         />
       </div>
 
@@ -123,12 +105,6 @@ export default async function AccountingProfitabilityPage() {
       <AccountingNoiByPropertyTable
         title={`NOI By Property · ${ALL_PERIODS_HINT}`}
         rows={byProperty}
-        enableExcelExport
-      />
-
-      <AccountingByOwnerTable
-        title={`By owner · ${ALL_PERIODS_HINT}`}
-        rows={byOwner}
         enableExcelExport
       />
     </div>

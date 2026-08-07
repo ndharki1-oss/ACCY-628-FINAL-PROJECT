@@ -237,14 +237,25 @@ export async function fetchMaintenanceReport(
   const propIds = properties.map((p) => p.id);
   if (!propIds.length) return { detail: [], summary: [] };
 
+  // Owner summary: billable owner costs only.
+  // Full (admin/accounting): also include company-paid materials/parts so the
+  // Materials column matches Expense Breakdown / Harborline-absorbed supplies.
+  let costsQuery = supabase
+    .from("cost_entries")
+    .select(
+      "id, property_id, category, description, amount, paid_by, work_order_id, work_orders(wo_number), properties(name)"
+    )
+    .in("property_id", propIds);
+  if (scope.mode === "summary") {
+    costsQuery = costsQuery.eq("paid_by", "owner");
+  } else {
+    costsQuery = costsQuery.or(
+      "paid_by.eq.owner,category.in.(materials,parts)"
+    );
+  }
+
   const [{ data: costs }, { data: labor }] = await Promise.all([
-    supabase
-      .from("cost_entries")
-      .select(
-        "id, property_id, category, description, amount, paid_by, work_order_id, work_orders(wo_number), properties(name)"
-      )
-      .eq("paid_by", "owner")
-      .in("property_id", propIds),
+    costsQuery,
     scope.mode === "summary"
       ? Promise.resolve({ data: [] as never[] })
       : supabase
