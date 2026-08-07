@@ -3,7 +3,10 @@ import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { fetchOwnerMyItems } from "@/lib/owner/my-items";
 import { formatMoney } from "@/lib/utils";
-import type { OwnerItemHint } from "@/lib/owner-notifications-store";
+import type {
+  OwnerContactMessageHint,
+  OwnerItemHint,
+} from "@/lib/owner-notifications-store";
 
 export default async function Layout({
   children,
@@ -17,7 +20,7 @@ export default async function Layout({
 
   const itemHints: OwnerItemHint[] = [];
   if (items) {
-    for (const c of items.costs.filter((x) => x.overThreshold).slice(0, 3)) {
+    for (const c of items.costs.filter((x) => x.overThreshold)) {
       itemHints.push({
         id: c.id,
         kind: "cost",
@@ -25,7 +28,7 @@ export default async function Layout({
         preview: `${c.description} at ${c.property_name} · ${formatMoney(c.amount)}`,
       });
     }
-    for (const w of items.workOrders.slice(0, 3)) {
+    for (const w of items.workOrders) {
       itemHints.push({
         id: w.id,
         kind: "work-order",
@@ -33,7 +36,7 @@ export default async function Layout({
         preview: `${w.wo_number}: ${w.title} · ${w.property_name}`,
       });
     }
-    for (const r of items.requests.slice(0, 2)) {
+    for (const r of items.requests) {
       itemHints.push({
         id: r.id,
         kind: "request",
@@ -41,7 +44,7 @@ export default async function Layout({
         preview: `${r.title} · ${r.tenant_name} at ${r.property_name}`,
       });
     }
-    for (const inv of items.overdueInvoices.slice(0, 2)) {
+    for (const inv of items.overdueInvoices) {
       itemHints.push({
         id: inv.id,
         kind: "overdue",
@@ -49,9 +52,7 @@ export default async function Layout({
         preview: `${inv.tenant_name} at ${inv.property_name} · ${formatMoney(inv.balance)} due ${inv.due_date}`,
       });
     }
-    for (const e of items.expirations
-      .filter((x) => x.window === "12 months")
-      .slice(0, 2)) {
+    for (const e of items.expirations.filter((x) => x.window === "12 months")) {
       itemHints.push({
         id: e.id,
         kind: "expiration",
@@ -59,6 +60,29 @@ export default async function Layout({
         preview: `${e.tenant_name} at ${e.property_name} ends ${e.end_date}`,
       });
     }
+  }
+
+  let contactMessages: OwnerContactMessageHint[] = [];
+  if (ownerId) {
+    const { data: managerMessages } = await supabase
+      .from("owner_manager_messages")
+      .select("id, sender_role, sender_name, body, created_at")
+      .eq("owner_id", ownerId)
+      .neq("sender_role", "owner")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    contactMessages = (managerMessages ?? [])
+      .filter(
+        (m) => m.sender_role === "admin" || m.sender_role === "system"
+      )
+      .map((m) => ({
+        messageId: m.id,
+        senderName: m.sender_name,
+        senderRole: m.sender_role === "admin" ? "admin" : "system",
+        preview: m.body,
+        sentAt: new Date(m.created_at).toLocaleString(),
+      }));
   }
 
   const ownerLinks = [
@@ -76,6 +100,7 @@ export default async function Layout({
       name={profile.full_name}
       links={ownerLinks}
       itemHints={itemHints}
+      contactMessages={contactMessages}
     >
       {children}
     </OwnerAppShell>
