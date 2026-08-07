@@ -1,6 +1,5 @@
 import { requireRole } from "@/lib/auth";
 import { MgmtPnlView } from "@/components/admin/mgmt-pnl-view";
-import { buildMgmtPnlMonthlySeries } from "@/lib/reports/mgmt-pnl-monthly";
 import { periodKey } from "@/lib/statements/fee-components";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -127,38 +126,14 @@ export default async function AdminProfitabilityPage({
     companyCostsFromEntries +
     companyCostsFromLabor;
 
-  const monthlySeries = buildMgmtPnlMonthlySeries({
-    feeLines: (feeLines ?? []).map((row) => {
-      const entry = firstRel(
-        row.journal_entries as
-          | { entry_date: string }
-          | { entry_date: string }[]
-          | null
-      );
-      return { credit: Number(row.credit), entryDate: entry?.entry_date };
-    }),
-    companyExpenses: (companyExp ?? []).map((row) => ({
-      amount: Number(row.amount),
-      incurredDate: row.incurred_date,
-    })),
-    companyPaidCosts: (costs ?? [])
-      .filter((row) => row.paid_by === "company")
-      .map((row) => ({
-        amount: Number(row.amount),
-        incurredDate: row.incurred_date,
-      })),
-    laborCosts: (labor ?? []).map((row) => ({
-      amount: Number(row.labor_cost),
-      workDate: row.work_date,
-    })),
-    // Chart has its own date-range control; keep full monthly history here.
-    selectedPeriod: null,
-  });
-
   const byProperty = (properties ?? []).map((p) => {
     const revenue = (invoices ?? [])
       .filter((i) => {
-        if (i.property_id !== p.id || i.party_type !== "tenant" || i.status === "void") {
+        if (
+          i.property_id !== p.id ||
+          i.party_type !== "tenant" ||
+          i.status === "void"
+        ) {
           return false;
         }
         return inSelectedPeriod(
@@ -178,8 +153,12 @@ export default async function AdminProfitabilityPage({
     return {
       id: p.id,
       name: p.name,
-      owner: firstRel(p.owners as { company_name: string } | { company_name: string }[] | null)
-        ?.company_name,
+      owner: firstRel(
+        p.owners as
+          | { company_name: string }
+          | { company_name: string }[]
+          | null
+      )?.company_name,
       revenue,
       expense,
       noi: revenue - expense,
@@ -209,7 +188,6 @@ export default async function AdminProfitabilityPage({
       basePath="/admin/profitability"
       feeRevenue={feeRevenue}
       companyCosts={companyCosts}
-      monthlySeries={monthlySeries}
       byProperty={byProperty}
       byOwner={byOwner}
     />

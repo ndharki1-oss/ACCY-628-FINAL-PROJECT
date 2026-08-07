@@ -50,13 +50,13 @@ export default async function AdminOwnerDetailPage({
 
       <Card title="Contact">
         <dl className="grid gap-3 sm:grid-cols-2">
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Phone</dt>
-            <dd className="text-right text-[#0c1f2e]">{phone}</dd>
+          <div className="flex items-baseline gap-2 text-sm">
+            <dt className="shrink-0 text-slate-500">Phone</dt>
+            <dd className="text-[#0c1f2e]">{phone}</dd>
           </div>
-          <div className="flex justify-between gap-4 text-sm">
-            <dt className="text-slate-500">Email</dt>
-            <dd className="text-right text-[#0c1f2e]">{owner.email ?? "—"}</dd>
+          <div className="flex items-baseline gap-2 text-sm">
+            <dt className="shrink-0 text-slate-500">Email</dt>
+            <dd className="break-all text-[#0c1f2e]">{owner.email ?? "—"}</dd>
           </div>
         </dl>
       </Card>

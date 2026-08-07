@@ -57,8 +57,6 @@ export function inferTaxTreatment(input: {
   description: string;
   amount: number;
 }): TaxTreatment {
-  if (input.allocation === "company") return "company_opex";
-
   const text = `${input.category} ${input.description}`.toLowerCase();
   if (
     /modernization|replacement|renovate|capital|hvac replacement|roof|elevator|build[- ]?out/.test(

@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MgmtPnlMonthlyChart } from "@/components/admin/mgmt-pnl-monthly-chart";
 import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
-import { Card, Stat } from "@/components/ui";
-import type { MgmtPnlMonthlyPoint } from "@/lib/reports/mgmt-pnl-monthly";
+import { StatWithDetail } from "@/components/owner/stat-with-detail";
+import { Card } from "@/components/ui";
 import { formatMoney } from "@/lib/utils";
 import { formatPeriodLabel } from "@/lib/statements/fee-components";
 import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
@@ -323,7 +322,6 @@ export function MgmtPnlView({
   basePath,
   feeRevenue,
   companyCosts,
-  monthlySeries,
   byProperty,
   byOwner,
 }: {
@@ -332,7 +330,6 @@ export function MgmtPnlView({
   basePath: string;
   feeRevenue: number;
   companyCosts: number;
-  monthlySeries: MgmtPnlMonthlyPoint[];
   byProperty: MgmtPnlPropertyRow[];
   byOwner: MgmtPnlOwnerRow[];
 }) {
@@ -358,24 +355,22 @@ export function MgmtPnlView({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat
+        <StatWithDetail
           label="Company fee revenue"
           value={formatMoney(feeRevenue)}
-          hint={`${periodLabel} · GL 4000 = credit-based base management fees on collections`}
+          detail={`${periodLabel} · GL 4000 = credit-based base management fees on collections`}
         />
-        <Stat
+        <StatWithDetail
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint={`${periodLabel} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
+          detail={`${periodLabel} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
         />
-        <Stat
+        <StatWithDetail
           label="Company contribution"
           value={formatMoney(feeRevenue - companyCosts)}
-          hint={`${periodLabel} · Fees − Harborline OpEx (not property NOI)`}
+          detail={`${periodLabel} · Fees − Harborline OpEx (not property NOI)`}
         />
       </div>
-
-      <MgmtPnlMonthlyChart series={monthlySeries} periodLabel={periodLabel} />
 
       {weak.length > 0 ? (
         <Card title={`Alerts: unprofitable / weak NOI properties · ${periodLabel}`}>

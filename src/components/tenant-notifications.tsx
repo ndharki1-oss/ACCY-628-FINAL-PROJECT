@@ -108,7 +108,7 @@ export function TenantNotifications({
           id={panelId}
           role="region"
           aria-label="Notifications"
-          className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-900 shadow-lg"
         >
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="font-[family-name:var(--font-display)] text-base text-[#0c1f2e]">
@@ -136,7 +136,7 @@ export function TenantNotifications({
                     <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
                       {n.fromRole} · {n.fromName}
                     </p>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
                       {n.preview}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">{n.sentAt}</p>

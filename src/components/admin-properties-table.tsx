@@ -21,7 +21,7 @@ export type AdminPropertyRow = {
   status: string;
 };
 
-type SortKey = "name" | "occupancy" | "unitCount";
+type SortKey = "name" | "occupancy" | "unitCount" | "status";
 
 function PropertyPreviewDialog({
   property,
@@ -173,7 +173,8 @@ export function AdminPropertiesTable({
     [properties]
   );
   const statuses = useMemo(
-    () => [...new Set(properties.map((p) => p.status))].sort(),
+    () =>
+      [...new Set(["inactive", ...properties.map((p) => p.status)])].sort(),
     [properties]
   );
 
@@ -200,6 +201,9 @@ export function AdminPropertiesTable({
       }
       if (sortKey === "unitCount") {
         return (a.unitCount - b.unitCount) * direction;
+      }
+      if (sortKey === "status") {
+        return a.status.localeCompare(b.status) * direction;
       }
       return a.name.localeCompare(b.name) * direction;
     });
@@ -271,6 +275,7 @@ export function AdminPropertiesTable({
               className="w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-[#0c1f2e] outline-none ring-[#c4784a] focus:ring-2"
             >
               <option value="name">Name</option>
+              <option value="status">Status</option>
               <option value="occupancy">Occupancy</option>
               <option value="unitCount">Unit count</option>
             </select>

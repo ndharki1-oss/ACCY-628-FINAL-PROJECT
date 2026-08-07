@@ -5,6 +5,7 @@ import {
   FeeRevenueRecognizedCard,
   type FeeRevenueLine,
 } from "@/components/admin-fee-revenue-breakdown";
+import { AdminDashboardCharts } from "@/components/admin-dashboard-charts";
 import { PropertyLocationsMap } from "@/components/property-locations-map";
 import { formatMoney } from "@/lib/utils";
 import {
@@ -13,7 +14,15 @@ import {
   requiresImmediateManagementAttention,
   type Priority,
 } from "@/lib/work-order-routing";
+import { buildMgmtPnlMonthlySeries } from "@/lib/reports/mgmt-pnl-monthly";
+import { fetchPropertyPnLChartActivity } from "@/lib/reports/data";
+import { buildGlFeeRevenueLines } from "@/lib/admin-fee-revenue-gl";
 import Link from "next/link";
+
+function firstRel<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
 
 function PriorityBadge({ priority }: { priority: Priority }) {
   const styles: Record<Priority, string> = {
@@ -72,10 +81,10 @@ export default async function AdminDashboard() {
   const { supabase } = await requireRole(["admin"]);
 
   const today = new Date();
-  const in30 = new Date(today);
-  in30.setDate(today.getDate() + 30);
+  const in6Months = new Date(today);
+  in6Months.setMonth(today.getMonth() + 6);
   const todayStr = today.toISOString().slice(0, 10);
-  const in30Str = in30.toISOString().slice(0, 10);
+  const in6MonthsStr = in6Months.toISOString().slice(0, 10);
 
   const [
     { count: owners },
@@ -111,7 +120,9 @@ export default async function AdminDashboard() {
       .eq("status", "pending_owner_approval"),
     supabase
       .from("journal_lines")
-      .select("credit, gl_accounts!inner(code)")
+      .select(
+        "id, credit, property_id, owner_id, owners(company_name), properties(name), journal_entries!inner(entry_date, entry_number, memo), gl_accounts!inner(code)"
+      )
       .eq("gl_accounts.code", "4000")
       .gt("credit", 0),
     supabase
@@ -131,7 +142,7 @@ export default async function AdminDashboard() {
       .select("id", { count: "exact", head: true })
       .in("status", ["active", "renewal_pending"])
       .gte("end_date", todayStr)
-      .lte("end_date", in30Str),
+      .lte("end_date", in6MonthsStr),
     supabase
       .from("work_orders")
       .select("id", { count: "exact", head: true })
@@ -154,30 +165,95 @@ export default async function AdminDashboard() {
       .in("status", ["open", "assigned", "in_progress", "pending_owner_approval"]),
   ]);
 
+  const [
+    chartActivity,
+    { data: mgmtFeeLines },
+    { data: companyExp },
+    { data: companyCosts },
+    { data: laborCosts },
+  ] = await Promise.all([
+    fetchPropertyPnLChartActivity(supabase, { mode: "full" }),
+    supabase
+      .from("journal_lines")
+      .select(
+        "credit, gl_accounts!inner(code), journal_entries!inner(entry_date)"
+      )
+      .eq("gl_accounts.code", "4000"),
+    supabase.from("company_expenses").select("amount, incurred_date"),
+    supabase
+      .from("cost_entries")
+      .select("amount, incurred_date, paid_by")
+      .eq("paid_by", "company"),
+    supabase.from("labor_time_entries").select("labor_cost, work_date"),
+  ]);
+
+  const monthlySeries = buildMgmtPnlMonthlySeries({
+    feeLines: (mgmtFeeLines ?? []).map((row) => {
+      const entry = firstRel(
+        row.journal_entries as
+          | { entry_date: string }
+          | { entry_date: string }[]
+          | null
+      );
+      return { credit: Number(row.credit), entryDate: entry?.entry_date };
+    }),
+    companyExpenses: (companyExp ?? []).map((row) => ({
+      amount: Number(row.amount),
+      incurredDate: row.incurred_date,
+    })),
+    companyPaidCosts: (companyCosts ?? []).map((row) => ({
+      amount: Number(row.amount),
+      incurredDate: row.incurred_date,
+    })),
+    laborCosts: (laborCosts ?? []).map((row) => ({
+      amount: Number(row.labor_cost),
+      workDate: row.work_date,
+    })),
+    selectedPeriod: null,
+  });
+
   const arOpen = (invoices ?? []).reduce(
     (s, i) => s + Number(i.total) - Number(i.amount_paid),
     0
   );
   const feeRevenue = (fees ?? []).reduce((s, r) => s + Number(r.credit), 0);
-  const feeLines: FeeRevenueLine[] = (feeStatementLines ?? []).map((row) => {
+
+  const statementSlices = (feeStatementLines ?? [])
+    .filter((row) => String(row.line_type) === "management_fee")
+    .map((row) => {
     const statement = firstRelation(row.owner_statements);
     const owner = firstRelation(statement?.owners);
     const property = firstRelation(statement?.properties);
-    const periodStart = statement?.period_start ?? "";
-    const periodEnd = statement?.period_end ?? "";
     return {
       id: row.id,
       amount: Math.abs(Number(row.amount)),
       ownerName: owner?.company_name ?? "Unassigned owner",
       propertyName: property?.name ?? "Unassigned property",
       statementNumber: statement?.statement_number ?? "—",
-      periodLabel:
-        periodStart && periodEnd ? `${periodStart} → ${periodEnd}` : "—",
-      periodEnd,
+      periodStart: statement?.period_start ?? "",
+      periodEnd: statement?.period_end ?? "",
       feeType: String(row.line_type),
       description: row.description ?? String(row.line_type),
     };
   });
+
+  const feeLines: FeeRevenueLine[] = buildGlFeeRevenueLines(
+    (fees ?? []).map((row) => {
+      const entry = firstRelation(row.journal_entries);
+      const owner = firstRelation(row.owners);
+      const property = firstRelation(row.properties);
+      return {
+        id: row.id,
+        credit: Number(row.credit),
+        ownerName: owner?.company_name ?? null,
+        propertyName: property?.name ?? null,
+        entryDate: entry?.entry_date ?? null,
+        entryNumber: entry?.entry_number ?? null,
+        memo: entry?.memo ?? null,
+      };
+    }),
+    statementSlices
+  );
   const overdue = (invoices ?? []).filter((i) => i.status === "overdue");
 
   const pendingDetails = (pendingWo ?? []).map((w) => {
@@ -315,12 +391,12 @@ export default async function AdminDashboard() {
               </p>
             </div>
           </div>
-          <a
-            href="#unapproved-work-risk"
+          <Link
+            href="/admin/work-orders?filter=emergency"
             className="inline-flex shrink-0 items-center justify-center rounded-md bg-[#0c1f2e] px-4 py-2 text-sm font-medium text-[#f3efe6] hover:bg-[#16384f]"
           >
             View Work Orders
-          </a>
+          </Link>
         </div>
       ) : null}
 
@@ -352,7 +428,7 @@ export default async function AdminDashboard() {
                     count: pendingDetails.filter((w) => w.priority === "Emergency")
                       .length,
                     tone: "rose" as const,
-                    href: "#unapproved-work-risk",
+                    href: "/admin/work-orders?filter=emergency",
                   },
                   {
                     key: "vendor-approvals",
@@ -363,7 +439,7 @@ export default async function AdminDashboard() {
                   },
                   {
                     key: "expiring-leases",
-                    label: "Leases expiring within 30 days",
+                    label: "Leases expiring within 6 months",
                     count: expiringLeases ?? 0,
                     tone: "sky" as const,
                     href: "/admin/leases",
@@ -431,6 +507,11 @@ export default async function AdminDashboard() {
           </Card>
         </div>
       </div>
+
+      <AdminDashboardCharts
+        monthlySeries={monthlySeries}
+        chartActivity={chartActivity}
+      />
 
       <Card title="Property Locations">
         <div className="h-[320px] sm:h-[380px]">

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CollapsibleCard } from "@/components/collapsible-card";
 import { Badge } from "@/components/ui";
-import { adminDisposeSecurityDeposit } from "@/app/actions/business";
+import { adminDisposeSecurityDeposit, adminUndoSecurityDepositDisposition } from "@/app/actions/business";
 import { formatMoney } from "@/lib/utils";
 
 export type AdminDepositRow = {
@@ -33,6 +33,10 @@ function sortByPropertyThenTenant(a: AdminDepositRow, b: AdminDepositRow) {
 }
 
 export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
+  const [appliedNoticeId, setAppliedNoticeId] = useState<string | null>(null);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [focusDepositId, setFocusDepositId] = useState<string | null>(null);
+
   const held = useMemo(
     () => rows.filter((r) => r.status === "held").sort(sortByPropertyThenTenant),
     [rows]
@@ -45,8 +49,52 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
   const heldByProperty = useMemo(() => groupByProperty(held), [held]);
   const ledgerByProperty = useMemo(() => groupByProperty(ledger), [ledger]);
 
+  useEffect(() => {
+    if (!appliedNoticeId) return;
+    const timer = window.setTimeout(() => {
+      setAppliedNoticeId(null);
+    }, 15_000);
+    return () => window.clearTimeout(timer);
+  }, [appliedNoticeId]);
+
+  useEffect(() => {
+    if (!focusDepositId || !ledgerOpen) return;
+    const targetId = `deposit-ledger-${focusDepositId}`;
+    const frame = window.requestAnimationFrame(() => {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-[#c4784a]", "ring-offset-2");
+      window.setTimeout(() => {
+        el.classList.remove("ring-2", "ring-[#c4784a]", "ring-offset-2");
+      }, 2500);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusDepositId, ledgerOpen]);
+
+  function goToDeposit(depositId: string) {
+    setLedgerOpen(true);
+    setFocusDepositId(depositId);
+  }
+
   return (
     <div className="space-y-4">
+      {appliedNoticeId ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p>
+            <span className="font-medium">Deposit applied.</span> Review or
+            adjust the deposit on the ledger below.
+          </p>
+          <button
+            type="button"
+            onClick={() => goToDeposit(appliedNoticeId)}
+            className="font-medium text-emerald-800 underline underline-offset-2 hover:text-emerald-950"
+          >
+            View / edit deposit
+          </button>
+        </div>
+      ) : null}
+
       <CollapsibleCard
         title={`Held deposits (${held.length})`}
         defaultOpen
@@ -62,7 +110,11 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
                 </h3>
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
                   {deposits.map((d) => (
-                    <li key={d.id} className="space-y-3 px-3 py-4 text-sm">
+                    <li
+                      key={d.id}
+                      id={`deposit-${d.id}`}
+                      className="space-y-3 px-3 py-4 text-sm"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-medium text-[#0c1f2e]">
@@ -81,7 +133,10 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
                         </div>
                       </div>
                       <form
-                        action={adminDisposeSecurityDeposit}
+                        action={async (formData) => {
+                          await adminDisposeSecurityDeposit(formData);
+                          setAppliedNoticeId(d.id);
+                        }}
                         className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-slate-50/80 p-3"
                       >
                         <input type="hidden" name="deposit_id" value={d.id} />
@@ -108,7 +163,7 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
                         </label>
                         <button
                           type="submit"
-                          className="rounded bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-white"
+                          className="cursor-pointer rounded bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#163246]"
                         >
                           Record disposition
                         </button>
@@ -122,7 +177,11 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
         )}
       </CollapsibleCard>
 
-      <CollapsibleCard title="Deposit ledger" defaultOpen={false}>
+      <CollapsibleCard
+        title="Deposit ledger"
+        open={ledgerOpen}
+        onOpenChange={setLedgerOpen}
+      >
         {ledger.length === 0 ? (
           <p className="text-sm text-slate-600">No deposits on file.</p>
         ) : (
@@ -134,7 +193,11 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
                 </h3>
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100">
                   {deposits.map((d) => (
-                    <li key={d.id} className="space-y-2 px-3 py-4 text-sm">
+                    <li
+                      key={d.id}
+                      id={`deposit-ledger-${d.id}`}
+                      className="space-y-2 rounded-md px-3 py-4 text-sm transition"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-medium">
@@ -180,6 +243,17 @@ export function AdminDepositsWorkspace({ rows }: { rows: AdminDepositRow[] }) {
                           ))}
                         </ul>
                       )}
+                      {d.status === "applied" || d.status === "refunded" ? (
+                        <form action={adminUndoSecurityDepositDisposition}>
+                          <input type="hidden" name="deposit_id" value={d.id} />
+                          <button
+                            type="submit"
+                            className="cursor-pointer rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                          >
+                            Undo disposition
+                          </button>
+                        </form>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

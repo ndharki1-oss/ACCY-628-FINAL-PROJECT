@@ -81,7 +81,11 @@ export function PropertyNoiBarChart({
 
   const chartData = useMemo(() => {
     return [...aggregated]
-      .sort((a, b) => b[metric] - a[metric])
+      .sort((a, b) => {
+        const byOwner = a.ownerName.localeCompare(b.ownerName);
+        if (byOwner !== 0) return byOwner;
+        return b[metric] - a[metric];
+      })
       .slice(0, 15)
       .map((row) => {
         const value = row[metric];
@@ -107,10 +111,10 @@ export function PropertyNoiBarChart({
           </p>
           <p className="mt-0.5 text-sm text-slate-600">
             {topCount === 0
-              ? `Top 15 by ${metricName}`
+              ? `Properties grouped by owner`
               : filteredCount > 15
-                ? `Top ${topCount} by ${metricName} · of ${filteredCount} filtered`
-                : `Top ${topCount} by ${metricName}`}
+                ? `Top ${topCount} · grouped by owner · of ${filteredCount} filtered`
+                : `Top ${topCount} · grouped by owner`}
           </p>
         </div>
 

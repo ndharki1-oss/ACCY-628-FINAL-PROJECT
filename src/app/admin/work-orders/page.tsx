@@ -7,6 +7,7 @@ import {
   adminCompleteWorkOrder,
   adminRouteWorkOrder,
 } from "@/app/actions/business";
+import { AdminWorkOrderNotifyActions } from "@/components/admin-work-order-notify-actions";
 import {
   DEMO_CONTRACTOR_VENDOR_ID,
   DEMO_STAFF_VENDOR_ID,
@@ -23,6 +24,7 @@ import {
 
 type FilterKey =
   | "all"
+  | "emergency"
   | "needs_estimate"
   | "owner"
   | "employee"
@@ -32,6 +34,7 @@ type FilterKey =
 function filterFromSearch(raw: string | string[] | undefined): FilterKey {
   const value = Array.isArray(raw) ? raw[0] : raw;
   if (
+    value === "emergency" ||
     value === "needs_estimate" ||
     value === "owner" ||
     value === "employee" ||
@@ -55,7 +58,7 @@ export default async function AdminWorkOrdersPage({
   const { data: rows } = await supabase
     .from("work_orders")
     .select(
-      "id, wo_number, wo_type, status, title, description, scheduled_date, estimated_cost, actual_cost, requires_owner_approval, owner_approved_at, vendor_id, completed_at, rejection_reason, tenant_request_id, properties(name, management_agreements(approval_threshold)), vendors(company_name, contact_name, worker_type), tenant_requests(id, title, service_type, tenants(company_name))"
+      "id, wo_number, wo_type, status, title, description, scheduled_date, estimated_cost, actual_cost, requires_owner_approval, owner_approved_at, vendor_id, completed_at, rejection_reason, tenant_request_id, properties(name, management_agreements(approval_threshold)), vendors(company_name, contact_name, worker_type), tenant_requests(id, title, service_type, tenants(id, company_name))"
     )
     .order("created_at", { ascending: false });
 
@@ -122,6 +125,9 @@ export default async function AdminWorkOrdersPage({
             ? "staff"
             : "pending";
 
+    const isRejected =
+      w.status === "rejected" || Boolean(w.rejection_reason);
+
     return {
       ...w,
       prop,
@@ -133,6 +139,8 @@ export default async function AdminWorkOrdersPage({
       needsEstimate,
       assigneeLabel,
       canAdminComplete,
+      isEmergency: routing.priority === "Emergency",
+      isRejected,
       paidBy: paidBy as "owner" | "company" | "pending",
       performer: performer as "staff" | "contractor" | "pending",
       needsAssign:
@@ -156,6 +164,7 @@ export default async function AdminWorkOrdersPage({
 
   const counts = {
     all: enriched.length,
+    emergency: enriched.filter((w) => w.isEmergency).length,
     needs_estimate: enriched.filter((w) => w.needsEstimate).length,
     owner: enriched.filter((w) => w.destination === "property_owner").length,
     employee: enriched.filter((w) => w.destination === "employee").length,
@@ -165,6 +174,8 @@ export default async function AdminWorkOrdersPage({
 
   const visible = enriched.filter((w) => {
     switch (filter) {
+      case "emergency":
+        return w.isEmergency;
       case "needs_estimate":
         return w.needsEstimate;
       case "owner":
@@ -182,12 +193,21 @@ export default async function AdminWorkOrdersPage({
 
   const chips: { key: FilterKey; label: string }[] = [
     { key: "all", label: "All" },
+    { key: "emergency", label: "Emergency" },
     { key: "needs_estimate", label: "Needs estimate" },
     { key: "owner", label: "With owner" },
     { key: "assign", label: "Ready to assign" },
     { key: "employee", label: "With worker" },
     { key: "completed", label: "Completed" },
   ];
+
+  const chipBase =
+    "cursor-pointer rounded-full px-3 py-1.5 text-xs font-medium transition";
+  const chipActive = "bg-[#0c1f2e] text-white hover:bg-[#163246]";
+  const chipIdle =
+    "bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900";
+  const actionBtn =
+    "cursor-pointer rounded px-3 py-1.5 text-xs font-medium transition";
 
   return (
     <div className="space-y-6">
@@ -207,11 +227,7 @@ export default async function AdminWorkOrdersPage({
             <a
               key={chip.key}
               href={href}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                active
-                  ? "bg-[#0c1f2e] text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
+              className={`${chipBase} ${active ? chipActive : chipIdle}`}
             >
               {chip.label} ({counts[chip.key]})
             </a>
@@ -298,9 +314,22 @@ export default async function AdminWorkOrdersPage({
                     : " · set an estimate to route"}
                 </p>
 
+                {w.isRejected ? (
+                  <AdminWorkOrderNotifyActions
+                    workOrderId={w.id}
+                    woNumber={w.wo_number}
+                    title={w.title}
+                    propertyName={w.prop?.name}
+                    rejectionReason={w.rejection_reason}
+                    vendorId={w.vendor_id}
+                    tenantId={w.linkedTenant?.id ?? null}
+                  />
+                ) : null}
+
                 {!w.completed_at &&
                 w.status !== "canceled" &&
-                w.status !== "pending_owner_approval" ? (
+                w.status !== "pending_owner_approval" &&
+                !w.isRejected ? (
                   <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
                     <form
                       action={adminRouteWorkOrder}
@@ -325,7 +354,7 @@ export default async function AdminWorkOrdersPage({
                       </label>
                       <button
                         type="submit"
-                        className="rounded bg-[#0c1f2e] px-3 py-1.5 text-xs font-medium text-white"
+                        className={`${actionBtn} bg-[#0c1f2e] text-white hover:bg-[#163246]`}
                       >
                         Route by rules
                       </button>
@@ -341,7 +370,7 @@ export default async function AdminWorkOrdersPage({
                         />
                         <button
                           type="submit"
-                          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800"
+                          className={`${actionBtn} border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50`}
                         >
                           Assign Victor Chen (contractor)
                         </button>
@@ -370,18 +399,9 @@ export default async function AdminWorkOrdersPage({
                             className="mt-1 block w-28 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
                           />
                         </label>
-                        <label className="text-xs text-slate-600">
-                          Notes
-                          <input
-                            name="notes"
-                            required
-                            placeholder="Work confirmed"
-                            className="mt-1 block w-40 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
-                          />
-                        </label>
                         <button
                           type="submit"
-                          className="rounded bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white"
+                          className={`${actionBtn} bg-emerald-800 text-white hover:bg-emerald-700`}
                         >
                           Confirm staff complete
                         </button>

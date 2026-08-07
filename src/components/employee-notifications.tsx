@@ -135,7 +135,7 @@ export function EmployeeNotifications({
                     <p className="mt-0.5 text-xs uppercase tracking-wide text-slate-500">
                       {n.fromRole} · {n.fromName}
                     </p>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">
                       {n.preview}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">{n.sentAt}</p>

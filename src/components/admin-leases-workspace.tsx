@@ -41,6 +41,7 @@ export type AdminLeaseRow = {
   nextRentDue: string;
   securityDeposit: number;
   securityDepositStatus: string | null;
+  securityDepositId: string | null;
   renewalStatus: RenewalStatusLabel;
   health: LeaseHealth;
   paymentStatus: PaymentStatusLabel;
@@ -294,6 +295,16 @@ function LeaseDetail({
           <Link href="/admin/billing" className={actionClass()}>
             View Payment History
           </Link>
+          <Link
+            href={
+              lease.securityDepositId
+                ? `/admin/deposits?deposit=${encodeURIComponent(lease.securityDepositId)}`
+                : `/admin/deposits?lease=${encodeURIComponent(lease.id)}`
+            }
+            className={actionClass()}
+          >
+            Deposit
+          </Link>
           <button type="button" onClick={onStartRenewal} className={actionClass()}>
             Start Renewal Review
           </button>
@@ -382,12 +393,8 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
         if (!expiresWithinDays(lease.endDate, days)) return false;
       }
       if (!needle) return true;
-      return [
-        lease.tenantName,
-        lease.propertyName,
-        lease.unitCode,
-        lease.leaseNumber,
-      ]
+      return [lease.tenantName, lease.tenantContactName]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(needle);
@@ -425,7 +432,7 @@ export function AdminLeasesWorkspace({ leases }: { leases: AdminLeaseRow[] }) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Tenant, property, suite, or lease #"
+            placeholder="Tenant name or company"
             className={inputClass}
           />
         </label>

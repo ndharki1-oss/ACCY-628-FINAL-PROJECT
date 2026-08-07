@@ -248,7 +248,7 @@ function ConversationDrawer({
                 return (
                   <li
                     key={message.id}
-                    className={`flex flex-col ${fromParty ? "items-end" : "items-start"}`}
+                    className={`flex flex-col ${fromParty ? "items-start" : "items-end"}`}
                   >
                     <p className="mb-1 text-xs text-slate-500">
                       {formatMessageDateTime(message.createdAt)}
@@ -256,13 +256,13 @@ function ConversationDrawer({
                     <div
                       className={`max-w-[92%] rounded-lg px-3 py-2 ${
                         fromParty
-                          ? "bg-[#0c1f2e] text-[#f3efe6]"
-                          : "border border-slate-200 bg-white text-slate-800"
+                          ? "border border-slate-200 bg-white text-slate-800"
+                          : "bg-[#0c1f2e] text-[#f3efe6]"
                       }`}
                     >
                       <p
                         className={`text-xs font-medium ${
-                          fromParty ? "text-slate-300" : "text-slate-500"
+                          fromParty ? "text-slate-500" : "text-slate-300"
                         }`}
                       >
                         {roleLabel(message.senderRole)} · {message.senderName}

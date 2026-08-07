@@ -15,15 +15,15 @@ export type FeeRevenueLine = {
   description: string;
 };
 
-type RangeMonths = 1 | 3 | 6 | 9 | 12 | 24;
+type RangeMonths = 1 | 3 | 6 | 9 | 12 | "all";
 
 const RANGE_OPTIONS: { months: RangeMonths; label: string }[] = [
+  { months: "all", label: "All periods" },
   { months: 1, label: "1 month" },
   { months: 3, label: "3 months" },
   { months: 6, label: "6 months" },
   { months: 9, label: "9 months" },
   { months: 12, label: "1 year" },
-  { months: 24, label: "2 years" },
 ];
 
 function todayIsoDate(now = new Date()) {
@@ -48,6 +48,7 @@ function lineDate(periodEnd: string): string | null {
 }
 
 function filterLinesByRange(lines: FeeRevenueLine[], months: RangeMonths) {
+  if (months === "all") return lines;
   const end = todayIsoDate();
   const start = addMonthsLocal(end, -months);
   return lines.filter((line) => {
@@ -67,10 +68,11 @@ function FeeRevenueDialog({
   const titleId = useId();
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [months, setMonths] = useState<RangeMonths>(12);
+  const [months, setMonths] = useState<RangeMonths>("all");
 
   const rangeLabel =
-    RANGE_OPTIONS.find((option) => option.months === months)?.label ?? "1 year";
+    RANGE_OPTIONS.find((option) => option.months === months)?.label ??
+    "All periods";
 
   const rangeLines = useMemo(
     () => filterLinesByRange(lines, months),
@@ -151,7 +153,7 @@ function FeeRevenueDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 mt-4 w-full max-w-3xl overflow-hidden rounded-lg border border-slate-800/10 bg-[#f4f1ea] shadow-xl"
+        className="relative z-10 mt-2 w-full max-w-5xl overflow-hidden rounded-lg border border-slate-800/10 bg-[#f4f1ea] shadow-xl"
       >
         <header className="flex items-start justify-between gap-4 bg-[#0c1f2e] px-5 py-4 text-[#f3efe6]">
           <div>
@@ -168,8 +170,8 @@ function FeeRevenueDialog({
             </h3>
             <p className="mt-1 text-xs text-slate-300">
               {selectedOwner
-                ? "Every fee line / statement for this owner."
-                : "Totals by owner company for the selected range. Click an owner for statement-level detail."}
+                ? "GL 4000 fee recognition lines for this owner."
+                : "Totals by owner for the selected GL entry-date range. Click an owner for line-level detail."}
             </p>
           </div>
           <button
@@ -214,14 +216,18 @@ function FeeRevenueDialog({
                 <select
                   value={months}
                   onChange={(e) => {
-                    setMonths(Number(e.target.value) as RangeMonths);
-                    setSelectedOwner(null);
+                    const value = e.target.value;
+                    setMonths(
+                      value === "all"
+                        ? "all"
+                        : (Number(value) as Exclude<RangeMonths, "all">)
+                    );
                   }}
                   className="rounded border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-[#c4784a] focus:ring-2"
                   aria-label="Fee revenue date range"
                 >
                   {RANGE_OPTIONS.map((option) => (
-                    <option key={option.months} value={option.months}>
+                    <option key={String(option.months)} value={option.months}>
                       {option.label}
                     </option>
                   ))}
@@ -247,7 +253,7 @@ function FeeRevenueDialog({
           </div>
 
           {!selectedOwner ? (
-            <div className="max-h-[50vh] overflow-auto rounded-md border border-slate-200 bg-white/70">
+            <div className="max-h-[65vh] overflow-auto rounded-md border border-slate-200 bg-white/70">
               <table className="w-full min-w-[420px] text-left text-sm">
                 <thead className="sticky top-0 border-b bg-[#f4f1ea] text-xs uppercase text-slate-500">
                   <tr>
@@ -289,12 +295,12 @@ function FeeRevenueDialog({
               </table>
             </div>
           ) : (
-            <div className="max-h-[50vh] overflow-auto rounded-md border border-slate-200 bg-white/70">
+            <div className="max-h-[65vh] overflow-auto rounded-md border border-slate-200 bg-white/70">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="sticky top-0 border-b bg-[#f4f1ea] text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-3 py-2">Property</th>
-                    <th className="px-3 py-2">Statement</th>
+                    <th className="px-3 py-2">Journal / statement</th>
                     <th className="px-3 py-2">Fee type</th>
                     <th className="px-3 py-2">Amount</th>
                   </tr>
@@ -333,7 +339,7 @@ function FeeRevenueDialog({
                         colSpan={4}
                         className="px-3 py-8 text-center text-slate-500"
                       >
-                        No fee / statement lines for this owner.
+                        No fee lines for this owner.
                       </td>
                     </tr>
                   ) : null}
@@ -375,8 +381,9 @@ export function FeeRevenueRecognizedCard({
           {formatMoney(total)}
         </button>
         <p className="mt-2 text-sm text-slate-600">
-          Click the amount for owner-company totals by date range (1 month–2
-          years), then open an owner to see every fee / statement line.
+          All-time GL 4000 total. Click to open the owner breakdown (defaults to
+          all periods so the total matches); narrow the date range inside the
+          dialog if needed.
         </p>
       </div>
     </div>
