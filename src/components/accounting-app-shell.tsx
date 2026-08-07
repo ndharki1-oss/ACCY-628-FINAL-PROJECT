@@ -36,13 +36,7 @@ function ExpensesNavGroup({
   }, [childActive, pathname]);
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => {
-        if (!childActive) setExpanded(false);
-      }}
-    >
+    <div className="relative">
       <button
         type="button"
         aria-expanded={expanded}

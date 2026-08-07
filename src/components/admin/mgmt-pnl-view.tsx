@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { MgmtPnlMonthlyChart } from "@/components/admin/mgmt-pnl-monthly-chart";
 import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
-import { Card, Stat } from "@/components/ui";
+import { Card } from "@/components/ui";
+import { StatWithDetail } from "@/components/owner/stat-with-detail";
 import type { MgmtPnlMonthlyPoint } from "@/lib/reports/mgmt-pnl-monthly";
 import { formatMoney } from "@/lib/utils";
 import { formatPeriodLabel } from "@/lib/statements/fee-components";
@@ -358,20 +359,20 @@ export function MgmtPnlView({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat
+        <StatWithDetail
           label="Company fee revenue"
           value={formatMoney(feeRevenue)}
-          hint={`${periodLabel} · GL 4000 = credit-based base management fees on collections`}
+          detail={`${periodLabel} · GL 4000 = credit-based base management fees on collections`}
         />
-        <Stat
+        <StatWithDetail
           label="Company operating costs"
           value={formatMoney(companyCosts)}
-          hint={`${periodLabel} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
+          detail={`${periodLabel} · company_expenses + company-paid WO costs + labor (not owner property OpEx)`}
         />
-        <Stat
+        <StatWithDetail
           label="Company contribution"
           value={formatMoney(feeRevenue - companyCosts)}
-          hint={`${periodLabel} · Fees − Harborline OpEx (not property NOI)`}
+          detail={`${periodLabel} · Fees − Harborline OpEx (not property NOI)`}
         />
       </div>
 

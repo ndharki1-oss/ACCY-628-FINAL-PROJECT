@@ -113,17 +113,26 @@ function unwrapOne<T>(v: T | T[] | null | undefined): T | null {
 export async function fetchFeeStatements(
   supabase: SupabaseClient
 ): Promise<FeeStatementRow[]> {
-  const { data, error } = await supabase
-    .from("owner_statements")
-    .select(
-      "id, statement_number, property_id, period_start, period_end, status, total_collections, total_expenses, management_fee, remittance_due, properties(name), owners(company_name), owner_statement_lines(line_type, description, amount)"
-    )
-    .order("period_end", { ascending: false })
-    .order("statement_number", { ascending: true });
+  // Paginate so "All periods" is never truncated by PostgREST max-rows.
+  const pageSize = 1000;
+  const raw: StatementQueryRow[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("owner_statements")
+      .select(
+        "id, statement_number, property_id, period_start, period_end, status, total_collections, total_expenses, management_fee, remittance_due, properties(name), owners(company_name), owner_statement_lines(line_type, description, amount)"
+      )
+      .order("period_end", { ascending: false })
+      .order("statement_number", { ascending: true })
+      .range(from, from + pageSize - 1);
 
-  if (error) throw new Error(error.message);
+    if (error) throw new Error(error.message);
+    const batch = (data ?? []) as StatementQueryRow[];
+    raw.push(...batch);
+    if (batch.length < pageSize) break;
+  }
 
-  return ((data ?? []) as StatementQueryRow[]).map((s) => {
+  return raw.map((s) => {
     const prop = unwrapOne(s.properties);
     const owner = unwrapOne(s.owners);
     const allLines = s.owner_statement_lines ?? [];

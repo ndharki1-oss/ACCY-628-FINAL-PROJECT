@@ -3,15 +3,15 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card, Stat } from "@/components/ui";
+import { OwnerNeedsApprovalFlag } from "@/components/owner/owner-action-pill";
 import { StatWithDetail } from "@/components/owner/stat-with-detail";
 import { TrustCashWaterfall } from "@/components/owner/trust-cash-waterfall";
 import { METRIC_EXPLAINERS } from "@/lib/owner/metric-explainers";
+import { isOwnerVisibleWorkOrder } from "@/lib/owner/wo-visibility";
 import { computeTrustCashPosition } from "@/lib/trust-cash";
 import { formatMoney } from "@/lib/utils";
 import {
-  ownerApproveCost,
   ownerApproveWorkOrder,
-  ownerReviewTenantRequest,
 } from "@/app/actions/business";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -81,8 +81,6 @@ export default async function OwnerPropertyDetailPage({
     { data: deposits },
     { data: costs },
     { data: workOrders },
-    { data: requests },
-    { data: deniedApprovals },
     { data: statements },
   ] = await Promise.all([
     supabase
@@ -117,23 +115,10 @@ export default async function OwnerPropertyDetailPage({
     supabase
       .from("work_orders")
       .select(
-        "id, wo_number, title, status, actual_cost, estimated_cost, vendor_notes, scheduled_date"
+        "id, wo_number, title, status, actual_cost, estimated_cost, vendor_notes, scheduled_date, vendor_id"
       )
       .eq("property_id", property.id)
       .eq("status", "pending_owner_approval"),
-    supabase
-      .from("tenant_requests")
-      .select(
-        "id, title, description, status, created_at, tenants(company_name, contact_name)"
-      )
-      .eq("property_id", property.id)
-      .eq("status", "open")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("approvals")
-      .select("entity_id")
-      .eq("entity_type", "cost_entry")
-      .eq("status", "rejected"),
     supabase
       .from("owner_statements")
       .select(
@@ -146,7 +131,6 @@ export default async function OwnerPropertyDetailPage({
   ]);
 
   const tenantInvoices = (invoices ?? []).filter((i) => i.status !== "void");
-  const deniedCostIds = new Set((deniedApprovals ?? []).map((a) => a.entity_id));
   const activeLeases = (leases ?? []).filter((l) =>
     ["active", "renewal_pending"].includes(l.status)
   );
@@ -163,10 +147,14 @@ export default async function OwnerPropertyDetailPage({
     tenantInvoices.filter((i) => i.status === "overdue").map((i) => i.tenant_id)
   );
   const heldDeposits = (deposits ?? []).filter((d) => d.status === "held");
-  const awaitingCosts = (costs ?? []).filter((c) => {
-    if (c.owner_approved || deniedCostIds.has(c.id)) return false;
-    return Number(c.amount) > threshold;
-  });
+  const visibleWorkOrders = (workOrders ?? []).filter((w) =>
+    isOwnerVisibleWorkOrder({
+      vendorId: w.vendor_id,
+      estimatedCost: w.estimated_cost,
+      actualCost: w.actual_cost,
+      approvalThreshold: threshold,
+    })
+  );
 
   const now = new Date();
   const mtdStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -495,68 +483,15 @@ export default async function OwnerPropertyDetailPage({
         <h2 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
           Actions for this property
         </h2>
-        <div className="grid gap-6 xl:grid-cols-2">
-          <Card title="Spend awaiting approval">
-            <p className="mb-4 text-sm text-slate-600">
-              Costs above your {formatMoney(threshold)} threshold.
-            </p>
-            {awaitingCosts.length === 0 ? (
-              <p className="text-sm text-slate-600">Nothing is waiting on you.</p>
-            ) : (
-              <ul className="space-y-4">
-                {awaitingCosts.map((c) => (
-                  <li key={c.id} className="rounded-lg border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-[#0c1f2e]">{c.description}</p>
-                        <p className="text-sm text-slate-600">
-                          {c.category} · {c.incurred_date}
-                        </p>
-                      </div>
-                      <p className="text-lg font-semibold">{formatMoney(c.amount)}</p>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <form action={ownerApproveCost}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <input type="hidden" name="decision" value="approve" />
-                        <button
-                          type="submit"
-                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.98]"
-                        >
-                          Approve
-                        </button>
-                      </form>
-                      <form action={ownerApproveCost} className="flex flex-wrap gap-2">
-                        <input type="hidden" name="id" value={c.id} />
-                        <input type="hidden" name="decision" value="deny" />
-                        <input
-                          name="reason"
-                          placeholder="Denial reason"
-                          className="rounded border border-slate-300 px-3 py-2 text-sm"
-                          required
-                        />
-                        <button
-                          type="submit"
-                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-[0.98]"
-                        >
-                          Deny
-                        </button>
-                      </form>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
+        <div className="grid gap-6">
           <Card title="Work orders over threshold">
-            {(workOrders ?? []).length === 0 ? (
+            {visibleWorkOrders.length === 0 ? (
               <p className="text-sm text-slate-600">
                 No work orders waiting on your approval.
               </p>
             ) : (
               <ul className="space-y-4">
-                {(workOrders ?? []).map((w) => (
+                {visibleWorkOrders.map((w) => (
                   <li key={w.id} className="rounded-lg border border-slate-200 p-4 text-sm">
                     <div className="flex flex-wrap justify-between gap-2">
                       <div>
@@ -571,7 +506,7 @@ export default async function OwnerPropertyDetailPage({
                             "After approval → Victor Chen (contractor); owner pays."}
                         </p>
                       </div>
-                      <Badge status={w.status} />
+                      <OwnerNeedsApprovalFlag />
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <form action={ownerApproveWorkOrder}>
@@ -607,62 +542,6 @@ export default async function OwnerPropertyDetailPage({
             )}
           </Card>
         </div>
-
-        <Card title="Open tenant requests">
-          {(requests ?? []).length === 0 ? (
-            <p className="text-sm text-slate-600">No open tenant requests.</p>
-          ) : (
-            <ul className="space-y-4">
-              {(requests ?? []).map((r) => {
-                const tenant = firstRel(r.tenants);
-                return (
-                  <li key={r.id} className="rounded-lg border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-[#0c1f2e]">{r.title}</p>
-                        <p className="text-sm text-slate-600">
-                          {tenant?.company_name ?? "Tenant"}
-                          {tenant?.contact_name ? ` · ${tenant.contact_name}` : ""}
-                        </p>
-                        {r.description ? (
-                          <p className="mt-2 text-sm text-slate-600">{r.description}</p>
-                        ) : null}
-                      </div>
-                      <Badge status={r.status} />
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <form action={ownerReviewTenantRequest}>
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="decision" value="approve" />
-                        <button
-                          type="submit"
-                          className="rounded bg-emerald-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-emerald-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.98]"
-                        >
-                          Approve
-                        </button>
-                      </form>
-                      <form action={ownerReviewTenantRequest} className="flex flex-wrap gap-2">
-                        <input type="hidden" name="id" value={r.id} />
-                        <input type="hidden" name="decision" value="decline" />
-                        <input
-                          name="notes"
-                          placeholder="Notes (optional)"
-                          className="rounded border border-slate-300 px-3 py-2 text-sm"
-                        />
-                        <button
-                          type="submit"
-                          className="rounded bg-rose-700 px-3 py-2 text-sm text-white shadow-sm transition hover:bg-rose-600 hover:shadow-md hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 active:scale-[0.98]"
-                        >
-                          Decline
-                        </button>
-                      </form>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
       </section>
     </div>
   );

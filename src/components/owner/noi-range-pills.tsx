@@ -9,10 +9,13 @@ import {
 export function NoiRangePills({
   selected,
   basePath,
+  preserveParams,
 }: {
   selected: NoiRangeKey;
-  /** e.g. `/owner/noi` or `/owner/noi/{id}` */
+  /** e.g. `/owner/noi` */
   basePath: string;
+  /** Extra query params to keep when changing range (e.g. property id). */
+  preserveParams?: Record<string, string | null | undefined>;
 }) {
   const router = useRouter();
 
@@ -29,11 +32,13 @@ export function NoiRangePills({
             key={opt.key}
             type="button"
             onClick={() => {
-              const path =
-                opt.key === "month"
-                  ? basePath
-                  : `${basePath}?range=${opt.key}`;
-              router.push(path);
+              const params = new URLSearchParams();
+              if (opt.key !== "month") params.set("range", opt.key);
+              for (const [key, value] of Object.entries(preserveParams ?? {})) {
+                if (value) params.set(key, value);
+              }
+              const qs = params.toString();
+              router.push(qs ? `${basePath}?${qs}` : basePath);
             }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
               active

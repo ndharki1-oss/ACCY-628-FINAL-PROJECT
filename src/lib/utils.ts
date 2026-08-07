@@ -84,6 +84,8 @@ export function formatMoney(n: number | string | null | undefined) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
+    // Display-only: negatives as ($1,234.56). Does not affect stored values or math.
+    currencySign: "accounting",
   }).format(Number.isFinite(v) ? v : 0);
 }
 

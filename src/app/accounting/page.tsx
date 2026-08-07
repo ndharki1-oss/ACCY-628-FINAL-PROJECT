@@ -229,10 +229,6 @@ export default async function AccountingDashboardPage({
         <Card title="Accounting periods">
           <ul className="space-y-2 text-sm">
             <li className="flex items-center justify-between gap-2">
-              <span className="text-slate-600">Open periods</span>
-              <span className="font-medium">{openPeriods.length}</span>
-            </li>
-            <li className="flex items-center justify-between gap-2">
               <span className="text-slate-600">Latest open</span>
               <span className="flex items-center gap-2">
                 {latestOpen ? (

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { getLinkedOwnerId } from "@/lib/portal";
 import { Badge, Card } from "@/components/ui";
@@ -8,7 +7,6 @@ import { fetchOwnerMyItems } from "@/lib/owner/my-items";
 import {
   ownerApproveCost,
   ownerApproveWorkOrder,
-  ownerReviewTenantRequest,
 } from "@/app/actions/business";
 import { OwnerDecisionActions } from "@/components/owner/owner-decision-actions";
 
@@ -60,7 +58,7 @@ export default async function OwnerMyItemsPage() {
           value={items.overdueInvoices.length}
           hot
         />
-        <SummaryStat label="Expiring ≤12 mo" value={expiring12} />
+        <SummaryStat label="Expiring ≤12 mo" value={expiring12} hot />
         <SummaryStat label="Watch list" value={items.expirations.length} />
       </div>
 
@@ -173,60 +171,6 @@ export default async function OwnerMyItemsPage() {
                     reasonRequired
                     reasonLabel="Why are you declining?"
                     reasonPlaceholder="Note for Harborline management…"
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        </div>
-
-        <div id="my-items-requests" className="scroll-mt-28">
-        <Card
-          title="Open tenant / maintenance requests"
-          action={
-            <Link
-              href="/owner/reports/maintenance"
-              className="text-sm text-[#c4784a]"
-            >
-              Cost report →
-            </Link>
-          }
-        >
-          {items.requests.length === 0 ? (
-            <p className="text-sm text-slate-600">No open tenant requests.</p>
-          ) : (
-            <ul className="space-y-4">
-              {items.requests.map((r) => (
-                <li key={r.id} className="rounded-lg border border-slate-200 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-[#0c1f2e]">{r.title}</p>
-                      <p className="text-sm text-slate-600">
-                        <PropertyLink
-                          id={r.property_id}
-                          className="text-slate-700 hover:text-[#c4784a] hover:underline"
-                        >
-                          {r.property_name}
-                        </PropertyLink>{" "}
-                        · {r.tenant_name}
-                      </p>
-                      {r.description ? (
-                        <p className="mt-2 text-sm text-slate-600">{r.description}</p>
-                      ) : null}
-                    </div>
-                    <Badge status={r.status} />
-                  </div>
-                  <OwnerDecisionActions
-                    id={r.id}
-                    action={ownerReviewTenantRequest}
-                    denyDecision="decline"
-                    denyOpenLabel="Decline…"
-                    denyConfirmLabel="Confirm decline"
-                    reasonName="notes"
-                    reasonRequired={false}
-                    reasonLabel="Why are you declining?"
-                    reasonPlaceholder="Optional note for Harborline…"
                   />
                 </li>
               ))}

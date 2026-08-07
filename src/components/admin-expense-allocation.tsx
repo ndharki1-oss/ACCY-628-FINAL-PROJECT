@@ -199,7 +199,6 @@ function AllocationDetailDialog({
                 <option value="deductible_repair">Deductible</option>
                 <option value="capital_improvement">Capitalizable</option>
                 <option value="operating_recoverable">Operating</option>
-                <option value="company_opex">Company OpEx</option>
                 <option value="pending">Pending</option>
               </select>
             </label>
@@ -317,9 +316,15 @@ export function AdminExpenseAllocation({
   const grand = ownerTotal + companyTotal;
 
   const ownerTax = sumByTaxTreatment(ownerLines);
-  const deductible = ownerTax.get("deductible_repair") ?? 0;
-  const capitalizable = ownerTax.get("capital_improvement") ?? 0;
-  const pending = ownerTax.get("pending") ?? 0;
+  const companyTax = sumByTaxTreatment(companyLines);
+  const deductible =
+    (ownerTax.get("deductible_repair") ?? 0) +
+    (companyTax.get("deductible_repair") ?? 0);
+  const capitalizable =
+    (ownerTax.get("capital_improvement") ?? 0) +
+    (companyTax.get("capital_improvement") ?? 0);
+  const pending =
+    (ownerTax.get("pending") ?? 0) + (companyTax.get("pending") ?? 0);
 
   const ownerTop = sumByCategory(ownerLines).slice(0, 3);
   const openLines = open === "owner" ? ownerLines : companyLines;
@@ -347,12 +352,12 @@ export function AdminExpenseAllocation({
           hint={`${companyLines.length} Harborline OpEx lines`}
         />
         <Stat
-          label="Owner deductible (adv.)"
+          label="Deductible (adv.)"
           value={formatMoney(deductible)}
-          hint="Does not file owner taxes"
+          hint="Owner + company · does not file taxes"
         />
         <Stat
-          label="Owner capitalizable (adv.)"
+          label="Capitalizable (adv.)"
           value={formatMoney(capitalizable)}
           hint={
             pending > 0 ? `${formatMoney(pending)} pending review` : "Advisory only"

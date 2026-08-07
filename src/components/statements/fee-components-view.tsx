@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useCallback, useMemo, useState } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { MetricInfoTip } from "@/components/owner/metric-info-tip";
 import { StatementPeriodSelect } from "@/components/statements/statement-period-select";
 import { Badge, Card, Stat } from "@/components/ui";
@@ -146,13 +152,21 @@ export function FeeComponentsView({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Local period so "All" updates totals immediately (does not wait on RSC navigation).
+  const [periodFilter, setPeriodFilter] = useState<string | null>(
+    selectedPeriod
+  );
+
+  useEffect(() => {
+    setPeriodFilter(selectedPeriod);
+  }, [selectedPeriod]);
 
   const periodRows = useMemo(
     () =>
-      selectedPeriod
-        ? rows.filter((r) => periodKey(r.period_end) === selectedPeriod)
+      periodFilter
+        ? rows.filter((r) => periodKey(r.period_end) === periodFilter)
         : rows,
-    [rows, selectedPeriod]
+    [rows, periodFilter]
   );
 
   const owners = useMemo(
@@ -215,8 +229,8 @@ export function FeeComponentsView({
   const mismatchCount = filtered.filter(hasFeeMismatch).length;
   const activeFeeTypes = FEE_LINE_TYPES.filter((t) => totals[t] > 0.009);
   const feeMixTotal = activeFeeTypes.reduce((sum, key) => sum + totals[key], 0);
-  const periodHint = selectedPeriod
-    ? formatPeriodLabel(selectedPeriod)
+  const periodHint = periodFilter
+    ? formatPeriodLabel(periodFilter)
     : "All periods";
 
   const filterNote = useMemo(() => {
@@ -265,8 +279,9 @@ export function FeeComponentsView({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <StatementPeriodSelect
           periods={periods}
-          selectedPeriod={selectedPeriod}
+          selectedPeriod={periodFilter}
           basePath={basePath}
+          onPeriodChange={setPeriodFilter}
         />
         <div className="flex max-w-xl flex-col items-end gap-2">
           <p className="flex items-start gap-2 text-sm text-slate-600">
@@ -457,9 +472,9 @@ export function FeeComponentsView({
 
       <Card
         title={
-          selectedPeriod
-            ? `Remittances · ${formatPeriodLabel(selectedPeriod)}`
-            : "Remittances"
+          periodFilter
+            ? `Remittances · ${formatPeriodLabel(periodFilter)}`
+            : "Remittances · All periods"
         }
         action={
           <span className="text-sm text-slate-500">
