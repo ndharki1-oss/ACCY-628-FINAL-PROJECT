@@ -44,17 +44,7 @@ const adminLinks: AdminNavItem[] = [
     ],
   },
   { href: "/admin/work-orders", label: "Work Orders" },
-  {
-    label: "Profitability",
-    children: [
-      { href: "/admin/profitability", label: "Management" },
-      { href: "/admin/reports/property-pnl", label: "Property" },
-      {
-        href: "/admin/reports/owner-profitability",
-        label: "Owner",
-      },
-    ],
-  },
+  { href: "/admin/profitability", label: "Profitability" },
   {
     label: "Expenses",
     children: [

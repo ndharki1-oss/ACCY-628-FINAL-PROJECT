@@ -1,5 +1,15 @@
 import { requireRole } from "@/lib/auth";
 import { MgmtPnlView } from "@/components/admin/mgmt-pnl-view";
+import {
+  OwnerProfitTable,
+  PropertyPnLTable,
+  ReportHeading,
+} from "@/components/reports/report-tables";
+import {
+  fetchOwnerProfitability,
+  fetchPropertyPnL,
+} from "@/lib/reports/data";
+import { ALL_PERIODS_HINT } from "@/lib/reports/period-label";
 import { periodKey } from "@/lib/statements/fee-components";
 
 function firstRel<T>(value: T | T[] | null | undefined): T | null {
@@ -35,6 +45,8 @@ export default async function AdminProfitabilityPage({
     { data: companyExp },
     { data: feeLines },
     { data: labor },
+    propertyRows,
+    ownerRows,
   ] = await Promise.all([
     supabase
       .from("properties")
@@ -56,6 +68,8 @@ export default async function AdminProfitabilityPage({
       )
       .eq("gl_accounts.code", "4000"),
     supabase.from("labor_time_entries").select("labor_cost, work_date"),
+    fetchPropertyPnL(supabase, { mode: "full" }),
+    fetchOwnerProfitability(supabase, { mode: "full" }),
   ]);
 
   const periodSet = new Set<string>();
@@ -182,14 +196,35 @@ export default async function AdminProfitabilityPage({
   );
 
   return (
-    <MgmtPnlView
-      periods={periods}
-      selectedPeriod={selectedPeriod}
-      basePath="/admin/profitability"
-      feeRevenue={feeRevenue}
-      companyCosts={companyCosts}
-      byProperty={byProperty}
-      byOwner={byOwner}
-    />
+    <div className="space-y-10">
+      <section className="space-y-6">
+        <MgmtPnlView
+          periods={periods}
+          selectedPeriod={selectedPeriod}
+          basePath="/admin/profitability"
+          feeRevenue={feeRevenue}
+          companyCosts={companyCosts}
+          byProperty={byProperty}
+          byOwner={byOwner}
+          showRollupTables={false}
+        />
+      </section>
+
+      <section className="space-y-4 border-t border-slate-200 pt-8">
+        <ReportHeading
+          title="Property Profit & Loss"
+          subtitle={`${ALL_PERIODS_HINT}. NOI = tenant revenue − cost_entries. Harborline labor is shown separately and is not in NOI.`}
+        />
+        <PropertyPnLTable rows={propertyRows} mode="full" />
+      </section>
+
+      <section className="space-y-4 border-t border-slate-200 pt-8">
+        <ReportHeading
+          title="Owner Profitability"
+          subtitle={`${ALL_PERIODS_HINT}. Profit generated from each property owner across all managed properties.`}
+        />
+        <OwnerProfitTable rows={ownerRows} />
+      </section>
+    </div>
   );
 }

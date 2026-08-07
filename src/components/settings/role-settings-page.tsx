@@ -28,7 +28,6 @@ const LANDING: Record<PortalRole, { value: string; label: string }[]> = {
   accounting: [
     { value: "/accounting", label: "Dashboard" },
     { value: "/accounting/profitability", label: "Profitability" },
-    { value: "/accounting/reports/property-pnl", label: "Property P&L" },
   ],
 };
 
